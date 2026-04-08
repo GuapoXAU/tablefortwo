@@ -76,7 +76,9 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 .idea-card:hover{border-color:var(--rose-mid)}
 .idea-card.top-pick{border:1.5px solid var(--rose);position:relative}
 .idea-top-label{position:absolute;top:10px;right:10px;background:var(--rose);color:#fff;font-size:10px;font-weight:500;padding:3px 8px;border-radius:10px;letter-spacing:0.3px}
-.idea-emoji{height:90px;display:flex;align-items:center;justify-content:center;font-size:44px;background:var(--bg2)}
+.idea-emoji{height:160px;display:flex;align-items:center;justify-content:center;font-size:44px;background:var(--bg2);overflow:hidden;position:relative}
+.idea-emoji img{width:100%;height:100%;object-fit:cover;display:block;transition:transform 0.4s}
+.idea-card:hover .idea-emoji img{transform:scale(1.04)}
 .idea-body{padding:12px}
 .idea-name{font-size:14px;font-weight:500;color:var(--ink);margin-bottom:4px}
 .idea-loc{font-size:11px;color:var(--ink-muted)}
@@ -187,7 +189,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
   .stat-val{font-size:22px}
 
   /* Idea cards — 1 column on narrow phones */
-  .idea-card .idea-emoji{height:72px;font-size:38px}
+  .idea-card .idea-emoji{height:180px;font-size:38px}
 
   /* Calendar */
   .cal-day{min-height:38px}
@@ -216,7 +218,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
   .g4{grid-template-columns:1fr}
   .content{padding:0.7rem;padding-bottom:calc(72px + env(safe-area-inset-bottom,20px))}
   .card-body{padding:0.8rem}
-  .idea-card .idea-emoji{height:60px;font-size:32px}
+  .idea-card .idea-emoji{height:150px;font-size:32px}
 }
 
 /* ── Landing page ── */
@@ -718,7 +720,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
         <div class="g3">
           <div class="idea-card top-pick" onclick="quickBook('Dishoom, London','restaurant','£65 for two')">
             <div class="idea-top-label">Your pick</div>
-            <div class="idea-emoji" style="background:#FDF5EE">🫕</div>
+            <div class="idea-emoji"><img src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=320&fit=crop&q=80" alt="Dishoom Indian restaurant" onerror="this.parentElement.innerHTML='🫕'"></div>
             <div class="idea-body">
               <div class="idea-name">Dishoom</div>
               <div class="idea-loc">Covent Garden · Indian</div>
@@ -728,7 +730,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
             </div>
           </div>
           <div class="idea-card" onclick="quickBook('Sketch, Mayfair','restaurant','£180 for two')">
-            <div class="idea-emoji" style="background:#F5F0FA">🎨</div>
+            <div class="idea-emoji"><img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80" alt="Sketch Mayfair restaurant" onerror="this.parentElement.innerHTML='🎨'"></div>
             <div class="idea-body">
               <div class="idea-name">Sketch</div>
               <div class="idea-loc">Mayfair · Modern European</div>
@@ -738,7 +740,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
             </div>
           </div>
           <div class="idea-card" onclick="quickBook('Ottolenghi, Islington','restaurant','£70 for two')">
-            <div class="idea-emoji" style="background:#F0F7F2">🥗</div>
+            <div class="idea-emoji"><img src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80" alt="Ottolenghi Mediterranean food" onerror="this.parentElement.innerHTML='🥗'"></div>
             <div class="idea-body">
               <div class="idea-name">Ottolenghi</div>
               <div class="idea-loc">Islington · Mediterranean</div>
@@ -756,7 +758,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
       <div class="g3" id="exp-grid">
         <div class="idea-card top-pick" onclick="quickBook('Secret Cinema: Baz Luhrmann Night','experience','£110 for two')">
           <div class="idea-top-label">Top pick</div>
-          <div class="idea-emoji">🎬</div>
+          <div class="idea-emoji"><img src="https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80" alt="Secret Cinema immersive experience" onerror="this.parentElement.innerHTML='🎬'"></div>
           <div class="idea-body">
             <div class="idea-name">Secret Cinema</div>
             <div class="idea-loc">London · Immersive cinema</div>
@@ -766,7 +768,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
           </div>
         </div>
         <div class="idea-card" onclick="quickBook('Kew Gardens evening stroll','experience','£40 for two')">
-          <div class="idea-emoji">🌿</div>
+          <div class="idea-emoji"><img src="https://images.unsplash.com/photo-1585320806297-9794b3e4aaae?w=600&h=320&fit=crop&q=80" alt="Kew Gardens botanical garden evening" onerror="this.parentElement.innerHTML='🌿'"></div>
           <div class="idea-body">
             <div class="idea-name">Kew Gardens evening</div>
             <div class="idea-loc">Richmond · Outdoor & cultural</div>
@@ -776,7 +778,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
           </div>
         </div>
         <div class="idea-card" onclick="quickBook('Saatchi Gallery + cocktails','experience','£55 for two')">
-          <div class="idea-emoji">🖼️</div>
+          <div class="idea-emoji"><img src="https://images.unsplash.com/photo-1554907984-15263bfd63bd?w=600&h=320&fit=crop&q=80" alt="Saatchi Gallery contemporary art" onerror="this.parentElement.innerHTML='🖼️'"></div>
           <div class="idea-body">
             <div class="idea-name">Saatchi + cocktails</div>
             <div class="idea-loc">Chelsea · Art & drinks</div>
@@ -996,25 +998,25 @@ function savePref(){toast('✦ Preferences saved for Jamie & Sophie');}
 
 const IDEAS={
   budget:[
-    {name:'Maltby Street Market brunch',loc:'Bermondsey · Street food',emoji:'🌮',price:'£25 for two',why:'Both love casual food scenes',score:78,type:'foodie',vibes:['Walkable']},
-    {name:'Tate Modern + Thames walk',loc:'South Bank · Art & outdoors',emoji:'🖼️',price:'Free + £15 coffee',why:'Jamie loves cultural, Sophie loves outdoors',score:86,type:'cultural',vibes:['Walkable','Unique / memorable']},
-    {name:'Yoga & smoothies morning',loc:'Shoreditch · Wellness',emoji:'🧘',price:'£35 for two',why:'Active shared interest',score:71,type:'fun',vibes:[]},
+    {name:'Maltby Street Market brunch',loc:'Bermondsey · Street food',emoji:'🌮',img:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=320&fit=crop&q=80',price:'£25 for two',why:'Both love casual food scenes',score:78,type:'foodie',vibes:['Walkable']},
+    {name:'Tate Modern + Thames walk',loc:'South Bank · Art & outdoors',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'Free + £15 coffee',why:'Jamie loves cultural, Sophie loves outdoors',score:86,type:'cultural',vibes:['Walkable','Unique / memorable']},
+    {name:'Yoga & smoothies morning',loc:'Shoreditch · Wellness',emoji:'🧘',img:'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&h=320&fit=crop&q=80',price:'£35 for two',why:'Active shared interest',score:71,type:'fun',vibes:[]},
   ],
   mid:[
-    {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'🫕',price:'£65 for two',why:'Sophie loves Indian, Jamie loves bold flavours',score:92,type:'foodie',vibes:['Candlelit']},
-    {name:'Secret Cinema evening',loc:'London · Immersive',emoji:'🎬',price:'£110 for two',why:'Unique & memorable — both listed as a must',score:94,type:'romantic',vibes:['Unique / memorable']},
-    {name:'Kew Gardens + riverside pub',loc:'Richmond · Outdoor',emoji:'🌿',price:'£55 for two',why:'Sophie loves outdoors, you both like walkable',score:81,type:'outdoor',vibes:['Walkable','Outdoor seats']},
-    {name:'Ottolenghi dinner',loc:'Islington · Mediterranean',emoji:'🥗',price:'£70 for two',why:'Sophie loves Med & it\'s vegetarian-friendly',score:88,type:'foodie',vibes:['Candlelit']},
+    {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'🫕',img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=320&fit=crop&q=80',price:'£65 for two',why:'Sophie loves Indian, Jamie loves bold flavours',score:92,type:'foodie',vibes:['Candlelit']},
+    {name:'Secret Cinema evening',loc:'London · Immersive',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'£110 for two',why:'Unique & memorable — both listed as a must',score:94,type:'romantic',vibes:['Unique / memorable']},
+    {name:'Kew Gardens + riverside pub',loc:'Richmond · Outdoor',emoji:'🌿',img:'https://images.unsplash.com/photo-1585320806297-9794b3e4aaae?w=600&h=320&fit=crop&q=80',price:'£55 for two',why:'Sophie loves outdoors, you both like walkable',score:81,type:'outdoor',vibes:['Walkable','Outdoor seats']},
+    {name:'Ottolenghi dinner',loc:'Islington · Mediterranean',emoji:'🥗',img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80',price:'£70 for two',why:'Sophie loves Med & it\'s vegetarian-friendly',score:88,type:'foodie',vibes:['Candlelit']},
   ],
   treat:[
-    {name:'Sketch, Mayfair',loc:'Mayfair · Modern European',emoji:'🎨',price:'£180 for two',why:'Unique venue — matches your \'memorable\' tag',score:85,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-    {name:'Riverboat dinner cruise',loc:'Thames · Romantic',emoji:'⛵',price:'£160 for two',why:'Intimate, scenic and totally unique',score:89,type:'romantic',vibes:['Candlelit','Unique / memorable','Walkable']},
-    {name:'Ronnie Scott\'s jazz night',loc:'Soho · Live music',emoji:'🎷',price:'£140 for two',why:'Cultural + intimate atmosphere',score:83,type:'cultural',vibes:['Live music','Candlelit']},
+    {name:'Sketch, Mayfair',loc:'Mayfair · Modern European',emoji:'🎨',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'£180 for two',why:'Unique venue — matches your \'memorable\' tag',score:85,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:'Riverboat dinner cruise',loc:'Thames · Romantic',emoji:'⛵',img:'https://images.unsplash.com/photo-1526129318-26d0ef3b7d2e?w=600&h=320&fit=crop&q=80',price:'£160 for two',why:'Intimate, scenic and totally unique',score:89,type:'romantic',vibes:['Candlelit','Unique / memorable','Walkable']},
+    {name:'Ronnie Scott\'s jazz night',loc:'Soho · Live music',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'£140 for two',why:'Cultural + intimate atmosphere',score:83,type:'cultural',vibes:['Live music','Candlelit']},
   ],
   luxury:[
-    {name:'The Savoy afternoon tea + dinner',loc:'Strand · Classic London',emoji:'🫖',price:'£280 for two',why:'Iconic, intimate, impeccable',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-    {name:'Core by Clare Smyth',loc:'Notting Hill · ★★★ Michelin',emoji:'🌟',price:'£380 for two',why:'World-class, intimate tasting menu',score:88,type:'foodie',vibes:['Candlelit','Tasting menu']},
-    {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'🛥️',price:'£320 for two',why:'Romantic, scenic, unforgettable',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:'The Savoy afternoon tea + dinner',loc:'Strand · Classic London',emoji:'🫖',img:'https://images.unsplash.com/photo-1551882547-ff40c599fb6d?w=600&h=320&fit=crop&q=80',price:'£280 for two',why:'Iconic, intimate, impeccable',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:'Core by Clare Smyth',loc:'Notting Hill · ★★★ Michelin',emoji:'🌟',img:'https://images.unsplash.com/photo-1547592180-85f173990554?w=600&h=320&fit=crop&q=80',price:'£380 for two',why:'World-class, intimate tasting menu',score:88,type:'foodie',vibes:['Candlelit','Tasting menu']},
+    {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'🛥️',img:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=320&fit=crop&q=80',price:'£320 for two',why:'Romantic, scenic, unforgettable',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable']},
   ]
 };
 
@@ -1041,7 +1043,7 @@ function generateSuggestions(){
       const isTop=idea.score===topScore&&idx===ideas.findIndex(i=>i.score===topScore);
       html+=`<div class="idea-card${isTop?' top-pick':''}" onclick="quickBook('${idea.name}','experience','${idea.price}')">
         ${isTop?'<div class="idea-top-label">Best match</div>':''}
-        <div class="idea-emoji" style="height:80px">${idea.emoji}</div>
+        <div class="idea-emoji"><img src="${idea.img}" alt="${idea.name}" loading="lazy" onerror="this.parentElement.innerHTML='${idea.emoji}'"></div>
         <div class="idea-body">
           <div class="idea-name">${idea.name}</div>
           <div class="idea-loc">${idea.loc}</div>
