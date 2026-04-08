@@ -5,10 +5,10 @@
 :root{
   --rose:#C4687A;--rose-light:#F5E6EA;--rose-mid:#E8B4BC;--rose-dark:#8B3A4A;
   --plum:#6B4C7A;--plum-light:#EDE6F2;--plum-mid:#C4A8D4;
-  --ink:var(--color-text-primary);--ink-soft:var(--color-text-secondary);--ink-muted:var(--color-text-tertiary);
-  --bg:var(--color-background-primary);--bg2:var(--color-background-secondary);--bg3:var(--color-background-tertiary);
-  --bdr:var(--color-border-tertiary);--bdr2:var(--color-border-secondary);
-  --r-md:var(--border-radius-md);--r-lg:var(--border-radius-lg);
+  --ink:var(--color-text-primary,#111111);--ink-soft:var(--color-text-secondary,#555555);--ink-muted:var(--color-text-tertiary,#999999);
+  --bg:var(--color-background-primary,#ffffff);--bg2:var(--color-background-secondary,#f7f7f8);--bg3:var(--color-background-tertiary,#f0f0f2);
+  --bdr:var(--color-border-tertiary,#ebebeb);--bdr2:var(--color-border-secondary,#d9d9d9);
+  --r-md:var(--border-radius-md,8px);--r-lg:var(--border-radius-lg,12px);
 }
 body{font-family:var(--font-sans,sans-serif);background:var(--bg3);color:var(--ink);min-height:100vh}
 .app{display:flex;min-height:100vh}
