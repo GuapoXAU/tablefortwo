@@ -537,8 +537,8 @@
     </div>
     <div class="topbar">
       <div class="topbar-left">
-        <h2 id="page-title">Good evening</h2>
-        <p id="page-sub">Plan something wonderful together</p>
+        <h2 id="page-title">Hey Jamie</h2>
+        <p id="page-sub">Planning something special tonight?</p>
       </div>
       <div class="couple-pill" onclick="go('profiles',document.querySelector('[onclick*=profiles]'))">
         <div class="couple-avatars">
@@ -995,9 +995,13 @@
     document.getElementById('page-'+id).classList.add('active');
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     if(el&&el.classList.contains('nav-item'))el.classList.add('active');
-    document.getElementById('page-title').textContent=TITLES[id]||id;
-    document.getElementById('page-sub').textContent=SUBS[id]||'';
-    const mt=document.getElementById('mobile-page-title');if(mt)mt.textContent=TITLES[id]||id;
+    if(id==='discover'){
+      setSmartGreeting();
+    } else {
+      document.getElementById('page-title').textContent=TITLES[id]||id;
+      document.getElementById('page-sub').textContent=SUBS[id]||'';
+    }
+    const mt=document.getElementById('mobile-page-title');if(mt)mt.textContent=id==='discover'?'Discover':(TITLES[id]||id);
     if(id==='planner')renderCal();
     if(id==='bookings'||id==='discover'){renderBookings();updateStats();}
     if(id==='planner')renderReminders();
@@ -1045,6 +1049,68 @@
       {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'🛥️',img:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=320&fit=crop&q=80',price:'£320 for two',why:'Romantic, scenic, unforgettable',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable']},
     ]
   };
+
+  // ── Smart greeting ──
+  const _WMO={0:'Clear skies',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+  const _WMO_FEEL={0:'Perfect evening for a date ✦',1:'Nice and clear out there ✦',2:'Good vibes tonight',3:'Cosy night in or out?',45:'Atmospheric night for it',48:'Atmospheric night for it',51:'Light drizzle — great excuse for candlelit dining',53:'Drizzly — perfect night to stay warm inside',55:'Drizzly — perfect night to stay warm inside',61:'Rainy night — made for good food and wine',63:'Rainy night — made for good food and wine',65:'Pouring — sounds like a restaurant night',71:'Snowy tonight — bundle up for something magical',73:'Snowy tonight — bundle up for something magical',75:'Heavy snow — cosy indoor date vibes',80:'Showery evening — great for indoor dining',81:'Showery evening — great for indoor dining',82:'Stormy out — perfect stay-in date',95:'Stormy out — perfect stay-in date',96:'Stormy out — perfect stay-in date',99:'Stormy out — perfect stay-in date'};
+  let _weatherFetched=false;
+
+  function setSmartGreeting(){
+    const now=new Date();
+    const h=now.getHours();
+    const day=now.getDay(); // 0=Sun,6=Sat
+    const name='Jamie';
+
+    // Time-based greeting
+    let greet;
+    if(h>=5&&h<12) greet=`Good morning, ${name}`;
+    else if(h>=12&&h<17) greet=`Good afternoon, ${name}`;
+    else if(h>=17&&h<21) greet=`Good evening, ${name}`;
+    else greet=`Hey ${name}`;
+
+    // Day-based sub
+    let sub;
+    const isWeekend=day===5||day===6||day===0;
+    const upcoming=bookings.filter(b=>b.date>=now.toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date))[0];
+    if(upcoming){
+      const diff=Math.round((new Date(upcoming.date+' 12:00')-now)/(1000*60*60*24));
+      if(diff===0) sub=`${upcoming.name} is today — enjoy every moment ♥`;
+      else if(diff===1) sub=`${upcoming.name} is tomorrow — exciting!`;
+      else if(diff<=7) sub=`${upcoming.name} is coming up in ${diff} days ✦`;
+      else sub=isWeekend?'Perfect weekend for a date — what are you planning?':'Got something special in mind?';
+    } else {
+      if(day===5) sub='Happy Friday — perfect night to plan something special ✦';
+      else if(day===6) sub='Saturday night — let\'s find you something wonderful';
+      else if(day===0) sub='Sunday evening — a little planning goes a long way';
+      else if(h<12) sub='What are you planning for later?';
+      else if(h<17) sub='Got something special in mind for tonight?';
+      else sub='Planning something wonderful together?';
+    }
+
+    document.getElementById('page-title').textContent=greet;
+    document.getElementById('page-sub').textContent=sub;
+
+    // Enhance sub with weather if not already fetched
+    if(!_weatherFetched&&navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(pos=>{
+        _weatherFetched=true;
+        const{latitude:lat,longitude:lon}=pos.coords;
+        fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,weathercode&timezone=auto`)
+          .then(r=>r.json())
+          .then(d=>{
+            const code=d.current?.weathercode??-1;
+            const temp=Math.round(d.current?.temperature_2m??0);
+            const feel=_WMO_FEEL[code];
+            const desc=_WMO[code]||'';
+            // Only update sub if still on discover page
+            const titleEl=document.getElementById('page-title');
+            if(titleEl&&titleEl.textContent===greet&&feel){
+              document.getElementById('page-sub').textContent=`${feel} · ${temp}°C`;
+            }
+          }).catch(()=>{});
+      },()=>{_weatherFetched=true;},{timeout:4000});
+    }
+  }
 
   const BUDGET_KEYS=['budget','mid','treat','luxury'];
   const BUDGET_LABELS=['Under £50','£50–£150','£150–£300','£300+'];
@@ -1313,69 +1379,3 @@
           alert(msg);
           btn.textContent = 'Reserve my spot ♥';
           btn.disabled = false;
-        });
-      }
-    })
-    .catch(function(){
-      alert('Could not connect. Please check your internet connection and try again.');
-      btn.textContent = 'Reserve my spot ♥';
-      btn.disabled = false;
-    });
-  }
-
-  // ── Landing page analytics ──
-  const _lpStart = Date.now();
-  let _lpDemoClicked = false;
-  let _lpSessionSent = false;
-
-  function _lpFmt(s){
-    if(s < 60) return s + 's';
-    return Math.floor(s/60) + 'm ' + (s%60) + 's';
-  }
-
-  function _lpSendSession(trigger){
-    if(_lpSessionSent) return;
-    _lpSessionSent = true;
-    const secs = Math.round((Date.now() - _lpStart) / 1000);
-    const survey = document.querySelector('.lp-option.selected .lp-option-text')?.textContent.trim() || 'No answer';
-    const vote   = document.querySelector('.lp-vote.selected .lp-vote-label')?.textContent.trim() || 'No vote';
-    const d = new FormData();
-    d.append('_subject', '[Analytics] Session: ' + _lpFmt(secs) + ' · demo clicked: ' + (_lpDemoClicked ? 'Yes' : 'No'));
-    d.append('event',          'landing_session');
-    d.append('time_on_page',   _lpFmt(secs));
-    d.append('time_seconds',   secs);
-    d.append('demo_clicked',   _lpDemoClicked ? 'Yes' : 'No');
-    d.append('exit_via',       trigger);
-    d.append('survey_answer',  survey);
-    d.append('would_use_vote', vote);
-    navigator.sendBeacon('https://formspree.io/f/xreodnbr', d);
-  }
-
-  // Fire when tab is closed, switched away from, or phone screen locks
-  document.addEventListener('visibilitychange', function(){
-    if(document.visibilityState === 'hidden'){
-      const lp = document.getElementById('landing');
-      if(lp && lp.style.display !== 'none' && lp.style.opacity !== '0'){
-        _lpSendSession('left_page');
-      }
-    }
-  });
-
-  function enterApp(){
-    _lpDemoClicked = true;
-    _lpSendSession('clicked_demo');
-    const lp = document.getElementById('landing');
-    lp.style.opacity = '0';
-    lp.style.transition = 'opacity 0.35s';
-    setTimeout(()=>lp.style.display='none', 350);
-  }
-
-  updateStats();renderBookings();
-  setTimeout(generateSuggestions,400);
-
-  // Skip landing silently when ?app is in the URL
-  if(new URLSearchParams(window.location.search).has('app')){
-    const lp = document.getElementById('landing');
-    if(lp) lp.style.display = 'none';
-  }
-  </script>
