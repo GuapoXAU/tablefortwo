@@ -970,6 +970,12 @@
   <div class="toast" id="toast"></div>
 
   <script>
+  // Skip landing immediately — must run before anything else
+  if(new URLSearchParams(window.location.search).has('app')){
+    const lp=document.getElementById('landing');
+    if(lp){lp.style.display='none';lp.style.visibility='hidden';}
+  }
+
   const TITLES={discover:'Discover',profiles:'Our profiles',restaurants:'Dining',experiences:'Experiences',hotels:'Accommodation',cabs:'Transport',planner:'Date planner',bookings:'My dates'};
   const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Arrive in style, together',planner:'Calendar, reminders & .ics export',bookings:'Every date, all in one place'};
 
@@ -1379,3 +1385,65 @@
           alert(msg);
           btn.textContent = 'Reserve my spot ♥';
           btn.disabled = false;
+        });
+      }
+    })
+    .catch(function(){
+      alert('Could not connect. Please check your internet connection and try again.');
+      btn.textContent = 'Reserve my spot ♥';
+      btn.disabled = false;
+    });
+  }
+
+  // ── Landing page analytics ──
+  const _lpStart = Date.now();
+  let _lpDemoClicked = false;
+  let _lpSessionSent = false;
+
+  function _lpFmt(s){
+    if(s < 60) return s + 's';
+    return Math.floor(s/60) + 'm ' + (s%60) + 's';
+  }
+
+  function _lpSendSession(trigger){
+    if(_lpSessionSent) return;
+    _lpSessionSent = true;
+    const secs = Math.round((Date.now() - _lpStart) / 1000);
+    const survey = document.querySelector('.lp-option.selected .lp-option-text')?.textContent.trim() || 'No answer';
+    const vote   = document.querySelector('.lp-vote.selected .lp-vote-label')?.textContent.trim() || 'No vote';
+    const d = new FormData();
+    d.append('_subject', '[Analytics] Session: ' + _lpFmt(secs) + ' · demo clicked: ' + (_lpDemoClicked ? 'Yes' : 'No'));
+    d.append('event',          'landing_session');
+    d.append('time_on_page',   _lpFmt(secs));
+    d.append('time_seconds',   secs);
+    d.append('demo_clicked',   _lpDemoClicked ? 'Yes' : 'No');
+    d.append('exit_via',       trigger);
+    d.append('survey_answer',  survey);
+    d.append('would_use_vote', vote);
+    navigator.sendBeacon('https://formspree.io/f/xreodnbr', d);
+  }
+
+  // Fire when tab is closed, switched away from, or phone screen locks
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState === 'hidden'){
+      const lp = document.getElementById('landing');
+      if(lp && lp.style.display !== 'none' && lp.style.opacity !== '0'){
+        _lpSendSession('left_page');
+      }
+    }
+  });
+
+  function enterApp(){
+    _lpDemoClicked = true;
+    _lpSendSession('clicked_demo');
+    const lp = document.getElementById('landing');
+    lp.style.opacity = '0';
+    lp.style.transition = 'opacity 0.35s';
+    setTimeout(()=>lp.style.display='none', 350);
+  }
+
+  updateStats();renderBookings();
+  setSmartGreeting();
+  setTimeout(generateSuggestions,400);
+
+</script>
