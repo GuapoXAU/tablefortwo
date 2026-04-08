@@ -506,8 +506,8 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
     <div class="nav-label">Book</div>
     <div class="nav-item" onclick="go('restaurants',this)"><span class="nav-icon">◈</span>Restaurants</div>
     <div class="nav-item" onclick="go('experiences',this)"><span class="nav-icon">◎</span>Experiences</div>
-    <div class="nav-item" onclick="go('hotels',this)"><span class="nav-icon">⌂</span>Hotels</div>
-    <div class="nav-item" onclick="go('cabs',this)"><span class="nav-icon">◉</span>Cabs</div>
+    <div class="nav-item" onclick="go('hotels',this)"><span class="nav-icon">⌂</span>Accommodation</div>
+    <div class="nav-item" onclick="go('cabs',this)"><span class="nav-icon">◉</span>Transport</div>
     <div class="nav-label">Plan</div>
     <div class="nav-item" onclick="go('planner',this)"><span class="nav-icon">◫</span>Date Planner</div>
     <div class="nav-item" onclick="go('bookings',this)"><span class="nav-icon">◎</span>My Dates</div>
@@ -905,8 +905,8 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
           <button class="btn btn-sm btn-rose" onclick="setFilter('all',this)">All</button>
           <button class="btn btn-sm" onclick="setFilter('restaurant',this)">Dining</button>
           <button class="btn btn-sm" onclick="setFilter('experience',this)">Experiences</button>
-          <button class="btn btn-sm" onclick="setFilter('hotel',this)">Hotels</button>
-          <button class="btn btn-sm" onclick="setFilter('cab',this)">Cabs</button>
+          <button class="btn btn-sm" onclick="setFilter('hotel',this)">Accommodation</button>
+          <button class="btn btn-sm" onclick="setFilter('cab',this)">Transport</button>
         </div></div>
         <div class="card-body" id="bookings-list"></div>
       </div>
@@ -945,7 +945,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 <div class="toast" id="toast"></div>
 
 <script>
-const TITLES={discover:'Discover',profiles:'Our profiles',restaurants:'Dining',experiences:'Experiences',hotels:'Romantic stays',cabs:'Cabs',planner:'Date planner',bookings:'My dates'};
+const TITLES={discover:'Discover',profiles:'Our profiles',restaurants:'Dining',experiences:'Experiences',hotels:'Accommodation',cabs:'Transport',planner:'Date planner',bookings:'My dates'};
 const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Arrive in style, together',planner:'Calendar, reminders & .ics export',bookings:'Every date, all in one place'};
 
 let bookings=[
