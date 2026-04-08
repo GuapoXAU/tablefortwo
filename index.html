@@ -570,7 +570,7 @@
         <div class="card" id="discover-card">
           <div class="card-head" style="border-bottom:none;padding-bottom:0.5rem">
             <div>
-              <div class="card-title" style="font-size:17px;line-height:1.3;font-family:var(--font-serif,serif)">Let's plan something<br>unforgettable tonight</div>
+              <div id="discover-headline" class="card-title" style="font-size:17px;line-height:1.3;font-family:var(--font-serif,serif)">Let's plan something<br>unforgettable tonight</div>
               <div class="card-sub" style="margin-top:5px">Tell me a vibe — I'll handle the rest</div>
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
@@ -581,6 +581,15 @@
 
           <!-- ── GUIDED VIEW ── -->
           <div id="discover-guided" class="card-body" style="padding-top:0.5rem">
+
+            <!-- Surprise us shortcut -->
+            <div style="margin-bottom:18px;padding:11px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border:1px solid var(--rose-mid);border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="surpriseUs()">
+              <div>
+                <div style="font-size:13px;font-weight:600;color:var(--rose-dark)">Surprise us ✦</div>
+                <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">Skip the config — I'll pick the best match</div>
+              </div>
+              <span style="font-size:20px;color:var(--rose);font-weight:300">→</span>
+            </div>
 
             <!-- Step 1: Who -->
             <div class="guided-step">
@@ -642,6 +651,29 @@
               </div>
             </div>
 
+            <!-- Step 4: When -->
+            <div class="guided-step" style="margin-bottom:16px">
+              <div class="guided-step-label"><span class="step-num">4</span>When is the date?</div>
+              <div class="g2" style="gap:10px">
+                <div class="form-group" style="margin:0">
+                  <label class="form-label">Date</label>
+                  <input type="date" class="form-input" id="date-when" style="font-size:13px">
+                </div>
+                <div class="form-group" style="margin:0">
+                  <label class="form-label">Time</label>
+                  <select class="form-input" id="date-time" style="font-size:13px">
+                    <option value="">Any time</option>
+                    <option>18:00 — Early evening</option>
+                    <option>19:00 — Dinner time</option>
+                    <option>19:30 — Dinner time</option>
+                    <option>20:00 — Late dinner</option>
+                    <option>20:30 — Late dinner</option>
+                    <option>21:00 — Night out</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <!-- Location -->
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
               <span style="font-size:13px;color:var(--ink-muted)">📍</span>
@@ -651,6 +683,9 @@
             </div>
 
             <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px;letter-spacing:0.2px" onclick="generateSuggestions()">Find our perfect date ✦</button>
+            <div style="margin-top:10px;padding:9px 12px;background:var(--bg2);border-radius:var(--r-md);border-left:3px solid var(--rose-mid)">
+              <div style="font-size:11px;color:var(--ink-muted);line-height:1.6"><span style="font-weight:600;color:var(--ink-soft)">Matching Jamie & Sophie</span> · No loud venues · Sophie loves Indian & outdoors · Jamie loves cultural</div>
+            </div>
           </div>
 
           <!-- ── CLASSIC VIEW (revert) ── -->
@@ -1216,10 +1251,18 @@
   }
 
   let _occasion='first_date';
+  const _OCCASION_HEADLINES={
+    first_date:"Let's make a great first impression",
+    partner:"Let's plan something unforgettable",
+    special:"Let's make this occasion unforgettable",
+    anniversary:"Let's make this anniversary unforgettable"
+  };
   function selectOccasion(el,val){
     el.closest('[id^=date-occasion]').querySelectorAll('.occasion-chip').forEach(c=>c.classList.remove('active'));
     el.classList.add('active');
     _occasion=val;
+    const hl=document.getElementById('discover-headline');
+    if(hl&&_OCCASION_HEADLINES[val])hl.innerHTML=_OCCASION_HEADLINES[val];
   }
   function selectOccasionClassic(el,val){selectOccasion(el,val);}
 
@@ -1259,10 +1302,10 @@
     }
     const occasionLabel={first_date:'First date',partner:'My partner',special:'Special occasion',anniversary:'Anniversary'}[_occasion]||'';
     const area=document.getElementById('suggestions-area');
-    const loadMsg=_occasion==='special'?'Finding something truly special for the occasion...'
-      :_occasion==='anniversary'?'Finding something special for your anniversary...'
-      :_occasion==='first_date'?'Finding perfect first date ideas...'
-      :'Matching ideas to both your tastes...';
+    const loadMsg=_occasion==='special'?'Finding something truly special for Jamie & Sophie...'
+      :_occasion==='anniversary'?'Finding the perfect anniversary for Jamie & Sophie...'
+      :_occasion==='first_date'?'Finding the perfect first date ideas for Jamie...'
+      :'Matching ideas to Jamie & Sophie\'s tastes...';
     area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">${loadMsg}</div></div></div>`;
     setTimeout(()=>{
       let ideas=[...(IDEAS[budget]||IDEAS.mid)];
@@ -1297,6 +1340,15 @@
         </div>`;
       });
       html+=`</div>`;
+      html+=`<div style="margin-top:1.25rem;padding:16px 18px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-lg)">
+        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:5px">Want me to plan the full evening? ✦</div>
+        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Add a cab to get there, a hotel for the night, and reminders for both of you — all in one place.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-rose btn-sm" onclick="go('cabs',document.querySelector('[onclick*=cabs]'))">+ Book a cab</button>
+          <button class="btn btn-sm" onclick="go('hotels',document.querySelector('[onclick*=hotels]'))">+ Add a hotel</button>
+          <button class="btn btn-sm" onclick="shareDate()">Share with Sophie ✦</button>
+        </div>
+      </div>`;
       area.innerHTML=html;
     },900);
   }
@@ -1563,8 +1615,27 @@
     setTimeout(()=>lp.style.display='none', 350);
   }
 
+  function surpriseUs(){
+    _vibeType='romantic';_vibeTag='Candlelit';_occasion='partner';
+    document.querySelectorAll('#date-occasion .occasion-chip').forEach((c,i)=>c.classList.toggle('active',i===1));
+    document.querySelectorAll('.vibe-card').forEach((c,i)=>c.classList.toggle('active',i===0));
+    const sl=document.getElementById('budget-slider');if(sl){sl.value=2;updateBudgetLabel(2);}
+    const hl=document.getElementById('discover-headline');if(hl)hl.innerHTML="Leave it with me — I'll surprise you";
+    generateSuggestions();
+  }
+
+  function shareDate(){
+    const url=window.location.origin+window.location.pathname+'?app';
+    if(navigator.share){navigator.share({title:'Our date plan — Table for Two',url}).catch(()=>{});}
+    else if(navigator.clipboard){navigator.clipboard.writeText(url).then(()=>toast('✦ Link copied — send it to Sophie!'));}
+    else{toast('✦ Share: '+url);}
+  }
+
   updateStats();renderBookings();
   setSmartGreeting();
   setTimeout(generateSuggestions,400);
+  // Set date picker to today by default
+  const _dw=document.getElementById('date-when');
+  if(_dw)_dw.value=new Date().toISOString().slice(0,10);
 
 </script>
