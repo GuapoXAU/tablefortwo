@@ -127,6 +127,11 @@
   .stat-val{font-family:var(--font-serif,serif);font-size:28px;font-weight:500;color:var(--ink);margin-top:4px}
   .stat-note{font-size:11px;color:var(--color-text-success);margin-top:3px}
 
+  .occasion-chip{display:flex;align-items:center;gap:6px;padding:8px 16px;border:1.5px solid var(--bdr2);border-radius:50px;cursor:pointer;font-size:12px;font-weight:500;color:var(--ink-soft);background:var(--bg2);transition:all 0.15s;-webkit-tap-highlight-color:transparent}
+  .occasion-chip:hover{border-color:var(--rose-mid);background:var(--rose-light);color:var(--rose-dark)}
+  .occasion-chip.active{border-color:var(--rose);background:var(--rose-light);color:var(--rose-dark)}
+  .occasion-icon{font-size:14px}
+
   .loading-overlay{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2.5rem;gap:12px}
   .spinner{width:28px;height:28px;border:2.5px solid var(--bdr2);border-top-color:var(--rose);border-radius:50%;animation:spin 0.8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
@@ -565,13 +570,15 @@
                 </select>
               </div>
               <div class="form-group" style="margin:0">
-                <label class="form-label">Budget</label>
-                <select class="form-input" id="budget-select">
-                  <option value="budget">Under £50 total</option>
-                  <option value="mid" selected>£50–£150 total</option>
-                  <option value="treat">£150–£300 total</option>
-                  <option value="luxury">£300+ total</option>
-                </select>
+                <label class="form-label">Budget — <span id="budget-label" style="color:var(--rose-dark);font-weight:500">£50–£150</span></label>
+                <div style="padding:6px 2px 2px">
+                  <input type="range" id="budget-slider" min="0" max="3" step="1" value="1" oninput="updateBudgetLabel(this.value)"
+                    style="width:100%;accent-color:var(--rose);height:4px;cursor:pointer">
+                  <div style="display:flex;justify-content:space-between;margin-top:5px">
+                    <span style="font-size:10px;color:var(--ink-muted)">Under £50</span>
+                    <span style="font-size:10px;color:var(--ink-muted)">£300+</span>
+                  </div>
+                </div>
               </div>
               <div class="form-group" style="margin:0">
                 <label class="form-label">Date type</label>
@@ -583,6 +590,23 @@
                   <option value="outdoor">Outdoor & fresh air</option>
                   <option value="foodie">All about the food</option>
                 </select>
+              </div>
+            </div>
+            <div style="margin-bottom:14px">
+              <div class="form-label" style="margin-bottom:8px">Who is this date with?</div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap" id="date-occasion">
+                <div class="occasion-chip active" onclick="selectOccasion(this,'first_date')">
+                  <span class="occasion-icon">✨</span>
+                  <span class="occasion-label">First date</span>
+                </div>
+                <div class="occasion-chip" onclick="selectOccasion(this,'partner')">
+                  <span class="occasion-icon">♥</span>
+                  <span class="occasion-label">Partner</span>
+                </div>
+                <div class="occasion-chip" onclick="selectOccasion(this,'anniversary')">
+                  <span class="occasion-icon">◈</span>
+                  <span class="occasion-label">Anniversary</span>
+                </div>
               </div>
             </div>
             <div style="margin-bottom:14px">
@@ -1022,13 +1046,31 @@
     ]
   };
 
+  const BUDGET_KEYS=['budget','mid','treat','luxury'];
+  const BUDGET_LABELS=['Under £50','£50–£150','£150–£300','£300+'];
+  function updateBudgetLabel(v){
+    document.getElementById('budget-label').textContent=BUDGET_LABELS[v];
+  }
+
+  let _occasion='first_date';
+  function selectOccasion(el,val){
+    document.querySelectorAll('.occasion-chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    _occasion=val;
+  }
+
   function generateSuggestions(){
-    const budget=document.getElementById('budget-select').value;
+    const sliderVal=document.getElementById('budget-slider')?parseInt(document.getElementById('budget-slider').value):1;
+    const budget=BUDGET_KEYS[sliderVal]||'mid';
     const loc=document.getElementById('loc-select').value;
     const vibe=document.getElementById('type-select').value;
     const activeTags=[...document.querySelectorAll('#vibe-tags .tag.on')].map(t=>t.textContent.trim());
+    const occasionLabel={first_date:'First date',partner:'Partner',anniversary:'Anniversary'}[_occasion]||'';
     const area=document.getElementById('suggestions-area');
-    area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Matching ideas to Jamie & Sophie's tastes...</div></div></div>`;
+    const loadMsg=_occasion==='anniversary'?'Finding something special for your anniversary...'
+      :_occasion==='first_date'?'Finding perfect first date ideas...'
+      :'Matching ideas to both your tastes...';
+    area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">${loadMsg}</div></div></div>`;
     setTimeout(()=>{
       let ideas=[...(IDEAS[budget]||IDEAS.mid)];
       if(vibe!=='all') ideas=ideas.filter(i=>i.type===vibe||vibe==='all').concat(ideas.filter(i=>i.type!==vibe)).slice(0,4);
@@ -1039,7 +1081,8 @@
       });
       ideas=ideas.slice(0,4);
       const topScore=Math.max(...ideas.map(i=>i.score));
-      let html=`<div class="section-head"><div class="section-title">Ideas for you in ${loc}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
+      const occasionSuffix=occasionLabel?` · ${occasionLabel}`:'';
+      let html=`<div class="section-head"><div class="section-title">Ideas for you in ${loc}${occasionSuffix}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
       html+=`<div class="g2">`;
       ideas.forEach((idea,idx)=>{
         const isTop=idea.score===topScore&&idx===ideas.findIndex(i=>i.score===topScore);
