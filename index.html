@@ -241,8 +241,9 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 .lp-nav{width:100%;display:flex;align-items:center;justify-content:space-between;padding:18px 24px 0;position:relative}
 .lp-logo{font-size:18px;font-weight:600;color:#fff;font-family:Georgia,serif;letter-spacing:-0.3px}
 .lp-logo-heart{margin-right:5px;opacity:0.9}
-.lp-skip{font-size:12px;color:rgba(255,255,255,0.75);cursor:pointer;padding:6px 0;border:none;background:none;font-family:inherit}
-.lp-skip:hover{color:#fff}
+.lp-skip{font-size:13px;font-weight:600;color:#8B3A4A;background:#fff;border:none;border-radius:20px;padding:8px 18px;cursor:pointer;font-family:inherit;letter-spacing:0.1px;box-shadow:0 2px 8px rgba(0,0,0,0.12)}
+.lp-skip:hover{background:#F5E6EA}
+.lp-skip:active{transform:scale(0.97)}
 .lp-hero-body{padding:40px 28px 52px;position:relative}
 .lp-tag{display:inline-block;background:rgba(255,255,255,0.18);color:#fff;font-size:11px;font-weight:500;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:20px;margin-bottom:22px;border:0.5px solid rgba(255,255,255,0.3)}
 .lp-headline{font-size:34px;font-weight:700;color:#fff;line-height:1.18;margin-bottom:14px;font-family:Georgia,serif;letter-spacing:-0.5px}
@@ -335,7 +336,7 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
   <div class="lp-hero">
     <div class="lp-nav">
       <div class="lp-logo"><span class="lp-logo-heart">♥</span>Table for Two</div>
-      <button class="lp-skip" onclick="enterApp()">Try demo →</button>
+      <button class="lp-skip" onclick="enterApp()">Skip to app →</button>
     </div>
     <div class="lp-hero-body">
       <div class="lp-tag">Early access</div>
@@ -1327,4 +1328,10 @@ function enterApp(){
 
 updateStats();renderBookings();
 setTimeout(generateSuggestions,400);
+
+// Skip landing silently when ?app is in the URL
+if(new URLSearchParams(window.location.search).has('app')){
+  const lp = document.getElementById('landing');
+  if(lp) lp.style.display = 'none';
+}
 </script>
