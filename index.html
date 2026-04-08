@@ -1163,16 +1163,51 @@ function selectOption(el){
   setTimeout(()=>document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'}),300);
 }
 
-function submitWaitlist(){
-  const name=document.getElementById('lp-name').value.trim();
-  const email=document.getElementById('lp-email').value.trim();
+// ── REPLACE THIS with your Formspree form ID ──
+// 1. Go to formspree.io → create free account → New Form
+// 2. Copy the form ID from the endpoint URL (the part after /f/)
+// 3. Paste it below replacing YOUR_FORM_ID
+const FORMSPREE_ID = 'xreodnbr';
+
+async function submitWaitlist(){
+  const name    = document.getElementById('lp-name').value.trim();
+  const email   = document.getElementById('lp-email').value.trim();
+  const partner = document.getElementById('lp-partner').value.trim();
+  const city    = document.getElementById('lp-city').value.trim();
+  const survey  = document.querySelector('.lp-option.selected .lp-option-text')?.textContent.trim() || 'Not answered';
+
   if(!name){alert('Please enter your name');return;}
   if(!email||!email.includes('@')){alert('Please enter a valid email address');return;}
-  // In production this would POST to a backend. For now store locally and show success.
-  const entry={name,email,partner:document.getElementById('lp-partner').value.trim(),city:document.getElementById('lp-city').value.trim(),ts:new Date().toISOString()};
-  try{const list=JSON.parse(localStorage.getItem('t42_waitlist')||'[]');list.push(entry);localStorage.setItem('t42_waitlist',JSON.stringify(list));}catch(e){}
-  document.getElementById('lp-form-wrap').style.display='none';
-  document.getElementById('lp-success').style.display='block';
+
+  const btn = document.querySelector('.lp-submit');
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+
+  const entry = {name, email, partner, city, survey, submitted: new Date().toISOString()};
+
+  // 1. Always save to localStorage as a local backup
+  try{
+    const list = JSON.parse(localStorage.getItem('t42_waitlist') || '[]');
+    list.push(entry);
+    localStorage.setItem('t42_waitlist', JSON.stringify(list));
+  }catch(e){}
+
+  // 2. Send to Formspree if a form ID has been set
+  if(FORMSPREE_ID !== 'YOUR_FORM_ID'){
+    try{
+      const res = await fetch('https://formspree.io/f/' + FORMSPREE_ID, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
+        body: JSON.stringify(entry)
+      });
+      if(!res.ok) throw new Error('Formspree error');
+    }catch(err){
+      console.warn('Formspree submission failed, saved to localStorage only:', err);
+    }
+  }
+
+  document.getElementById('lp-form-wrap').style.display = 'none';
+  document.getElementById('lp-success').style.display = 'block';
   document.getElementById('lp-success').scrollIntoView({behavior:'smooth'});
 }
 
