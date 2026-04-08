@@ -270,6 +270,20 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 
 .lp-divider{height:0.5px;background:#f0f0f0;margin:32px 0 0}
 
+.lp-woulduse{margin-top:32px}
+.lp-woulduse-q{font-size:16px;font-weight:600;color:#1a1a1a;margin-bottom:6px;line-height:1.4;font-family:Georgia,serif}
+.lp-woulduse-sub{font-size:13px;color:#777;margin-bottom:18px;line-height:1.5}
+.lp-vote-row{display:flex;gap:10px}
+.lp-vote{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:18px 10px;border:1.5px solid #eee;border-radius:14px;cursor:pointer;transition:all 0.18s;-webkit-tap-highlight-color:transparent;text-align:center}
+.lp-vote:active{transform:scale(0.97)}
+.lp-vote.yes.selected{border-color:#C4687A;background:#FDF8F9}
+.lp-vote.maybe.selected{border-color:#C4A87A;background:#FDF8F2}
+.lp-vote.no.selected{border-color:#7A8CC4;background:#F2F4FD}
+.lp-vote-emoji{font-size:28px}
+.lp-vote-label{font-size:12px;font-weight:600;color:#333}
+.lp-vote-desc{font-size:10px;color:#999;line-height:1.4}
+.lp-vote-result{display:none;margin-top:16px;padding:14px 16px;border-radius:12px;background:#FDF8F9;border:0.5px solid #F5E6EA;font-size:13px;color:#8B3A4A;line-height:1.5;text-align:center}
+
 .lp-survey{margin-top:32px}
 .lp-survey-q{font-size:16px;font-weight:600;color:#1a1a1a;margin-bottom:14px;line-height:1.4;font-family:Georgia,serif}
 .lp-options{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
@@ -403,6 +417,33 @@ select.form-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
           <div class="lp-option-text">We have a system that works pretty well already</div>
         </div>
       </div>
+    </div>
+
+    <div class="lp-divider"></div>
+
+    <!-- Would you use it? -->
+    <div class="lp-woulduse lp-section">
+      <div class="lp-section-label">Your verdict</div>
+      <div class="lp-woulduse-q">Now that you've seen it — would you actually use Table for Two?</div>
+      <div class="lp-woulduse-sub">Be honest. It helps us build something people genuinely want.</div>
+      <div class="lp-vote-row">
+        <div class="lp-vote yes" onclick="castVote('yes',this)">
+          <div class="lp-vote-emoji">♥</div>
+          <div class="lp-vote-label">Yes, definitely</div>
+          <div class="lp-vote-desc">This solves a real problem for us</div>
+        </div>
+        <div class="lp-vote maybe" onclick="castVote('maybe',this)">
+          <div class="lp-vote-emoji">◎</div>
+          <div class="lp-vote-label">Maybe</div>
+          <div class="lp-vote-desc">Depends on the features & price</div>
+        </div>
+        <div class="lp-vote no" onclick="castVote('no',this)">
+          <div class="lp-vote-emoji">◈</div>
+          <div class="lp-vote-label">Probably not</div>
+          <div class="lp-vote-desc">Not quite what I'm looking for</div>
+        </div>
+      </div>
+      <div class="lp-vote-result" id="lp-vote-result"></div>
     </div>
 
     <div class="lp-divider"></div>
@@ -1161,6 +1202,30 @@ function selectOption(el){
   document.querySelectorAll('.lp-option').forEach(o=>o.classList.remove('selected'));
   el.classList.add('selected');
   setTimeout(()=>document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'}),300);
+}
+
+function castVote(vote, el){
+  document.querySelectorAll('.lp-vote').forEach(v=>v.classList.remove('selected'));
+  el.classList.add('selected');
+
+  const messages = {
+    yes:   'That\'s great to hear! Drop your email below and you\'ll be first to know when we launch. ✦',
+    maybe: 'Fair enough — jump on the waitlist and we\'ll keep you posted as we add more features.',
+    no:    'We appreciate the honesty. If you\'d like to tell us what\'s missing, mention it in the form below.'
+  };
+  const result = document.getElementById('lp-vote-result');
+  result.textContent = messages[vote];
+  result.style.display = 'block';
+
+  // Send vote to Formspree
+  const data = new FormData();
+  data.append('vote', vote);
+  data.append('_subject', 'Table for Two — Would you use it? vote: ' + vote);
+  fetch('https://formspree.io/f/xreodnbr', {
+    method:'POST', body:data, headers:{'Accept':'application/json'}
+  }).catch(()=>{});
+
+  setTimeout(()=>document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'}),600);
 }
 
 async function submitWaitlist(){
