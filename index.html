@@ -1,4 +1,5 @@
 
+  <script>if(location.search.includes('app')||location.hash==='#app')document.documentElement.classList.add('skip-lp');</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -1639,3 +1640,15 @@
   function shareDate(){
     const url=window.location.origin+window.location.pathname+'?app';
     if(navigator.share){navigator.share({title:'Our date plan — Table for Two',url}).catch(()=>{});}
+    else if(navigator.clipboard){navigator.clipboard.writeText(url).then(()=>toast('✦ Link copied — send it to Sophie!'));}
+    else{toast('✦ Share: '+url);}
+  }
+
+  updateStats();renderBookings();
+  setSmartGreeting();
+  setTimeout(generateSuggestions,400);
+  // Set date picker to today by default
+  const _dw=document.getElementById('date-when');
+  if(_dw)_dw.value=new Date().toISOString().slice(0,10);
+
+</script>
