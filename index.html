@@ -959,25 +959,40 @@
         </div>
       </div>
 
-      <!-- CABS -->
+      <!-- TRANSPORT -->
       <div class="page" id="page-cabs">
-        <div class="card">
-          <div class="card-head"><div class="card-title">Book a cab or transfer</div></div>
-          <div class="card-body">
-            <div class="g2">
-              <div class="form-group"><label class="form-label">Pickup</label><input type="text" class="form-input" placeholder="Address or hotel" id="cab-from"></div>
-              <div class="form-group"><label class="form-label">Destination</label><input type="text" class="form-input" placeholder="Restaurant, venue..." id="cab-to"></div>
-            </div>
-            <div class="g3">
-              <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="cab-date"></div>
-              <div class="form-group"><label class="form-label">Time</label><input type="time" class="form-input" id="cab-time"></div>
-              <div class="form-group"><label class="form-label">Vehicle</label><select class="form-input"><option>Standard · £35</option><option>Executive · £65</option><option>Luxury · £110</option></select></div>
-            </div>
-            <div style="display:flex;gap:10px;margin-top:4px">
-              <button class="btn btn-rose" onclick="bookCab()">Book cab</button>
+        <div class="card" style="margin-bottom:1.25rem">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Plan your journey</div>
+              <div class="card-sub">We'll compare tube, bus, walking & cab — and tell you what makes sense</div>
             </div>
           </div>
+          <div class="card-body">
+            <div class="g2" style="margin-bottom:12px">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">From</label>
+                <input type="text" class="form-input" placeholder="Your address or area (e.g. Shoreditch)" id="cab-from" oninput="clearTransportResults()">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">To</label>
+                <input type="text" class="form-input" placeholder="Restaurant, venue or area" id="cab-to" oninput="clearTransportResults()">
+              </div>
+            </div>
+            <div class="g2" style="margin-bottom:14px">
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-input" id="cab-date">
+              </div>
+              <div class="form-group" style="margin:0">
+                <label class="form-label">Leaving at</label>
+                <input type="time" class="form-input" id="cab-time">
+              </div>
+            </div>
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;font-size:14px;border-radius:10px" onclick="findTransportOptions()">Compare transport options ✦</button>
+          </div>
         </div>
+        <div id="transport-results"></div>
       </div>
 
       <!-- PLANNER + CALENDAR -->
@@ -1098,7 +1113,7 @@
   }
 
   const TITLES={discover:'Discover',profiles:'Our profiles',restaurants:'Dining',experiences:'Experiences',hotels:'Accommodation',cabs:'Transport',planner:'Date planner',bookings:'My dates'};
-  const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Arrive in style, together',planner:'Calendar, reminders & .ics export',bookings:'Every date, all in one place'};
+  const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Tube, bus or cab — we\'ll tell you what makes sense',planner:'Calendar, reminders & .ics export',bookings:'Every date, all in one place'};
 
   let bookings=[
     {id:1,type:'restaurant',name:'Dishoom, Covent Garden',date:'2026-05-02',meta:'8:00 PM · 2 covers · Indian',amount:'£65',icon:'🫕'},
@@ -1405,6 +1420,214 @@
     const d=document.getElementById('cab-date').value||new Date().toISOString().slice(0,10);
     bookings.push({id:Date.now(),type:'cab',name:f+' → '+t,date:d,meta:'2 passengers',amount:'£45',icon:'🚗'});
     updateStats();toast('✦ Cab booked');
+  }
+
+  // ── Transport planner ──
+  const _AREAS={
+    'shoreditch':{z:1,lat:51.523,lng:-0.077},'covent garden':{z:1,lat:51.512,lng:-0.122},
+    'soho':{z:1,lat:51.513,lng:-0.134},'mayfair':{z:1,lat:51.511,lng:-0.147},
+    'chelsea':{z:1,lat:51.487,lng:-0.171},'notting hill':{z:2,lat:51.510,lng:-0.201},
+    'brixton':{z:2,lat:51.462,lng:-0.114},'hackney':{z:2,lat:51.546,lng:-0.056},
+    'islington':{z:1,lat:51.536,lng:-0.103},'south bank':{z:1,lat:51.506,lng:-0.110},
+    'borough':{z:1,lat:51.501,lng:-0.093},'bermondsey':{z:2,lat:51.498,lng:-0.064},
+    'canary wharf':{z:2,lat:51.505,lng:-0.023},'greenwich':{z:2,lat:51.483,lng:-0.010},
+    'richmond':{z:4,lat:51.461,lng:-0.301},'hampstead':{z:2,lat:51.555,lng:-0.178},
+    'kensington':{z:1,lat:51.500,lng:-0.191},'westminster':{z:1,lat:51.499,lng:-0.124},
+    'battersea':{z:1,lat:51.479,lng:-0.149},'waterloo':{z:1,lat:51.503,lng:-0.113},
+    'london bridge':{z:1,lat:51.505,lng:-0.087},'paddington':{z:1,lat:51.515,lng:-0.177},
+    'victoria':{z:1,lat:51.496,lng:-0.143},'kings cross':{z:1,lat:51.531,lng:-0.123},
+    'stratford':{z:3,lat:51.541,lng:0.002},'wimbledon':{z:3,lat:51.421,lng:-0.206},
+    'ealing':{z:3,lat:51.513,lng:-0.307},'croydon':{z:5,lat:51.374,lng:-0.100},
+    'dalston':{z:2,lat:51.546,lng:-0.075},'peckham':{z:2,lat:51.474,lng:-0.070},
+    'walthamstow':{z:3,lat:51.582,lng:-0.020},'highgate':{z:3,lat:51.571,lng:-0.148},
+    'elephant and castle':{z:1,lat:51.494,lng:-0.100},'bethnal green':{z:2,lat:51.528,lng:-0.059},
+    'camden':{z:2,lat:51.539,lng:-0.143},'angel':{z:1,lat:51.532,lng:-0.106},
+    'clerkenwell':{z:1,lat:51.523,lng:-0.107},'barbican':{z:1,lat:51.520,lng:-0.096},
+    'bank':{z:1,lat:51.513,lng:-0.089},'liverpool street':{z:1,lat:51.518,lng:-0.082},
+    'tower bridge':{z:1,lat:51.506,lng:-0.076},'vauxhall':{z:1,lat:51.485,lng:-0.124},
+    'clapham':{z:2,lat:51.462,lng:-0.138},'fulham':{z:2,lat:51.476,lng:-0.194},
+    'hammersmith':{z:2,lat:51.492,lng:-0.224},'putney':{z:3,lat:51.461,lng:-0.216},
+    'tooting':{z:3,lat:51.427,lng:-0.168},'balham':{z:3,lat:51.443,lng:-0.152},
+    'dulwich':{z:2,lat:51.451,lng:-0.082},'forest hill':{z:3,lat:51.443,lng:-0.056},
+    'lewisham':{z:2,lat:51.462,lng:-0.012},'new cross':{z:2,lat:51.476,lng:-0.040},
+    'crystal palace':{z:3,lat:51.418,lng:-0.074},'finsbury park':{z:2,lat:51.564,lng:-0.106},
+    'archway':{z:2,lat:51.565,lng:-0.135},'muswell hill':{z:3,lat:51.590,lng:-0.143},
+    'wood green':{z:3,lat:51.597,lng:-0.109},'tottenham':{z:3,lat:51.593,lng:-0.068},
+    'bow':{z:2,lat:51.527,lng:-0.025},'mile end':{z:2,lat:51.525,lng:-0.034},
+    'poplar':{z:2,lat:51.510,lng:-0.017},'whitechapel':{z:2,lat:51.519,lng:-0.059},
+    'stoke newington':{z:2,lat:51.562,lng:-0.075},'homerton':{z:2,lat:51.546,lng:-0.042},
+  };
+
+  function _matchArea(text){
+    const t=text.toLowerCase();let best=null,bestLen=0;
+    for(const[name,data] of Object.entries(_AREAS)){
+      if(t.includes(name)&&name.length>bestLen){best={...data,name};bestLen=name.length;}
+    }
+    return best;
+  }
+
+  function _geoKm(lat1,lng1,lat2,lng2){
+    const R=6371,dL=(lat2-lat1)*Math.PI/180,dN=(lng2-lng1)*Math.PI/180;
+    const a=Math.sin(dL/2)**2+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dN/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+
+  function _tubeFare(z1,z2){
+    const t=[[2.80,2.80,3.40,4.10,4.90,5.60],[2.80,2.80,3.40,4.10,4.90,5.60],[3.40,3.40,3.40,4.10,4.90,5.60],[4.10,4.10,4.10,4.10,4.90,5.60],[4.90,4.90,4.90,4.90,4.90,5.60],[5.60,5.60,5.60,5.60,5.60,5.60]];
+    return t[Math.min(z1,6)-1][Math.min(z2,6)-1];
+  }
+
+  let _transportOpts=[];
+
+  function clearTransportResults(){const r=document.getElementById('transport-results');if(r)r.innerHTML='';}
+
+  function findTransportOptions(){
+    const fromVal=document.getElementById('cab-from').value.trim();
+    const toVal=document.getElementById('cab-to').value.trim();
+    if(!fromVal||!toVal){toast('Please enter both a starting point and destination');return;}
+    const area=document.getElementById('transport-results');
+    area.innerHTML='<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Comparing your options...</div></div></div>';
+    setTimeout(()=>{
+      const fA=_matchArea(fromVal),tA=_matchArea(toVal);
+      const fLat=fA?fA.lat:51.510,fLng=fA?fA.lng:-0.118;
+      const tLat=tA?tA.lat:51.505,tLng=tA?tA.lng:-0.090;
+      const fZ=fA?fA.z:1,tZ=tA?tA.z:1;
+      const km=_geoKm(fLat,fLng,tLat,tLng);
+      const kmRoad=km*1.35;
+      const opts=[];
+
+      // Walking
+      if(km<2.8){
+        opts.push({mode:'Walking',icon:'🚶',time:Math.round(km*13),cost:0,costStr:'Free',
+          desc:'A romantic stroll together — no waiting, no cost, and you arrive relaxed',
+          badge:km<1.5?'Most romantic':'',type:'walk'});
+      }
+
+      // Bus
+      const busTime=Math.round(kmRoad*5)+8;
+      opts.push({mode:'Bus (TfL)',icon:'🚌',time:busTime,cost:3.50,costStr:'£3.50',
+        desc:'£1.75 each · Pay with contactless · No planning needed',
+        badge:'',type:'bus'});
+
+      // Tube / Train
+      const tubePP=_tubeFare(fZ,tZ);
+      const tubeTotal=tubePP*2;
+      const tubeTime=Math.round(km*2.8)+12;
+      const isOuter=(fZ>2||tZ>2);
+      opts.push({mode:isOuter?'Train / Overground':'Tube',icon:isOuter?'🚂':'🚇',time:tubeTime,
+        cost:tubeTotal,costStr:'£'+tubeTotal.toFixed(2),
+        desc:'£'+tubePP.toFixed(2)+' each · Pay with contactless · Zone '+fZ+'→'+tZ+(isOuter?' · Check National Rail for fast trains':''),
+        badge:'',type:'tube'});
+
+      // Standard cab
+      const cabTime=Math.round(kmRoad*3.5)+7;
+      const cabCost=Math.max(12,Math.round(kmRoad*2.2+5));
+      opts.push({mode:'Cab — Standard',icon:'🚗',time:cabTime,cost:cabCost,costStr:'£'+cabCost,
+        desc:'Door to door · No connections · Pre-book for peace of mind',
+        badge:'',type:'cab_standard'});
+
+      // Executive cab (longer journeys)
+      if(km>3){
+        const execCost=Math.round(cabCost*1.85);
+        opts.push({mode:'Cab — Executive',icon:'🚘',time:cabTime,cost:execCost,costStr:'£'+execCost,
+          desc:'Premium saloon · Extra legroom · Start the date the moment you get in',
+          badge:'',type:'cab_exec'});
+      }
+
+      // Assign badges
+      const byCost=[...opts].sort((a,b)=>a.cost-b.cost);
+      const byTime=[...opts].sort((a,b)=>a.time-b.time);
+      const cheapest=byCost[0],fastest=byTime[0];
+      opts.forEach(o=>{
+        if(o===cheapest&&o===fastest){o.badge='Best overall';}
+        else if(o===cheapest){o.badge='Best value';}
+        else if(o===fastest&&o.cost>0){o.badge='Fastest';}
+      });
+
+      // Recommendation copy
+      let rec;
+      const walkOpt=opts.find(o=>o.type==='walk');
+      const tubeOpt=opts.find(o=>o.type==='tube');
+      const cabOpt=opts.find(o=>o.type==='cab_standard');
+      if(walkOpt&&km<1.5){
+        rec={icon:'🚶',text:'Only '+Math.round(km*10)/10+'km — a short stroll together is honestly the nicest way to arrive. Save the cab for later in the evening.'};
+      } else if(km<5&&tubeOpt){
+        rec={icon:'🚇',text:'The '+(isOuter?'train':'Tube')+' is the smartest move here — '+tubeTime+' minutes, '+tubeOpt.costStr+' for two, and no parking stress. Perfect way to arrive fresh.'};
+      } else if(km<10){
+        rec={icon:'🚇',text:'A cab is worth it for this distance — '+cabTime+' minutes door to door for £'+cabCost+'. You could Tube it for '+tubeOpt.costStr+' if budget matters, but the cab keeps the evening smooth.'};
+      } else {
+        rec={icon:'🚗',text:'For a '+Math.round(km)+'km journey, a pre-booked cab makes the most sense — reliable, direct, and you arrive together. Check train options if there\'s a fast direct service.'};
+      }
+
+      _transportOpts=opts;
+
+      let html='<div class="card" style="margin-bottom:1rem"><div class="card-head"><div><div class="card-title">'+fromVal+' → '+toVal+'</div><div class="card-sub">'+Math.round(km*10)/10+'km as the crow flies · '+(fA?fA.name:'your area')+' to '+(tA?tA.name:'destination')+'</div></div></div><div class="card-body">';
+      html+='<div style="padding:12px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border-radius:var(--r-md);border-left:3px solid var(--rose);margin-bottom:1rem"><div style="font-size:11px;font-weight:600;color:var(--rose-dark);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">'+rec.icon+' Our recommendation</div><div style="font-size:13px;color:var(--ink-soft);line-height:1.55">'+rec.text+'</div></div>';
+      html+='<div style="display:flex;flex-direction:column;gap:10px">';
+
+      opts.forEach((o,i)=>{
+        const highlight=o.badge==='Best overall'||o.badge==='Best value';
+        const isFree=o.cost===0;
+        html+='<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:'+(highlight?'1.5px solid var(--rose)':'0.5px solid var(--bdr)')+';border-radius:var(--r-md);background:'+(highlight?'var(--rose-light)':'var(--bg2)')+';">';
+        html+='<div style="font-size:26px;width:36px;text-align:center;flex-shrink:0">'+o.icon+'</div>';
+        html+='<div style="flex:1;min-width:0">';
+        html+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--ink)">'+o.mode+'</span>'+(o.badge?'<span class="badge badge-rose" style="font-size:10px">'+o.badge+'</span>':'')+'</div>';
+        html+='<div style="display:flex;gap:14px;align-items:baseline;margin-bottom:4px"><span style="font-size:12px;color:var(--ink-soft)">⏱ ~'+o.time+' min</span><span style="font-size:14px;font-weight:600;color:'+(highlight?'var(--rose-dark)':'var(--ink)')+'">'+o.costStr+'</span></div>';
+        html+='<div style="font-size:11px;color:var(--ink-muted);line-height:1.45">'+o.desc+'</div>';
+        html+='</div>';
+        if(o.type==='walk'){
+          html+='<button class="btn btn-sm" onclick="openMaps(\''+encodeURIComponent(fromVal)+'\',\''+encodeURIComponent(toVal)+'\')">Map →</button>';
+        } else if(o.type==='bus'||o.type==='tube'){
+          html+='<button class="btn btn-sm'+(highlight?' btn-rose':'')+'" onclick="openTfL(\''+encodeURIComponent(fromVal)+'\',\''+encodeURIComponent(toVal)+'\')">Plan →</button>';
+        } else {
+          html+='<button class="btn btn-sm'+(highlight?' btn-rose':'')+'" onclick="bookTransportCab('+i+')">Book ✦</button>';
+        }
+        html+='</div>';
+      });
+
+      html+='</div></div></div>';
+
+      const returnCabCost=Math.max(12,Math.round(kmRoad*2.2+5));
+      html+='<div class="card"><div class="card-head"><div class="card-title">Return journey</div><div class="card-sub">How are you getting home?</div></div><div class="card-body"><div style="display:flex;gap:8px;flex-wrap:wrap">';
+      html+='<button class="btn btn-sm btn-rose" onclick="swapAndFind()">Plan return trip ↩</button>';
+      html+='<button class="btn btn-sm" onclick="bookReturnCab(\''+toVal.replace(/'/g,'')+'\',\''+fromVal.replace(/'/g,'')+'\','+returnCabCost+')">+ Book return cab (£'+returnCabCost+')</button>';
+      html+='<button class="btn btn-sm" onclick="go(\'planner\',document.querySelector(\'[onclick*=planner]\'))">+ Add to planner</button>';
+      html+='</div></div></div>';
+
+      area.innerHTML=html;
+    },700);
+  }
+
+  function bookTransportCab(i){
+    const o=_transportOpts[i];if(!o)return;
+    const f=document.getElementById('cab-from').value;
+    const t=document.getElementById('cab-to').value;
+    const d=document.getElementById('cab-date').value||new Date().toISOString().slice(0,10);
+    const time=document.getElementById('cab-time').value;
+    bookings.push({id:Date.now(),type:'cab',name:f+' → '+t,date:d,meta:o.mode+(time?' · '+time:'')+' · 2 passengers',amount:o.costStr,icon:'🚗'});
+    updateStats();renderBookings();toast('✦ '+o.mode+' booked — '+f+' to '+t);
+  }
+
+  function bookReturnCab(from,to,cost){
+    const d=document.getElementById('cab-date').value||new Date().toISOString().slice(0,10);
+    bookings.push({id:Date.now(),type:'cab',name:from+' → '+to,date:d,meta:'Cab — Standard · Return · 2 passengers',amount:'£'+cost,icon:'🚗'});
+    updateStats();renderBookings();toast('✦ Return cab booked');
+  }
+
+  function openTfL(from,to){
+    window.open('https://tfl.gov.uk/plan-a-journey/?from='+from+'&to='+to,'_blank');
+  }
+
+  function openMaps(from,to){
+    window.open('https://www.google.com/maps/dir/'+from+'/'+to,'_blank');
+  }
+
+  function swapAndFind(){
+    const f=document.getElementById('cab-from').value;
+    const t=document.getElementById('cab-to').value;
+    document.getElementById('cab-from').value=t;
+    document.getElementById('cab-to').value=f;
+    findTransportOptions();
   }
 
   function renderBookings(){
