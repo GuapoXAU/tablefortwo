@@ -358,6 +358,65 @@
     .lp-body{padding:0 48px 60px;max-width:640px;margin:0 auto}
     .lp-features{grid-template-columns:repeat(4,1fr)}
   }
+
+  /* ── Mood check-in ── */
+  .mood-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:150;display:flex;align-items:flex-end;justify-content:center;animation:fadeInBg 0.2s}
+  @keyframes fadeInBg{from{opacity:0}to{opacity:1}}
+  .mood-sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:26px 20px 40px;width:100%;max-width:480px;animation:slideUpSheet 0.28s cubic-bezier(.22,.68,0,1.2)}
+  @keyframes slideUpSheet{from{transform:translateY(60px);opacity:0}to{transform:translateY(0);opacity:1}}
+  .mood-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border:1.5px solid var(--bdr2);border-radius:14px;cursor:pointer;transition:all 0.18s;background:var(--bg2);-webkit-tap-highlight-color:transparent;text-align:center;user-select:none}
+  .mood-btn:hover{border-color:var(--rose-mid);background:var(--rose-light)}
+  .mood-btn.selected{border-color:var(--rose);background:var(--rose-light);box-shadow:0 0 0 3px rgba(196,104,122,0.12)}
+  .mood-btn-icon{font-size:28px;line-height:1}
+  .mood-btn-label{font-size:12px;font-weight:600;color:var(--ink)}
+  .mood-btn-desc{font-size:10px;color:var(--ink-muted);line-height:1.4}
+
+  /* ── Roulette ── */
+  @keyframes spinDie{0%{transform:rotate(0) scale(0.8);opacity:0.5}60%{transform:rotate(540deg) scale(1.3)}100%{transform:rotate(720deg) scale(1);opacity:1}}
+  .roulette-die{display:inline-block;animation:spinDie 1.4s cubic-bezier(.22,.68,0,1.1) forwards}
+  .roulette-reveal{animation:slideUpSheet 0.3s cubic-bezier(.22,.68,0,1.2)}
+
+  /* ── Surprise mode ── */
+  .surprise-toggle{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid var(--plum-mid);border-radius:50px;cursor:pointer;font-size:12px;font-weight:600;color:var(--plum);background:var(--plum-light);transition:all 0.18s;user-select:none}
+  .surprise-toggle:hover{background:var(--plum-mid);color:#fff}
+  .surprise-toggle.active{background:var(--plum);color:#fff;border-color:var(--plum)}
+  .sov-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:150;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeInBg 0.2s}
+  .sov-card{background:var(--bg);border-radius:20px;width:100%;max-width:360px;overflow:hidden;animation:slideUpSheet 0.28s cubic-bezier(.22,.68,0,1.2)}
+  .sov-hero{background:linear-gradient(145deg,#3C1654,#6B4C7A);padding:32px 24px;text-align:center;color:#fff}
+
+  /* ── Wishlist ── */
+  .wish-card{background:var(--bg);border:0.5px solid var(--bdr);border-radius:var(--r-lg);padding:14px;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;transition:all 0.15s}
+  .wish-card:hover{border-color:var(--rose-mid)}
+  .wish-card.done-item{opacity:0.55}
+  .wish-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--bdr2);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:10px;margin-top:2px;transition:all 0.15s;user-select:none}
+  .wish-check.checked{background:var(--rose);border-color:var(--rose);color:#fff}
+
+  /* ── Journal ── */
+  .journal-entry{background:var(--bg);border:0.5px solid var(--bdr);border-radius:var(--r-lg);padding:16px;margin-bottom:10px;transition:all 0.15s;cursor:default}
+  .journal-entry:hover{border-color:var(--rose-mid)}
+  .journal-stars{display:inline-flex;gap:2px;vertical-align:middle}
+  .journal-star{font-size:13px;color:#FCD34D}
+
+  /* ── Pre-date checklist overlay ── */
+  .checklist-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:150;display:flex;align-items:flex-end;justify-content:center;animation:fadeInBg 0.2s}
+  .checklist-sheet{background:var(--bg);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;max-height:85vh;overflow-y:auto;animation:slideUpSheet 0.28s}
+  .check-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:0.5px solid var(--bdr);cursor:pointer;user-select:none}
+  .check-item:last-child{border-bottom:none}
+  .check-circle{width:20px;height:20px;border-radius:50%;border:2px solid var(--bdr2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;transition:all 0.15s}
+  .check-circle.done{background:var(--rose);border-color:var(--rose);color:#fff}
+
+  /* ── Couple quiz ── */
+  .quiz-q{margin-bottom:18px}
+  .quiz-q-label{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:9px}
+  .quiz-options{display:flex;gap:7px;flex-wrap:wrap}
+  .quiz-opt{padding:7px 14px;border:1.5px solid var(--bdr2);border-radius:20px;cursor:pointer;font-size:12px;color:var(--ink-soft);background:var(--bg2);transition:all 0.15s;user-select:none}
+  .quiz-opt:hover{border-color:var(--rose-mid);background:var(--rose-light);color:var(--rose-dark)}
+  .quiz-opt.active{border-color:var(--rose);background:var(--rose-light);color:var(--rose-dark);font-weight:500}
+
+  /* ── Double-date mode ── */
+  .dd-pill{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border:1.5px solid #93C5FD;border-radius:50px;cursor:pointer;font-size:12px;font-weight:600;color:#1D4ED8;background:#EFF6FF;transition:all 0.18s;user-select:none}
+  .dd-pill:hover{background:#DBEAFE}
+  .dd-pill.active{background:#1D4ED8;color:#fff;border-color:#1D4ED8}
   </style>
 
   <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Table for Two — couple date planning app with AI suggestions, booking, reminders and calendar</h2>
@@ -545,6 +604,9 @@
       <div class="nav-label">Plan</div>
       <div class="nav-item" onclick="go('planner',this)"><span class="nav-icon">◫</span>Date Planner</div>
       <div class="nav-item" onclick="go('bookings',this)"><span class="nav-icon">◎</span>My Dates</div>
+      <div class="nav-label">Relationship</div>
+      <div class="nav-item" onclick="go('journal',this)"><span class="nav-icon">📖</span>Date Journal</div>
+      <div class="nav-item" onclick="go('wishlist',this)"><span class="nav-icon">💫</span>Wishlist</div>
     </nav>
   </aside>
 
@@ -596,13 +658,22 @@
           <!-- ── GUIDED VIEW ── -->
           <div id="discover-guided" class="card-body" style="padding-top:0.5rem">
 
-            <!-- Surprise us shortcut -->
-            <div style="margin-bottom:18px;padding:11px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border:1px solid var(--rose-mid);border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="surpriseUs()">
-              <div>
-                <div style="font-size:13px;font-weight:600;color:var(--rose-dark)">Surprise us ✦</div>
-                <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">Skip the config — I'll pick the best match</div>
+            <!-- Shortcuts row: Surprise us + Date roulette -->
+            <div class="g2" style="margin-bottom:14px;gap:10px">
+              <div style="padding:11px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border:1px solid var(--rose-mid);border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="surpriseUs()">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:var(--rose-dark)">Surprise us ✦</div>
+                  <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">Skip the config — I'll pick the best match</div>
+                </div>
+                <span style="font-size:18px;color:var(--rose);font-weight:300">→</span>
               </div>
-              <span style="font-size:20px;color:var(--rose);font-weight:300">→</span>
+              <div style="padding:11px 14px;background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border:1px solid #FCD34D;border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="spinRoulette()">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:#92400E">Date roulette 🎲</div>
+                  <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">Can't decide? Spin the wheel</div>
+                </div>
+                <span style="font-size:18px;font-weight:300">→</span>
+              </div>
             </div>
 
             <!-- Step 1: Who -->
@@ -700,7 +771,19 @@
               </select>
             </div>
 
-            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px;letter-spacing:0.2px" onclick="generateSuggestions()">Find our perfect date ✦</button>
+            <!-- Mode toggles -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+              <div class="surprise-toggle" id="surprise-toggle" onclick="toggleSurpriseMode()">🎁 Surprise mode</div>
+              <div class="dd-pill" id="dd-toggle" onclick="toggleDoubleDateMode()">👫 Double-date</div>
+            </div>
+            <div id="dd-names-row" style="display:none;margin-bottom:12px;padding:10px 12px;background:#EFF6FF;border:0.5px solid #93C5FD;border-radius:var(--r-md)">
+              <div style="font-size:11px;font-weight:600;color:#1D4ED8;margin-bottom:7px">Their names</div>
+              <div class="g2" style="gap:8px">
+                <input type="text" class="form-input" id="dd-name1" placeholder="Alex" style="font-size:12px">
+                <input type="text" class="form-input" id="dd-name2" placeholder="Jordan" style="font-size:12px">
+              </div>
+            </div>
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px;letter-spacing:0.2px" onclick="showMoodCheckIn()">Find our perfect date ✦</button>
             <div style="margin-top:10px;padding:9px 12px;background:var(--bg2);border-radius:var(--r-md);border-left:3px solid var(--rose-mid)">
               <div style="font-size:11px;color:var(--ink-muted);line-height:1.6"><span style="font-weight:600;color:var(--ink-soft)">Matching Jamie & Sophie</span> · No loud venues · Sophie loves Indian & outdoors · Jamie loves cultural</div>
             </div>
@@ -879,6 +962,54 @@
                 <span style="font-size:12px;color:var(--ink-muted)">/month</span>
               </div>
               <div id="budget-set-note" style="display:none;margin-top:6px;font-size:11px;color:var(--color-text-success)">✓ Budget set — we'll track this in My Dates</div>
+            </div>
+            <div class="divider"></div>
+            <!-- Couple preferences quiz -->
+            <div>
+              <div style="font-size:15px;font-weight:500;color:var(--ink);margin-bottom:4px">Couple compatibility quiz</div>
+              <div style="font-size:12px;color:var(--ink-muted);margin-bottom:16px">5 quick questions — helps us suggest dates that fit your real energy as a couple</div>
+              <div class="quiz-q">
+                <div class="quiz-q-label">1. What's your energy as a couple on a typical date night?</div>
+                <div class="quiz-options">
+                  <div class="quiz-opt" data-q="energy" data-v="homebody" onclick="setQuiz('energy','homebody',this)">🛋 Stay-in types</div>
+                  <div class="quiz-opt active" data-q="energy" data-v="mixed" onclick="setQuiz('energy','mixed',this)">⚡ Mix of both</div>
+                  <div class="quiz-opt" data-q="energy" data-v="outgoing" onclick="setQuiz('energy','outgoing',this)">🚀 Always out</div>
+                </div>
+              </div>
+              <div class="quiz-q">
+                <div class="quiz-q-label">2. How adventurous are you with new experiences?</div>
+                <div class="quiz-options">
+                  <div class="quiz-opt" data-q="adventure" data-v="low" onclick="setQuiz('adventure','low',this)">🏡 We like our favourites</div>
+                  <div class="quiz-opt active" data-q="adventure" data-v="mid" onclick="setQuiz('adventure','mid',this)">🗺 Open to new things</div>
+                  <div class="quiz-opt" data-q="adventure" data-v="high" onclick="setQuiz('adventure','high',this)">🎲 Always try something new</div>
+                </div>
+              </div>
+              <div class="quiz-q">
+                <div class="quiz-q-label">3. Best time for a date?</div>
+                <div class="quiz-options">
+                  <div class="quiz-opt" data-q="tod" data-v="day" onclick="setQuiz('tod','day',this)">☀️ Daytime / afternoon</div>
+                  <div class="quiz-opt active" data-q="tod" data-v="evening" onclick="setQuiz('tod','evening',this)">🌆 Early evening</div>
+                  <div class="quiz-opt" data-q="tod" data-v="night" onclick="setQuiz('tod','night',this)">🌙 Late night</div>
+                </div>
+              </div>
+              <div class="quiz-q">
+                <div class="quiz-q-label">4. How do you feel about crowds and busy venues?</div>
+                <div class="quiz-options">
+                  <div class="quiz-opt active" data-q="crowd" data-v="quiet" onclick="setQuiz('crowd','quiet',this)">🤫 Prefer intimate & quiet</div>
+                  <div class="quiz-opt" data-q="crowd" data-v="any" onclick="setQuiz('crowd','any',this)">🙂 Either is fine</div>
+                  <div class="quiz-opt" data-q="crowd" data-v="lively" onclick="setQuiz('crowd','lively',this)">🎉 Love a buzzing atmosphere</div>
+                </div>
+              </div>
+              <div class="quiz-q">
+                <div class="quiz-q-label">5. What matters most to you on a date?</div>
+                <div class="quiz-options">
+                  <div class="quiz-opt" data-q="priority" data-v="food" onclick="setQuiz('priority','food',this)">🍽 Amazing food</div>
+                  <div class="quiz-opt active" data-q="priority" data-v="experience" onclick="setQuiz('priority','experience',this)">✨ Memorable experience</div>
+                  <div class="quiz-opt" data-q="priority" data-v="conversation" onclick="setQuiz('priority','conversation',this)">💬 Uninterrupted conversation</div>
+                  <div class="quiz-opt" data-q="priority" data-v="spontaneity" onclick="setQuiz('priority','spontaneity',this)">🎲 Spontaneity & surprise</div>
+                </div>
+              </div>
+              <div id="quiz-result" style="display:none;padding:12px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border:0.5px solid var(--rose-mid);border-radius:var(--r-md);font-size:12px;color:var(--rose-dark)"></div>
             </div>
           </div>
         </div>
@@ -1143,12 +1274,25 @@
 
       <!-- MY DATES -->
       <div class="page" id="page-bookings">
-        <div class="g4" style="margin-bottom:1.25rem">
+        <div class="g4" style="margin-bottom:0.75rem">
           <div class="stat"><div class="stat-label">Dates booked</div><div class="stat-val" id="s-dates">3</div><div class="stat-note">2 upcoming</div></div>
           <div class="stat"><div class="stat-label">Reminders</div><div class="stat-val" id="s-rems">4</div><div class="stat-note">Next: Friday</div></div>
           <div class="stat" id="s-budget-tile"><div class="stat-label">Total spent</div><div class="stat-val">£<span id="s-spent">0</span></div><div class="stat-note" id="s-budget-note">Together</div><div id="s-budget-bar-wrap" style="display:none;margin-top:8px"><div style="height:5px;background:var(--bdr2);border-radius:3px;overflow:hidden"><div id="s-budget-bar" style="height:5px;border-radius:3px;transition:width 0.4s;background:var(--color-background-success,#5DCAA5)"></div></div><div id="s-budget-label" style="font-size:10px;color:var(--ink-muted);margin-top:4px"></div></div></div>
           <div class="stat"><div class="stat-label">Your ratings</div><div class="stat-val" id="s-avg-rating" style="font-size:16px;line-height:1.6">—</div><div class="stat-note" id="s-avg-note">Rate past dates</div></div>
         </div>
+        <!-- Milestones + who paid row -->
+        <div class="g4" style="margin-bottom:1.25rem">
+          <div class="stat"><div class="stat-label">Days together</div><div class="stat-val" id="s-days-together">—</div><div class="stat-note" id="s-days-note">Add first date in Profiles</div></div>
+          <div class="stat"><div class="stat-label">Next date in</div><div class="stat-val" id="s-next-days">—</div><div class="stat-note">days</div></div>
+          <div class="stat" style="cursor:pointer" onclick="cyclePaidLast()" title="Tap to update who paid last">
+            <div class="stat-label">Paid last</div>
+            <div class="stat-val" id="s-paid-val" style="font-size:18px;line-height:1.5">—</div>
+            <div class="stat-note" id="s-paid-note">Tap to set</div>
+          </div>
+          <div class="stat"><div class="stat-label">Date streak</div><div class="stat-val" id="s-streak">—</div><div class="stat-note">consecutive months</div></div>
+        </div>
+        <!-- Post-date prompts -->
+        <div id="post-date-prompts" style="margin-bottom:1.25rem"></div>
         <div class="card">
           <div class="card-head"><div class="card-title">Your dates</div><div style="display:flex;gap:6px" id="filter-btns">
             <button class="btn btn-sm btn-rose" onclick="setFilter('all',this)">All</button>
@@ -1158,6 +1302,73 @@
             <button class="btn btn-sm" onclick="setFilter('cab',this)">Transport</button>
           </div></div>
           <div class="card-body" id="bookings-list"></div>
+        </div>
+      </div>
+
+      <!-- DATE JOURNAL -->
+      <div class="page" id="page-journal">
+        <div class="section-head" style="margin-bottom:1.25rem">
+          <div>
+            <div class="section-title">📖 Date Journal</div>
+            <div style="font-size:12px;color:var(--ink-muted);margin-top:3px">Your private scrapbook — photos, notes & ratings from every date</div>
+          </div>
+          <button class="btn btn-sm btn-rose" onclick="openNewJournalEntry()">+ Add memory</button>
+        </div>
+        <!-- Milestones row -->
+        <div class="g4" style="margin-bottom:1.25rem" id="journal-milestones">
+          <div class="stat"><div class="stat-label">Days together</div><div class="stat-val" id="jm-days">—</div><div class="stat-note">First date set in Profiles</div></div>
+          <div class="stat"><div class="stat-label">Dates logged</div><div class="stat-val" id="jm-logged">0</div><div class="stat-note">In your journal</div></div>
+          <div class="stat"><div class="stat-label">Avg date rating</div><div class="stat-val" id="jm-rating" style="font-size:18px;line-height:1.6">—</div><div class="stat-note">Your ratings</div></div>
+          <div class="stat"><div class="stat-label">Favourite vibe</div><div class="stat-val" id="jm-fav" style="font-size:16px;line-height:1.5">—</div><div class="stat-note">Most logged type</div></div>
+        </div>
+        <div id="journal-entries">
+          <div style="text-align:center;padding:48px 20px;color:var(--ink-muted)">
+            <div style="font-size:40px;margin-bottom:12px">📖</div>
+            <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">No memories yet</div>
+            <div style="font-size:12px;margin-bottom:20px">After each date, add a note and rating — they'll appear here</div>
+            <button class="btn btn-rose btn-sm" onclick="openNewJournalEntry()">Add your first memory ✦</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- WISHLIST -->
+      <div class="page" id="page-wishlist">
+        <div class="section-head" style="margin-bottom:1.25rem">
+          <div>
+            <div class="section-title">💫 Date Wishlist</div>
+            <div style="font-size:12px;color:var(--ink-muted);margin-top:3px">Ideas you want to try someday — tick them off as you go</div>
+          </div>
+          <button class="btn btn-sm btn-rose" onclick="openAddWish()">+ Save idea</button>
+        </div>
+        <!-- Filters -->
+        <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:1.25rem">
+          <button class="btn btn-sm btn-rose" id="wf-all" onclick="setWishFilter('all',this)">All</button>
+          <button class="btn btn-sm" id="wf-todo" onclick="setWishFilter('todo',this)">To do</button>
+          <button class="btn btn-sm" id="wf-done" onclick="setWishFilter('done',this)">Done ✓</button>
+        </div>
+        <div id="wishlist-items">
+          <div style="text-align:center;padding:48px 20px;color:var(--ink-muted)">
+            <div style="font-size:40px;margin-bottom:12px">💫</div>
+            <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">Your wishlist is empty</div>
+            <div style="font-size:12px;margin-bottom:20px">Save ideas from Discover, or add your own — tick them off when you've been</div>
+            <button class="btn btn-rose btn-sm" onclick="go('discover',document.querySelector('[onclick*=discover]'))">Browse ideas ✦</button>
+          </div>
+        </div>
+        <!-- Recurring schedule card -->
+        <div class="card" style="margin-top:1.5rem">
+          <div class="card-head"><div><div class="card-title">📅 Regular date night</div><div class="card-sub">Set a recurring schedule — we'll remind you before each one</div></div></div>
+          <div class="card-body">
+            <div class="form-group" style="max-width:260px;margin-bottom:10px">
+              <label class="form-label">How often?</label>
+              <select class="form-input" id="recurring-freq" onchange="saveRecurring(this.value)">
+                <option value="">Off — I'll plan manually</option>
+                <option value="weekly">Every week</option>
+                <option value="biweekly">Every 2 weeks</option>
+                <option value="monthly">Once a month</option>
+              </select>
+            </div>
+            <div id="recurring-status" style="display:none;padding:10px 12px;background:var(--rose-light);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);font-size:12px;color:var(--rose-dark);max-width:360px"></div>
+          </div>
         </div>
       </div>
 
@@ -1193,6 +1404,135 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- ── Mood check-in overlay ── -->
+  <div id="mood-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeMoodOverlay()">
+    <div class="mood-sheet">
+      <div style="text-align:center;margin-bottom:18px">
+        <div style="font-size:17px;font-weight:600;color:var(--ink);font-family:var(--font-serif,serif)">How are you both feeling tonight?</div>
+        <div style="font-size:12px;color:var(--ink-muted);margin-top:5px">We'll adjust suggestions to match your energy</div>
+      </div>
+      <div style="display:flex;gap:10px;margin-bottom:18px">
+        <div class="mood-btn" id="mood-tired" onclick="selectMood('tired')">
+          <div class="mood-btn-icon">😴</div>
+          <div class="mood-btn-label">Low energy</div>
+          <div class="mood-btn-desc">Cosy, quiet<br>no effort needed</div>
+        </div>
+        <div class="mood-btn selected" id="mood-moderate" onclick="selectMood('moderate')">
+          <div class="mood-btn-icon">😊</div>
+          <div class="mood-btn-label">Just right</div>
+          <div class="mood-btn-desc">Happy with<br>anything</div>
+        </div>
+        <div class="mood-btn" id="mood-energetic" onclick="selectMood('energetic')">
+          <div class="mood-btn-icon">⚡</div>
+          <div class="mood-btn-label">Full of energy</div>
+          <div class="mood-btn-desc">Active, fun<br>immersive</div>
+        </div>
+      </div>
+      <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px" onclick="confirmMoodAndGenerate()">Find our date ✦</button>
+      <button class="btn btn-sm" style="width:100%;justify-content:center;margin-top:8px;color:var(--ink-muted)" onclick="closeMoodOverlay()">Skip</button>
+    </div>
+  </div>
+
+  <!-- ── Surprise mode preview overlay ── -->
+  <div id="sov-overlay" style="display:none" class="sov-overlay" onclick="if(event.target===this)closeSurpriseOverlay()">
+    <div class="sov-card">
+      <div class="sov-hero">
+        <div style="font-size:36px;margin-bottom:12px">🎁</div>
+        <div style="font-size:18px;font-weight:600;font-family:Georgia,serif;margin-bottom:6px">Jamie has planned something special</div>
+        <div style="font-size:13px;opacity:0.8">Details revealed on the day…</div>
+      </div>
+      <div style="padding:20px 22px">
+        <div id="sov-details"></div>
+        <div style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--bdr)">
+          <div style="font-size:11px;color:var(--ink-muted);margin-bottom:10px">Share this mystery card with Sophie</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-rose btn-sm" onclick="shareSurpriseCard()">Share with Sophie ✦</button>
+            <button class="btn btn-sm" onclick="closeSurpriseOverlay()">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Pre-date checklist overlay ── -->
+  <div id="checklist-overlay" style="display:none" class="checklist-overlay" onclick="if(event.target===this)closeChecklistOverlay()">
+    <div class="checklist-sheet">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div>
+          <div style="font-size:16px;font-weight:600;color:var(--ink)" id="cl-title">Pre-date checklist</div>
+          <div style="font-size:12px;color:var(--ink-muted);margin-top:2px" id="cl-sub">Everything ready?</div>
+        </div>
+        <button class="btn btn-sm" onclick="closeChecklistOverlay()">✕</button>
+      </div>
+      <div id="cl-items"></div>
+      <div style="margin-top:14px;padding:10px 12px;background:var(--bg2);border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:12px;color:var(--ink-soft)" id="cl-progress">0 of 0 done</span>
+        <button class="btn btn-sm btn-rose" onclick="closeChecklistOverlay()">All set ✦</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── New journal entry overlay ── -->
+  <div id="journal-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeJournalOverlay()">
+    <div class="mood-sheet" style="padding-bottom:44px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:600;color:var(--ink)">Add a memory ✦</div>
+        <button class="btn btn-sm" onclick="closeJournalOverlay()">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Date name / place</label><input type="text" class="form-input" id="je-name" placeholder="Dishoom dinner"></div>
+      <div class="g2" style="gap:10px">
+        <div class="form-group" style="margin:0"><label class="form-label">Date</label><input type="date" class="form-input" id="je-date"></div>
+        <div class="form-group" style="margin:0"><label class="form-label">Vibe</label>
+          <select class="form-input" id="je-vibe">
+            <option value="romantic">Romantic</option>
+            <option value="fun">Fun & playful</option>
+            <option value="foodie">All about the food</option>
+            <option value="outdoor">Outdoor</option>
+            <option value="cultural">Cultural</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px"><label class="form-label">Your note</label><textarea class="form-input" id="je-note" rows="2" placeholder="The pasta was incredible…" style="resize:none;line-height:1.5"></textarea></div>
+      <div class="form-group" style="margin-top:4px"><label class="form-label">Rating</label>
+        <div style="display:flex;gap:6px;margin-top:4px">
+          <div id="je-stars" style="display:flex;gap:4px">
+            <span class="star" data-v="1" onclick="setJeStar(1)">★</span>
+            <span class="star" data-v="2" onclick="setJeStar(2)">★</span>
+            <span class="star" data-v="3" onclick="setJeStar(3)">★</span>
+            <span class="star" data-v="4" onclick="setJeStar(4)">★</span>
+            <span class="star" data-v="5" onclick="setJeStar(5)">★</span>
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;border-radius:10px;margin-top:6px" onclick="saveJournalEntry()">Save memory ✦</button>
+    </div>
+  </div>
+
+  <!-- ── Add wish overlay ── -->
+  <div id="wish-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeWishOverlay()">
+    <div class="mood-sheet" style="padding-bottom:44px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font-size:16px;font-weight:600;color:var(--ink)">Save to wishlist 💫</div>
+        <button class="btn btn-sm" onclick="closeWishOverlay()">✕</button>
+      </div>
+      <div class="form-group"><label class="form-label">Idea name</label><input type="text" class="form-input" id="wi-name" placeholder="Rooftop cocktails at Seabird"></div>
+      <div class="g2" style="gap:10px">
+        <div class="form-group" style="margin:0"><label class="form-label">Approx. price</label><input type="text" class="form-input" id="wi-price" placeholder="£60 for two"></div>
+        <div class="form-group" style="margin:0"><label class="form-label">Type</label>
+          <select class="form-input" id="wi-type">
+            <option value="romantic">Romantic</option>
+            <option value="fun">Fun & playful</option>
+            <option value="foodie">Dining</option>
+            <option value="outdoor">Outdoor</option>
+            <option value="cultural">Cultural</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:10px"><label class="form-label">Why you want to try it</label><input type="text" class="form-input" id="wi-why" placeholder="Sophie has wanted to go for ages…"></div>
+      <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;border-radius:10px;margin-top:6px" onclick="saveWishItem()">Add to wishlist ✦</button>
+    </div>
+  </div>
+
   <!-- ── Sophie vote overlay ── -->
   <div id="sophie-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;flex-direction:column">
     <div style="background:linear-gradient(135deg,#8B3A4A 0%,#C4687A 100%);padding:calc(env(safe-area-inset-top,0px) + 20px) 24px 28px;text-align:center;color:#fff;flex-shrink:0">
@@ -1214,8 +1554,8 @@
     if(lp){lp.style.display='none';lp.style.visibility='hidden';}
   }
 
-  const TITLES={discover:'Discover',profiles:'Our profiles',restaurants:'Dining',experiences:'Experiences',hotels:'Accommodation',cabs:'Transport',planner:'Date planner',bookings:'My dates'};
-  const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Tube, bus or cab — we\'ll tell you what makes sense',planner:'Calendar, reminders & .ics export',bookings:'Every date, all in one place'};
+  const TITLES={discover:'Discover',profiles:'Our profiles',restaurants:'Dining',experiences:'Experiences',hotels:'Accommodation',cabs:'Transport',planner:'Date planner',bookings:'My dates',journal:'Date Journal',wishlist:'Wishlist'};
+  const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Tube, bus or cab — we\'ll tell you what makes sense',planner:'Calendar, reminders & .ics export',bookings:'Every date, all in one place',journal:'Your private scrapbook of memories',wishlist:'Ideas you want to try someday'};
 
   let bookings=[
     {id:1,type:'restaurant',name:'Dishoom, Covent Garden',date:'2026-05-02',meta:'8:00 PM · 2 covers · Indian',amount:'£65',icon:'🫕'},
@@ -1249,6 +1589,8 @@
     if(id==='planner')renderCal();
     if(id==='bookings'||id==='discover'){renderBookings();updateStats();}
     if(id==='planner')renderReminders();
+    if(id==='journal')renderJournal();
+    if(id==='wishlist')renderWishlist();
     // scroll content back to top on page change
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -1326,6 +1668,18 @@
   let _weatherCode=-1;
   let _weatherTemp=0;
   let _monthlyBudget=0;
+  // ── New feature state ──
+  let _moodEnergy='moderate'; // 'tired'|'moderate'|'energetic'
+  let _surpriseMode=false;
+  let _doubleDateMode=false;
+  let _paidLast=null; // 'jamie'|'sophie'|null
+  let _jeStarVal=0;
+  let _wishFilter='all';
+  let _wishlist=[];
+  let _journal=[];
+  let _quizAnswers={energy:'mixed',adventure:'mid',tod:'evening',crowd:'quiet',priority:'experience'};
+  let _recurringFreq='';
+  let _checklistState={}; // {key: bool}
   function setMonthlyBudget(v){
     _monthlyBudget=parseFloat(v)||0;
     const note=document.getElementById('budget-set-note');
@@ -1729,6 +2083,32 @@
         _weatherBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#FFFBEB;border:0.5px solid #FCD34D;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#78350F"><span style="font-size:15px">☀️</span><div><span style="font-weight:600;color:#B45309">Clear evening (${_weatherTemp}°C)</span> — rooftop, garden & outdoor options moved to the top.</div></div>`;
       }
 
+      // ── Mood-aware sort ──
+      let _moodBanner='';
+      if(_moodEnergy==='tired'){
+        ideas.sort((a,b)=>{
+          const aCozy=['romantic','foodie'].includes(a.type)||a.vibes.includes('Intimate')||a.vibes.includes('Candlelit');
+          const bCozy=['romantic','foodie'].includes(b.type)||b.vibes.includes('Intimate')||b.vibes.includes('Candlelit');
+          return aCozy===bCozy?0:(aCozy?-1:1);
+        });
+        _moodBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF8FF,#F5F0FA);border:0.5px solid var(--plum-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--plum)"><span style="font-size:15px">😴</span><div><span style="font-weight:600">Low energy tonight</span> — cosy, intimate & effortless options moved to the top.</div></div>`;
+      } else if(_moodEnergy==='energetic'){
+        ideas.sort((a,b)=>{
+          const aActive=['outdoor','fun','cultural'].includes(a.type);
+          const bActive=['outdoor','fun','cultural'].includes(b.type);
+          return aActive===bActive?0:(aActive?-1:1);
+        });
+        _moodBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:0.5px solid #FCD34D;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#78350F"><span style="font-size:15px">⚡</span><div><span style="font-weight:600">You've got energy tonight</span> — active, cultural & immersive experiences at the top.</div></div>`;
+      }
+
+      // ── Double-date banner ──
+      let _ddBanner='';
+      if(_doubleDateMode){
+        const n1=document.getElementById('dd-name1')?.value||'Alex';
+        const n2=document.getElementById('dd-name2')?.value||'Jordan';
+        _ddBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#EFF6FF;border:0.5px solid #93C5FD;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#1e3a5f"><span style="font-size:15px">👫</span><div><span style="font-weight:600">Double-date mode</span> — planning for Jamie, Sophie, ${n1} & ${n2}. Pick an idea all four will love.</div></div>`;
+      }
+
       const topScore=Math.max(...ideas.map(i=>i.score));
       const occasionSuffix=occasionLabel?` · ${occasionLabel}`:'';
 
@@ -1817,7 +2197,9 @@
         }
       }
 
-      // Weather banner
+      // Mood + double-date + weather banners
+      if(_moodBanner) html+=_moodBanner;
+      if(_ddBanner) html+=_ddBanner;
       if(_weatherBanner) html+=_weatherBanner;
 
       // Dietary notice
@@ -1906,9 +2288,11 @@
               ${bothLove?`<div class="both-love-row" style="margin-top:8px;padding:6px 10px;background:var(--rose-light);border-radius:6px;text-align:center;font-size:12px;font-weight:600;color:var(--rose-dark)">♥ You both love this — perfect!</div>`:'<div class="both-love-row" style="display:none"></div>'}
             </div>
 
-            <div style="display:flex;gap:8px;margin-top:10px">
+            <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
               <button class="btn btn-rose btn-sm" onclick="event.stopPropagation();quickBook('${idea.name}','experience','${idea.price}')">${bothLove?'♥ Book it together':'Book this ✦'}</button>
               <button class="btn btn-sm" onclick="event.stopPropagation();go('planner',document.querySelector('[onclick*=planner]'))">+ Plan it</button>
+              <button class="btn btn-sm" style="border-color:var(--plum-mid);color:var(--plum)" onclick="event.stopPropagation();saveToWishlist('${idea.name.replace(/'/g,"\\'")}','${idea.emoji}','${idea.price}','${idea.type}','${idea.why.replace(/'/g,"\\'")}')">💫 Save</button>
+              ${_surpriseMode?`<button class="btn btn-sm" style="border-color:#9333EA;color:#7C3AED" onclick="event.stopPropagation();openSurprisePreview('${idea.name.replace(/'/g,"\\'")}','${idea.type}','${idea.emoji}')">🎁 Plan as surprise</button>`:''}
             </div>
           </div>
         </div>`;
@@ -2753,5 +3137,467 @@
   setTimeout(generateSuggestions,400);
   const _dw=document.getElementById('date-when');
   if(_dw)_dw.value=new Date().toISOString().slice(0,10);
+
+  // ════════════════════════════════════════════════
+  // ── MOOD CHECK-IN ──
+  // ════════════════════════════════════════════════
+  function showMoodCheckIn(){
+    const ov=document.getElementById('mood-overlay');
+    if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
+  }
+  function closeMoodOverlay(){
+    const ov=document.getElementById('mood-overlay');
+    if(ov){ov.style.display='none';document.body.style.overflow='';}
+  }
+  function selectMood(v){
+    _moodEnergy=v;
+    document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+    const btn=document.getElementById('mood-'+v);
+    if(btn)btn.classList.add('selected');
+  }
+  function confirmMoodAndGenerate(){
+    closeMoodOverlay();
+    generateSuggestions();
+  }
+
+  // ════════════════════════════════════════════════
+  // ── DATE ROULETTE ──
+  // ════════════════════════════════════════════════
+  function spinRoulette(){
+    const sliderEl=document.getElementById('budget-slider');
+    const sliderVal=sliderEl?parseInt(sliderEl.value):1;
+    const budget=BUDGET_KEYS[sliderVal]||'mid';
+    const pool=IDEAS[budget]||IDEAS.mid;
+    const area=document.getElementById('suggestions-area');
+    area.innerHTML=`<div class="card"><div class="loading-overlay" style="gap:14px">
+      <div class="roulette-die" style="font-size:56px">🎲</div>
+      <div class="loading-text">Spinning the wheel…</div>
+    </div></div>`;
+    setTimeout(()=>{
+      const picked=pool[Math.floor(Math.random()*pool.length)];
+      const vegOk=!_VEG_UNFRIENDLY.has(picked.name);
+      area.innerHTML=`<div class="roulette-reveal">
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px">The wheel says…</div>
+          <div style="font-size:32px;font-weight:700;color:var(--rose-dark);font-family:var(--font-serif,serif);line-height:1.2">${picked.name}</div>
+          <div style="font-size:13px;color:var(--ink-muted);margin-top:6px">${picked.loc}</div>
+        </div>
+        <div class="card">
+          <div class="idea-emoji" style="height:200px">
+            <img src="${picked.img}" alt="${picked.name}" onerror="this.parentElement.innerHTML='${picked.emoji}'" style="width:100%;height:100%;object-fit:cover">
+          </div>
+          <div class="idea-body">
+            <div style="font-size:12px;color:var(--ink-muted);font-style:italic;margin-bottom:8px">✦ ${picked.why}</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+              ${picked.vibes.map(v=>`<span class="badge badge-rose">${v}</span>`).join('')}
+              ${vegOk?'<span class="badge" style="background:#F0FDF4;color:#166534;border:0.5px solid #86EFAC">✓ Sophie-friendly</span>':''}
+            </div>
+            <div class="idea-price">${picked.price}</div>
+            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <button class="btn btn-rose btn-sm" onclick="quickBook('${picked.name}','experience','${picked.price}');this.textContent='✓ Booked!'">Book this ✦</button>
+              <button class="btn btn-sm" onclick="spinRoulette()">🎲 Spin again</button>
+              <button class="btn btn-sm" onclick="saveToWishlist('${picked.name.replace(/'/g,"\\'")}','${picked.emoji}','${picked.price}','${picked.type}','${picked.why.replace(/'/g,"\\'")}')">💫 Save to wishlist</button>
+              <button class="btn btn-sm" onclick="generateSuggestions()">See all suggestions</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    },1600);
+  }
+
+  // ════════════════════════════════════════════════
+  // ── SURPRISE MODE ──
+  // ════════════════════════════════════════════════
+  const _DRESS_CODES={romantic:'Smart casual — something elegant',foodie:'Smart casual — dress to impress',outdoor:'Comfortable & casual',cultural:'Smart casual',fun:'Casual — anything goes'};
+  const _AREA_EMOJIS={romantic:'🕯️',foodie:'🍽️',outdoor:'🌿',cultural:'🎭',fun:'🎉'};
+
+  function toggleSurpriseMode(){
+    _surpriseMode=!_surpriseMode;
+    const btn=document.getElementById('surprise-toggle');
+    if(btn)btn.classList.toggle('active',_surpriseMode);
+    toast(_surpriseMode?'🎁 Surprise mode on — plan a date and reveal only the basics to Sophie':'Surprise mode off');
+  }
+  function toggleDoubleDateMode(){
+    _doubleDateMode=!_doubleDateMode;
+    const btn=document.getElementById('dd-toggle');
+    if(btn)btn.classList.toggle('active',_doubleDateMode);
+    const row=document.getElementById('dd-names-row');
+    if(row)row.style.display=_doubleDateMode?'':'none';
+    toast(_doubleDateMode?'👫 Double-date mode — adding suggestions for four':'Double-date mode off');
+  }
+  function openSurprisePreview(name,type,emoji){
+    const timeEl=document.getElementById('date-time');
+    const timeStr=(timeEl&&timeEl.value&&timeEl.value!=='')?timeEl.value.split(' — ')[0]:'Evening';
+    const locEl=document.getElementById('loc-select');
+    const locStr=locEl?locEl.value:'London, UK';
+    const dresscode=_DRESS_CODES[type]||'Smart casual';
+    const areaEmoji=_AREA_EMOJIS[type]||'✦';
+    const details=document.getElementById('sov-details');
+    if(details){
+      details.innerHTML=`
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg2);border-radius:var(--r-md)">
+            <span style="font-size:20px">📍</span>
+            <div><div style="font-size:11px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Area</div><div style="font-size:13px;font-weight:500;color:var(--ink)">${locStr.split(',')[0]}</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg2);border-radius:var(--r-md)">
+            <span style="font-size:20px">🕰</span>
+            <div><div style="font-size:11px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Time</div><div style="font-size:13px;font-weight:500;color:var(--ink)">${timeStr}</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:var(--bg2);border-radius:var(--r-md)">
+            <span style="font-size:20px">👗</span>
+            <div><div style="font-size:11px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Dress code</div><div style="font-size:13px;font-weight:500;color:var(--ink)">${dresscode}</div></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;padding:11px 13px;background:linear-gradient(135deg,var(--plum-light),var(--rose-light));border:0.5px solid var(--plum-mid);border-radius:var(--r-md)">
+            <span style="font-size:20px">🎁</span>
+            <div><div style="font-size:11px;color:var(--plum);text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">Everything else…</div><div style="font-size:13px;font-weight:500;color:var(--plum)">Is a surprise ✦</div></div>
+          </div>
+        </div>`;
+    }
+    const ov=document.getElementById('sov-overlay');
+    if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
+  }
+  function closeSurpriseOverlay(){
+    const ov=document.getElementById('sov-overlay');
+    if(ov){ov.style.display='none';document.body.style.overflow='';}
+  }
+  function shareSurpriseCard(){
+    closeSurpriseOverlay();
+    shareSophieLink();
+    toast('🎁 Surprise shared with Sophie — she\'ll only see the mystery card!');
+  }
+
+  // ════════════════════════════════════════════════
+  // ── WISHLIST ──
+  // ════════════════════════════════════════════════
+  function saveToWishlist(name,emoji,price,type,why){
+    if(_wishlist.find(w=>w.name===name)){toast('💫 Already on your wishlist!');return;}
+    _wishlist.push({id:Date.now(),name,emoji,price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
+    toast('💫 Saved to your wishlist — find it under Wishlist');
+  }
+  function openAddWish(){
+    const ov=document.getElementById('wish-overlay');
+    if(ov){
+      document.getElementById('wi-name').value='';
+      document.getElementById('wi-price').value='';
+      document.getElementById('wi-why').value='';
+      ov.style.display='flex';document.body.style.overflow='hidden';
+    }
+  }
+  function closeWishOverlay(){
+    const ov=document.getElementById('wish-overlay');
+    if(ov){ov.style.display='none';document.body.style.overflow='';}
+  }
+  function saveWishItem(){
+    const name=document.getElementById('wi-name').value.trim();
+    if(!name){toast('Please enter an idea name');return;}
+    const price=document.getElementById('wi-price').value.trim()||'';
+    const type=document.getElementById('wi-type').value;
+    const why=document.getElementById('wi-why').value.trim();
+    if(_wishlist.find(w=>w.name===name)){toast('Already on your wishlist!');closeWishOverlay();return;}
+    _wishlist.push({id:Date.now(),name,emoji:'✦',price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
+    closeWishOverlay();
+    renderWishlist();
+    toast('💫 Saved to your wishlist!');
+  }
+  function toggleWishDone(id){
+    const w=_wishlist.find(w=>w.id===id);
+    if(w){w.done=!w.done;renderWishlist();}
+  }
+  function removeWish(id){
+    _wishlist=_wishlist.filter(w=>w.id!==id);
+    renderWishlist();
+  }
+  function setWishFilter(f,btn){
+    _wishFilter=f;
+    document.querySelectorAll('#page-wishlist .btn').forEach(b=>b.classList.remove('btn-rose'));
+    if(btn)btn.classList.add('btn-rose');
+    renderWishlist();
+  }
+  function renderWishlist(){
+    const el=document.getElementById('wishlist-items');
+    if(!el)return;
+    let items=_wishlist;
+    if(_wishFilter==='todo')items=items.filter(w=>!w.done);
+    else if(_wishFilter==='done')items=items.filter(w=>w.done);
+    if(!items.length){
+      const empty=_wishFilter==='done'?'No completed dates yet — tick an item when you\'ve been!'
+        :_wishFilter==='todo'?'All caught up! Nothing left to do yet.'
+        :'Your wishlist is empty — save ideas from Discover or add your own.';
+      el.innerHTML=`<div style="text-align:center;padding:36px 20px;color:var(--ink-muted)">
+        <div style="font-size:36px;margin-bottom:10px">💫</div>
+        <div style="font-size:13px;font-weight:500;color:var(--ink-soft);margin-bottom:5px">${empty}</div>
+        ${_wishlist.length===0?`<button class="btn btn-sm btn-rose" style="margin-top:10px" onclick="go('discover',document.querySelector('[onclick*=discover]'))">Browse ideas ✦</button>`:''}
+      </div>`;
+      return;
+    }
+    el.innerHTML=items.map(w=>`<div class="wish-card${w.done?' done-item':''}">
+      <div class="wish-check${w.done?' checked':''}" onclick="toggleWishDone(${w.id})">${w.done?'✓':''}</div>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px${w.done?';text-decoration:line-through;color:var(--ink-muted)':''}">${w.name}</div>
+        ${w.price?`<div style="font-size:11px;color:var(--ink-muted)">${w.price}</div>`:''}
+        ${w.why?`<div style="font-size:11px;color:var(--ink-muted);margin-top:4px;font-style:italic">✦ ${w.why}</div>`:''}
+        <div style="font-size:10px;color:var(--ink-muted);margin-top:6px">Added ${w.addedDate}</div>
+      </div>
+      <button class="btn btn-sm" style="font-size:10px;padding:4px 8px;flex-shrink:0" onclick="removeWish(${w.id})">✕</button>
+    </div>`).join('');
+  }
+
+  // ════════════════════════════════════════════════
+  // ── RECURRING DATE SCHEDULER ──
+  // ════════════════════════════════════════════════
+  function saveRecurring(freq){
+    _recurringFreq=freq;
+    const statusEl=document.getElementById('recurring-status');
+    if(!statusEl)return;
+    if(!freq){statusEl.style.display='none';return;}
+    const freqLabel={weekly:'every week',biweekly:'every 2 weeks',monthly:'once a month'}[freq]||freq;
+    const now=new Date();
+    let nextDate=new Date(now);
+    if(freq==='weekly')nextDate.setDate(now.getDate()+7);
+    else if(freq==='biweekly')nextDate.setDate(now.getDate()+14);
+    else nextDate.setMonth(now.getMonth()+1);
+    const opts={weekday:'long',month:'long',day:'numeric'};
+    statusEl.innerHTML=`♥ Date night scheduled <strong>${freqLabel}</strong> — next one on <strong>${nextDate.toLocaleDateString('en-GB',opts)}</strong>.<br>We'll remind you 2 days before.`;
+    statusEl.style.display='';
+    toast(`📅 Date night set — ${freqLabel}`);
+  }
+
+  // ════════════════════════════════════════════════
+  // ── DATE JOURNAL ──
+  // ════════════════════════════════════════════════
+  function openNewJournalEntry(){
+    const ov=document.getElementById('journal-overlay');
+    if(!ov)return;
+    document.getElementById('je-name').value='';
+    document.getElementById('je-note').value='';
+    document.getElementById('je-date').value=new Date().toISOString().slice(0,10);
+    _jeStarVal=0;
+    document.querySelectorAll('#je-stars .star').forEach(s=>s.classList.remove('lit'));
+    ov.style.display='flex';document.body.style.overflow='hidden';
+  }
+  function closeJournalOverlay(){
+    const ov=document.getElementById('journal-overlay');
+    if(ov){ov.style.display='none';document.body.style.overflow='';}
+  }
+  function setJeStar(v){
+    _jeStarVal=v;
+    document.querySelectorAll('#je-stars .star').forEach(s=>{s.classList.toggle('lit',parseInt(s.dataset.v)<=v);});
+  }
+  function saveJournalEntry(){
+    const name=document.getElementById('je-name').value.trim();
+    if(!name){toast('Please enter a date name');return;}
+    const note=document.getElementById('je-note').value.trim();
+    const date=document.getElementById('je-date').value||new Date().toISOString().slice(0,10);
+    const vibe=document.getElementById('je-vibe').value;
+    _journal.unshift({id:Date.now(),name,note,date,vibe,rating:_jeStarVal});
+    closeJournalOverlay();
+    renderJournal();
+    toast('📖 Memory saved to your journal ✦');
+  }
+  const _VIBE_EMOJIS={romantic:'🕯️',fun:'✦',foodie:'🍽️',outdoor:'🌿',cultural:'🎭'};
+  function renderJournal(){
+    const el=document.getElementById('journal-entries');
+    if(!el)return;
+    // Update milestone stats
+    const loggedEl=document.getElementById('jm-logged');
+    if(loggedEl)loggedEl.textContent=_journal.length;
+    const ratings=_journal.filter(j=>j.rating>0).map(j=>j.rating);
+    const avgEl=document.getElementById('jm-rating');
+    if(avgEl)avgEl.textContent=ratings.length?('★ '+(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1)):'—';
+    const vibeCount={};
+    _journal.forEach(j=>{vibeCount[j.vibe]=(vibeCount[j.vibe]||0)+1;});
+    const favVibe=Object.entries(vibeCount).sort((a,b)=>b[1]-a[1])[0];
+    const favEl=document.getElementById('jm-fav');
+    if(favEl)favEl.textContent=favVibe?`${_VIBE_EMOJIS[favVibe[0]]||'✦'} ${favVibe[0].charAt(0).toUpperCase()+favVibe[0].slice(1)}`:'—';
+    if(!_journal.length){
+      el.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--ink-muted)">
+        <div style="font-size:40px;margin-bottom:12px">📖</div>
+        <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">No memories yet</div>
+        <div style="font-size:12px;margin-bottom:20px">After each date, add a note and rating — they'll appear here</div>
+        <button class="btn btn-rose btn-sm" onclick="openNewJournalEntry()">Add your first memory ✦</button>
+      </div>`;
+      return;
+    }
+    el.innerHTML=_journal.map(j=>{
+      const stars=j.rating?Array.from({length:5},(_,i)=>`<span class="journal-star">${i<j.rating?'★':'☆'}</span>`).join(''):'';
+      return `<div class="journal-entry">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
+          <div>
+            <div style="font-size:14px;font-weight:500;color:var(--ink)">${_VIBE_EMOJIS[j.vibe]||'✦'} ${j.name}</div>
+            <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">${j.date}${j.vibe?' · '+j.vibe.charAt(0).toUpperCase()+j.vibe.slice(1):''}</div>
+          </div>
+          <div>
+            ${stars?`<div class="journal-stars" style="font-size:13px">${stars}</div>`:''}
+          </div>
+        </div>
+        ${j.note?`<div style="font-size:12px;color:var(--ink-soft);font-style:italic;line-height:1.6;padding:8px 10px;background:var(--bg2);border-radius:var(--r-md)">"${j.note}"</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
+  // ════════════════════════════════════════════════
+  // ── WHO PAID LAST ──
+  // ════════════════════════════════════════════════
+  function cyclePaidLast(){
+    if(_paidLast===null)_paidLast='jamie';
+    else if(_paidLast==='jamie')_paidLast='sophie';
+    else _paidLast=null;
+    updatePaidLastUI();
+  }
+  function updatePaidLastUI(){
+    const valEl=document.getElementById('s-paid-val');
+    const noteEl=document.getElementById('s-paid-note');
+    if(_paidLast===null){
+      if(valEl)valEl.textContent='—';
+      if(noteEl)noteEl.textContent='Tap to set';
+    } else if(_paidLast==='jamie'){
+      if(valEl)valEl.innerHTML='<span style="font-size:12px">JM</span>';
+      if(noteEl)noteEl.textContent='Jamie paid · Sophie\'s turn';
+      toast('💳 Jamie paid last — Sophie\'s turn next');
+    } else {
+      if(valEl)valEl.innerHTML='<span style="font-size:12px">SP</span>';
+      if(noteEl)noteEl.textContent='Sophie paid · Jamie\'s turn';
+      toast('💳 Sophie paid last — Jamie\'s turn next');
+    }
+  }
+
+  // ════════════════════════════════════════════════
+  // ── MILESTONE STATS (My Dates) ──
+  // ════════════════════════════════════════════════
+  function updateMilestoneStats(){
+    // Next date countdown
+    const now=new Date();
+    const upcoming=bookings.filter(b=>b.date>=now.toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date))[0];
+    const nextEl=document.getElementById('s-next-days');
+    if(nextEl){
+      if(upcoming){const diff=Math.round((new Date(upcoming.date+' 12:00')-now)/(1000*60*60*24));nextEl.textContent=diff===0?'Today':diff;}
+      else nextEl.textContent='—';
+    }
+    // Date streak (months with at least one booking)
+    const monthsWithDate=new Set(bookings.map(b=>(b.date||'').slice(0,7)));
+    const streakEl=document.getElementById('s-streak');
+    if(streakEl)streakEl.textContent=monthsWithDate.size||'—';
+    // Post-date prompts
+    renderPostDatePrompts();
+  }
+
+  // ════════════════════════════════════════════════
+  // ── POST-DATE PROMPTS ──
+  // ════════════════════════════════════════════════
+  function renderPostDatePrompts(){
+    const el=document.getElementById('post-date-prompts');
+    if(!el)return;
+    const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+    const yStr=yesterday.toISOString().slice(0,10);
+    const twoDaysAgo=new Date();twoDaysAgo.setDate(twoDaysAgo.getDate()-2);
+    const tdaStr=twoDaysAgo.toISOString().slice(0,10);
+    const recentPastDates=bookings.filter(b=>b.date>=tdaStr&&b.date<=yStr&&b.type!=='cab');
+    if(!recentPastDates.length){el.innerHTML='';return;}
+    el.innerHTML=recentPastDates.map(b=>{
+      const alreadyLogged=_journal.find(j=>j.name.toLowerCase().includes(b.name.toLowerCase().split(',')[0]));
+      if(alreadyLogged)return '';
+      return `<div style="display:flex;align-items:center;gap:12px;padding:13px 15px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border:1.5px solid var(--rose-mid);border-radius:var(--r-lg);margin-bottom:10px">
+        <div style="font-size:24px;flex-shrink:0">${b.icon||'📖'}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--rose-dark)">How was ${b.name.split(',')[0]}?</div>
+          <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">Add a memory while it's fresh — it'll mean the world to look back on</div>
+        </div>
+        <button class="btn btn-sm btn-rose" style="flex-shrink:0;font-size:11px" onclick="prefillJournalEntry('${b.name.replace(/'/g,"\\'")}')">Add memory ✦</button>
+      </div>`;
+    }).join('');
+  }
+  function prefillJournalEntry(name){
+    openNewJournalEntry();
+    setTimeout(()=>{const n=document.getElementById('je-name');if(n)n.value=name;},50);
+  }
+
+  // ════════════════════════════════════════════════
+  // ── PRE-DATE CHECKLIST ──
+  // ════════════════════════════════════════════════
+  const _CHECKLIST_ITEMS=[
+    {key:'table',label:'Reservation confirmed',emoji:'🍽️'},
+    {key:'cab',label:'Transport booked',emoji:'🚕'},
+    {key:'reminder',label:'Reminder set for both of you',emoji:'🔔'},
+    {key:'outfit',label:'Outfit sorted',emoji:'👗'},
+    {key:'gift',label:'Small gesture / flowers?',emoji:'💐'},
+    {key:'charge',label:'Phone charged',emoji:'🔋'},
+  ];
+  function showPreDateChecklist(bookingName){
+    const titleEl=document.getElementById('cl-title');
+    const subEl=document.getElementById('cl-sub');
+    if(titleEl)titleEl.textContent=`Before ${bookingName}`;
+    if(subEl)subEl.textContent='Tick each off as you go';
+    _checklistState={};
+    const itemsEl=document.getElementById('cl-items');
+    if(itemsEl){
+      itemsEl.innerHTML=_CHECKLIST_ITEMS.map(item=>`
+        <div class="check-item" onclick="toggleChecklist('${item.key}')">
+          <div class="check-circle" id="cc-${item.key}"></div>
+          <span style="font-size:15px">${item.emoji}</span>
+          <span style="font-size:13px;color:var(--ink)">${item.label}</span>
+        </div>`).join('');
+    }
+    updateChecklistProgress();
+    const ov=document.getElementById('checklist-overlay');
+    if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
+  }
+  function toggleChecklist(key){
+    _checklistState[key]=!_checklistState[key];
+    const circle=document.getElementById('cc-'+key);
+    if(circle){circle.classList.toggle('done',!!_checklistState[key]);circle.textContent=_checklistState[key]?'✓':'';}
+    updateChecklistProgress();
+  }
+  function updateChecklistProgress(){
+    const done=Object.values(_checklistState).filter(Boolean).length;
+    const total=_CHECKLIST_ITEMS.length;
+    const el=document.getElementById('cl-progress');
+    if(el)el.textContent=`${done} of ${total} done`;
+  }
+  function closeChecklistOverlay(){
+    const ov=document.getElementById('checklist-overlay');
+    if(ov){ov.style.display='none';document.body.style.overflow='';}
+  }
+
+  // ════════════════════════════════════════════════
+  // ── COUPLE PREFERENCES QUIZ ──
+  // ════════════════════════════════════════════════
+  function setQuiz(q,v,el){
+    _quizAnswers[q]=v;
+    el.closest('.quiz-options').querySelectorAll('.quiz-opt').forEach(o=>o.classList.remove('active'));
+    el.classList.add('active');
+    updateQuizResult();
+  }
+  function updateQuizResult(){
+    const r=document.getElementById('quiz-result');
+    if(!r)return;
+    const profiles={
+      energy:{homebody:'You both love cosy nights in',mixed:'You\'re flexible — happy in or out',outgoing:'You thrive out and about'},
+      adventure:{low:'Stick to trusted favourites',mid:'Open to trying new things occasionally',high:'Always after the next new thing'},
+      tod:{day:'Daytime daters — brunch dates and afternoon adventures',evening:'Classic early evenners',night:'You both come alive after dark'},
+      crowd:{quiet:'Intimate settings — the quieter the better',any:'No preference',lively:'Buzz and atmosphere are important'},
+      priority:{food:'Incredible food is non-negotiable',experience:'It\'s all about the experience',conversation:'Uninterrupted quality time',spontaneity:'You love being surprised'}
+    };
+    const lines=[profiles.energy[_quizAnswers.energy],profiles.adventure[_quizAnswers.adventure],profiles.tod[_quizAnswers.tod],profiles.crowd[_quizAnswers.crowd],profiles.priority[_quizAnswers.priority]].filter(Boolean);
+    r.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:8px">✦ Your couple profile</div>${lines.map(l=>`<div style="font-size:12px;color:var(--ink-soft);padding:3px 0;border-bottom:0.5px solid rgba(196,104,122,0.15)">· ${l}</div>`).join('')}`;
+    r.style.display='';
+  }
+  // Initialise quiz result on page load
+  updateQuizResult();
+
+  // Wire quickBook to show checklist after a short delay
+  const _origQuickBook=quickBook;
+  quickBook=function(name,type,amount){
+    _origQuickBook(name,type,amount);
+    if(type!=='cab'){setTimeout(()=>showPreDateChecklist(name),600);}
+  };
+
+  // Wire updateStats to also call milestone stats
+  const _origUpdateStats=updateStats;
+  updateStats=function(){
+    _origUpdateStats();
+    updatePaidLastUI();
+    updateMilestoneStats();
+  };
 
 </script>
