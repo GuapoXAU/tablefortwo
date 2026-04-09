@@ -869,6 +869,17 @@
                 <select class="form-input" style="width:auto"><option>London, UK</option><option>Manchester</option><option>Edinburgh</option></select>
               </div>
             </div>
+            <div class="divider"></div>
+            <div class="form-group" style="max-width:340px">
+              <label class="form-label">Monthly date budget <span style="font-size:10px;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-weight:400">— optional</span></label>
+              <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px">We'll track your spending and warn you when suggestions run over</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:15px;color:var(--ink-soft);font-family:var(--font-serif,serif)">£</span>
+                <input type="number" class="form-input" id="monthly-budget-input" placeholder="200" min="0" step="10" style="max-width:110px" oninput="setMonthlyBudget(this.value)">
+                <span style="font-size:12px;color:var(--ink-muted)">/month</span>
+              </div>
+              <div id="budget-set-note" style="display:none;margin-top:6px;font-size:11px;color:var(--color-text-success)">✓ Budget set — we'll track this in My Dates</div>
+            </div>
           </div>
         </div>
         <div class="card">
@@ -1135,7 +1146,7 @@
         <div class="g4" style="margin-bottom:1.25rem">
           <div class="stat"><div class="stat-label">Dates booked</div><div class="stat-val" id="s-dates">3</div><div class="stat-note">2 upcoming</div></div>
           <div class="stat"><div class="stat-label">Reminders</div><div class="stat-val" id="s-rems">4</div><div class="stat-note">Next: Friday</div></div>
-          <div class="stat"><div class="stat-label">Total spent</div><div class="stat-val">£<span id="s-spent">0</span></div><div class="stat-note">Together</div></div>
+          <div class="stat" id="s-budget-tile"><div class="stat-label">Total spent</div><div class="stat-val">£<span id="s-spent">0</span></div><div class="stat-note" id="s-budget-note">Together</div><div id="s-budget-bar-wrap" style="display:none;margin-top:8px"><div style="height:5px;background:var(--bdr2);border-radius:3px;overflow:hidden"><div id="s-budget-bar" style="height:5px;border-radius:3px;transition:width 0.4s;background:var(--color-background-success,#5DCAA5)"></div></div><div id="s-budget-label" style="font-size:10px;color:var(--ink-muted);margin-top:4px"></div></div></div>
           <div class="stat"><div class="stat-label">Your ratings</div><div class="stat-val" id="s-avg-rating" style="font-size:16px;line-height:1.6">—</div><div class="stat-note" id="s-avg-note">Rate past dates</div></div>
         </div>
         <div class="card">
@@ -1312,6 +1323,15 @@
   const _WMO={0:'Clear skies',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
   const _WMO_FEEL={0:'Perfect evening for a date ✦',1:'Nice and clear out there ✦',2:'Good vibes tonight',3:'Cosy night in or out?',45:'Atmospheric night for it',48:'Atmospheric night for it',51:'Light drizzle — great excuse for candlelit dining',53:'Drizzly — perfect night to stay warm inside',55:'Drizzly — perfect night to stay warm inside',61:'Rainy night — made for good food and wine',63:'Rainy night — made for good food and wine',65:'Pouring — sounds like a restaurant night',71:'Snowy tonight — bundle up for something magical',73:'Snowy tonight — bundle up for something magical',75:'Heavy snow — cosy indoor date vibes',80:'Showery evening — great for indoor dining',81:'Showery evening — great for indoor dining',82:'Stormy out — perfect stay-in date',95:'Stormy out — perfect stay-in date',96:'Stormy out — perfect stay-in date',99:'Stormy out — perfect stay-in date'};
   let _weatherFetched=false;
+  let _weatherCode=-1;
+  let _weatherTemp=0;
+  let _monthlyBudget=0;
+  function setMonthlyBudget(v){
+    _monthlyBudget=parseFloat(v)||0;
+    const note=document.getElementById('budget-set-note');
+    if(note) note.style.display=_monthlyBudget>0?'':'none';
+    updateStats();
+  }
 
   function setSmartGreeting(){
     const now=new Date();
@@ -1358,6 +1378,7 @@
           .then(d=>{
             const code=d.current?.weathercode??-1;
             const temp=Math.round(d.current?.temperature_2m??0);
+            _weatherCode=code;_weatherTemp=temp;
             const feel=_WMO_FEEL[code];
             const desc=_WMO[code]||'';
             // Only update sub if still on discover page
@@ -1679,6 +1700,27 @@
         return sb-sa;
       });
 
+      // ── Feature 5: Weather-aware sort ──
+      const _RAINY_CODES=[51,53,55,61,63,65,71,73,75,80,81,82,95,96,99];
+      const _isRainy=_RAINY_CODES.includes(_weatherCode);
+      const _isClearWarm=[0,1,2].includes(_weatherCode)&&_weatherTemp>=15;
+      let _weatherBanner='';
+      if(_isRainy){
+        ideas.sort((a,b)=>{
+          const aOut=a.type==='outdoor'||a.vibes.includes('Outdoor seats');
+          const bOut=b.type==='outdoor'||b.vibes.includes('Outdoor seats');
+          return aOut===bOut?0:(aOut?1:-1);
+        });
+        _weatherBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#EFF6FF;border:0.5px solid #93C5FD;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#1e3a5f"><span style="font-size:15px">🌧</span><div><span style="font-weight:600;color:#1D4ED8">It's raining (${_weatherTemp}°C)</span> — outdoor options moved to the bottom. Indoor dining & experiences first.</div></div>`;
+      } else if(_isClearWarm){
+        ideas.sort((a,b)=>{
+          const aOut=a.type==='outdoor'||a.vibes.includes('Outdoor seats');
+          const bOut=b.type==='outdoor'||b.vibes.includes('Outdoor seats');
+          return aOut===bOut?0:(aOut?-1:1);
+        });
+        _weatherBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#FFFBEB;border:0.5px solid #FCD34D;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#78350F"><span style="font-size:15px">☀️</span><div><span style="font-weight:600;color:#B45309">Clear evening (${_weatherTemp}°C)</span> — rooftop, garden & outdoor options moved to the top.</div></div>`;
+      }
+
       const topScore=Math.max(...ideas.map(i=>i.score));
       const occasionSuffix=occasionLabel?` · ${occasionLabel}`:'';
 
@@ -1707,6 +1749,68 @@
           ${(!_jamieSign||!_sophieSign)?'<div style="margin-top:2px;color:var(--ink-muted)">Add both birthdates to see full cosmic compatibility</div>':''}</div>
         </div>`;
       }
+
+      // ── Feature 4: Occasion-aware smart nudges ──
+      const today=new Date();
+      const todayStr=today.toISOString().slice(0,10);
+      // Check for upcoming hotel check-ins (next 7 days) without a cab booked same day
+      const upcomingCheckins=reminders.filter(r=>{
+        if(r.cat!=='Hotel check-in') return false;
+        const diff=Math.round((new Date(r.date+' 12:00')-today)/(1000*60*60*24));
+        return diff>=0&&diff<=7;
+      });
+      upcomingCheckins.forEach(checkin=>{
+        const hasCab=bookings.some(b=>b.type==='cab'&&b.date===checkin.date);
+        if(!hasCab){
+          const daysAway=Math.round((new Date(checkin.date+' 12:00')-today)/(1000*60*60*24));
+          const whenStr=daysAway===0?'today':daysAway===1?'tomorrow':`in ${daysAway} days`;
+          html+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#EFF6FF,#EEF2FF);border:0.5px solid #93C5FD;border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:#1e3a5f">
+            <span style="font-size:18px">🏨</span>
+            <div style="flex:1"><span style="font-weight:600">${checkin.title}</span> is ${whenStr} — no cab booked yet.
+            <span style="color:#1D4ED8;cursor:pointer;font-weight:500" onclick="go('cabs',document.querySelector('[onclick*=cabs]'))"> Book transport ↗</span></div>
+          </div>`;
+        }
+      });
+      // Check for anniversary reminders within 14 days
+      const anniversaryRems=reminders.filter(r=>{
+        const titleLower=r.title.toLowerCase();
+        if(!titleLower.includes('anniversary')&&r.cat!=='Personal') return false;
+        if(!titleLower.includes('anniversary')) return false;
+        const diff=Math.round((new Date(r.date+' 12:00')-today)/(1000*60*60*24));
+        return diff>=0&&diff<=14;
+      });
+      anniversaryRems.forEach(ann=>{
+        const annBooking=bookings.find(b=>b.date===ann.date||(b.name||'').toLowerCase().includes('anniversary'));
+        if(!annBooking){
+          const diff=Math.round((new Date(ann.date+' 12:00')-today)/(1000*60*60*24));
+          const daysStr=diff===0?'is today':diff===1?'is tomorrow':`is in ${diff} day${diff!==1?'s':''}`;
+          html+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#FDF8F0,#FEF0F3);border:1.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:var(--rose-dark)">
+            <span style="font-size:18px">💍</span>
+            <div style="flex:1"><span style="font-weight:600">Your anniversary ${daysStr}</span> — nothing booked yet.
+            <span style="font-weight:500;cursor:pointer" onclick="_occasion='anniversary';generateSuggestions()"> Plan something special ↗</span></div>
+          </div>`;
+        }
+      });
+
+      // ── Feature 6: Budget nudge ──
+      if(_monthlyBudget>0){
+        const nowStr=new Date().toISOString().slice(0,7);
+        const monthSpend=bookings.reduce((acc,b)=>{
+          if((b.date||'').slice(0,7)!==nowStr) return acc;
+          const n=parseFloat((b.amount||'').replace(/[£,]/g,''));
+          return acc+(isNaN(n)?0:n);
+        },0);
+        const remaining=_monthlyBudget-monthSpend;
+        const avgIdeaPrice=ideas.reduce((acc,i)=>{const n=parseFloat((i.price||'').replace(/[£, a-z]/gi,''));return acc+(isNaN(n)?0:n);},0)/Math.max(ideas.length,1);
+        if(remaining<=0){
+          html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#FEF2F2;border:0.5px solid #FCA5A5;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#991B1B"><span style="font-size:15px">⚠️</span><div><span style="font-weight:600">You've hit your £${_monthlyBudget} date budget this month.</span> Consider a free or low-cost option, or adjust your budget in <span style="cursor:pointer;text-decoration:underline" onclick="go('profiles',document.querySelector('[onclick*=profiles]'))">Profiles</span>.</div></div>`;
+        } else if(avgIdeaPrice>remaining){
+          html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#FFFBEB;border:0.5px solid #FCD34D;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#78350F"><span style="font-size:15px">💷</span><div><span style="font-weight:600">£${Math.round(remaining)} left in your monthly budget.</span> These ideas may run over — worth checking before you book.</div></div>`;
+        }
+      }
+
+      // Weather banner
+      if(_weatherBanner) html+=_weatherBanner;
 
       // Dietary notice
       if(vegFiltered.length){
@@ -2203,6 +2307,32 @@
     const r=document.getElementById('s-rems');if(r)r.textContent=reminders.length;
     const total=bookings.reduce((acc,b)=>{const n=parseFloat((b.amount||'').replace(/[£,]/g,''));return acc+(isNaN(n)?0:n);},0);
     const sp=document.getElementById('s-spent');if(sp)sp.textContent=Math.round(total).toLocaleString();
+    // ── Feature 6: Budget progress bar ──
+    const barWrap=document.getElementById('s-budget-bar-wrap');
+    const bar=document.getElementById('s-budget-bar');
+    const barLabel=document.getElementById('s-budget-label');
+    const budgetNote=document.getElementById('s-budget-note');
+    if(_monthlyBudget>0&&barWrap&&bar&&barLabel){
+      const now=new Date();
+      const thisMonth=now.toISOString().slice(0,7); // "YYYY-MM"
+      const monthSpend=bookings.reduce((acc,b)=>{
+        if((b.date||'').slice(0,7)!==thisMonth) return acc;
+        const n=parseFloat((b.amount||'').replace(/[£,]/g,''));
+        return acc+(isNaN(n)?0:n);
+      },0);
+      const pct=Math.min(100,Math.round((monthSpend/_monthlyBudget)*100));
+      const over=monthSpend>_monthlyBudget;
+      const remaining=Math.max(0,_monthlyBudget-monthSpend);
+      bar.style.width=pct+'%';
+      bar.style.background=over?'var(--rose)':pct>75?'#F59E0B':'var(--color-background-success,#5DCAA5)';
+      barLabel.textContent=over?`£${Math.round(monthSpend-_monthlyBudget)} over budget this month`:`£${Math.round(remaining)} left of £${_monthlyBudget} this month`;
+      barLabel.style.color=over?'var(--rose-dark)':pct>75?'#92400E':'var(--ink-muted)';
+      barWrap.style.display='';
+      if(budgetNote) budgetNote.textContent=over?'⚠ Over budget':'This month';
+    } else {
+      if(barWrap) barWrap.style.display='none';
+      if(budgetNote) budgetNote.textContent='Together';
+    }
     // ── Feature 2: Average rating stat ──
     const rated=bookings.filter(b=>b.rating!=null);
     const avgEl=document.getElementById('s-avg-rating');
