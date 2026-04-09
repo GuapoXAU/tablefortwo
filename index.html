@@ -3601,3 +3601,18 @@
   updateQuizResult();
 
   // Wire quickBook to show checklist after a short delay
+  const _origQuickBook=quickBook;
+  quickBook=function(name,type,amount){
+    _origQuickBook(name,type,amount);
+    if(type!=='cab'){setTimeout(()=>showPreDateChecklist(name),600);}
+  };
+
+  // Wire updateStats to also call milestone stats
+  const _origUpdateStats=updateStats;
+  updateStats=function(){
+    _origUpdateStats();
+    updatePaidLastUI();
+    updateMilestoneStats();
+  };
+
+</script>
