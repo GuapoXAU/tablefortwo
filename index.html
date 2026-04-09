@@ -2473,3 +2473,135 @@
     if(!data||!data.ideas||!data.ideas.length){
       document.getElementById('sv-headline').textContent='This link has expired or is invalid.';return;
     }
+    _svIdeas=data.ideas;
+    _svVotes=data.ideas.map(()=>null);
+    const overlay=document.getElementById('sophie-overlay');
+    overlay.style.display='flex';
+    // Hide the main app
+    document.querySelector('.app').style.display='none';
+    const lp=document.getElementById('landing');if(lp)lp.style.display='none';
+    // Render cards
+    const container=document.getElementById('sv-cards');
+    container.innerHTML=data.ideas.map((idea,idx)=>{
+      const jLabel=idea.jv===true
+        ?'<div style="font-size:11px;color:#C4687A;font-weight:500;margin-top:6px">Jamie said ♥ Yes to this</div>'
+        :idea.jv===false
+        ?'<div style="font-size:11px;color:#9CA3AF;margin-top:6px">Jamie said ✗ Pass on this</div>'
+        :'';
+      return `<div style="border:1.5px solid #F3E8EB;border-radius:14px;overflow:hidden;margin-bottom:14px;background:#fff" id="sv-card-${idx}">
+        <div style="height:130px;background:#f0f0f0;overflow:hidden;position:relative">
+          <img src="${idea.img}" alt="${idea.n}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div style=\\'height:130px;display:flex;align-items:center;justify-content:center;font-size:40px;background:#FDF8F9\\'>${idea.emoji}</div>'">
+        </div>
+        <div style="padding:12px 14px">
+          <div style="font-size:15px;font-weight:600;color:#1a1a1a">${idea.n}</div>
+          <div style="font-size:12px;color:#777;margin-top:2px">${idea.loc}</div>
+          <div style="font-size:13px;color:#C4687A;font-weight:500;margin-top:3px">${idea.price}</div>
+          ${jLabel}
+          <div style="display:flex;gap:8px;margin-top:12px">
+            <button id="sv-yes-${idx}" onclick="svVote(${idx},true)" style="flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;transition:all .15s;font-family:inherit;color:#374151">♥ I'm in</button>
+            <button id="sv-no-${idx}" onclick="svVote(${idx},false)" style="flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;transition:all .15s;font-family:inherit;color:#374151">✗ Pass</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function svVote(idx,val){
+    _svVotes[idx]=_svVotes[idx]===val?null:val;
+    const yBtn=document.getElementById('sv-yes-'+idx);
+    const nBtn=document.getElementById('sv-no-'+idx);
+    const card=document.getElementById('sv-card-'+idx);
+    if(_svVotes[idx]===true){
+      yBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #C4687A;border-radius:10px;font-size:14px;font-weight:700;background:#FEF0F3;cursor:pointer;font-family:inherit;color:#8B3A4A';
+      nBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;font-family:inherit;color:#9CA3AF';
+      card.style.borderColor='#C4687A';
+    } else if(_svVotes[idx]===false){
+      nBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #9CA3AF;border-radius:10px;font-size:14px;font-weight:700;background:#F3F4F6;cursor:pointer;font-family:inherit;color:#6B7280';
+      yBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;font-family:inherit;color:#9CA3AF';
+      card.style.borderColor='#E5E7EB';
+    } else {
+      yBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;font-family:inherit;color:#374151';
+      nBtn.style.cssText=yBtn.style.cssText;
+      card.style.borderColor='#F3E8EB';
+    }
+  }
+
+  function submitSophieVote(){
+    const answered=_svVotes.filter(v=>v!==null).length;
+    if(answered===0){toast('Tap yes or no on at least one idea first');return;}
+    const results={votes:_svIdeas.map((idea,i)=>({n:idea.n,sv:_svVotes[i]}))};
+    const encoded=_enc(results);
+    const url=window.location.origin+window.location.pathname+'?app&svotes='+encoded;
+    document.getElementById('sv-submit-btn').style.display='none';
+    const resultDiv=document.getElementById('sv-result');
+    const yesCount=_svVotes.filter(v=>v===true).length;
+    const matchMsg=yesCount===0?'You passed on everything — maybe suggest something else!'
+      :yesCount===1?'You liked 1 idea — Jamie will be pleased!'
+      :'You liked '+yesCount+' ideas — Jamie will be thrilled! ♥';
+    resultDiv.style.display='block';
+    resultDiv.innerHTML=`
+      <div style="text-align:center;padding:20px 0 12px">
+        <div style="font-size:36px;margin-bottom:10px">♥</div>
+        <div style="font-size:18px;font-weight:700;color:#1a1a1a;margin-bottom:6px;font-family:Georgia,serif">Done!</div>
+        <div style="font-size:14px;color:#555;line-height:1.6;margin-bottom:20px">${matchMsg}</div>
+      </div>
+      <div style="padding:14px;background:#FDF8F9;border:0.5px solid #F5E6EA;border-radius:12px;margin-bottom:12px">
+        <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#C4687A;margin-bottom:8px;font-weight:600">Send this link to Jamie</div>
+        <div id="sv-url-box" style="font-size:11px;color:#555;word-break:break-all;background:#fff;padding:10px;border-radius:8px;border:0.5px solid #eee;line-height:1.5">${url}</div>
+      </div>
+      <button onclick="svCopyLink('${url.replace(/'/g,"\\'")}',this)" style="width:100%;padding:13px;background:linear-gradient(135deg,#8B3A4A,#C4687A);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:8px">Copy link for Jamie ✦</button>
+      <button onclick="svShareLink('${url.replace(/'/g,"\\'")}',this)" style="width:100%;padding:13px;background:#fff;color:#C4687A;font-size:14px;font-weight:600;border:1.5px solid #C4687A;border-radius:10px;cursor:pointer;font-family:inherit">Share via WhatsApp / Message ↗</button>`;
+  }
+
+  function svCopyLink(url,btn){
+    navigator.clipboard?.writeText(url).then(()=>{btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='Copy link for Jamie ✦',2500);}).catch(()=>{});
+  }
+  function svShareLink(url,btn){
+    const text="Sophie's votes are in! Open this to see what I picked ♥\n"+url;
+    if(navigator.share){navigator.share({title:"Sophie's votes — Table for Two",url}).catch(()=>{});}
+    else{window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');}
+  }
+
+  // ── On load: handle ?sophie= and ?svotes= URL params ──
+  function initFromUrl(){
+    const params=new URLSearchParams(window.location.search);
+    // Sophie's voting view
+    if(params.has('sophie')){
+      initSophieView(params.get('sophie'));
+      return;
+    }
+    // Jamie importing Sophie's results
+    if(params.has('svotes')){
+      const data=_dec(params.get('svotes'));
+      if(data&&data.votes){
+        data.votes.forEach(({n,sv})=>{
+          if(sv!==null){
+            if(!_votes[n])_votes[n]={j:null,s:null};
+            _votes[n].s=sv;
+          }
+        });
+        // Show discover page and regenerate with Sophie's votes applied
+        setTimeout(()=>{
+          go('discover',document.querySelector('[onclick*=discover]'));
+          const yesNames=data.votes.filter(v=>v.sv===true).map(v=>v.n);
+          const msg=yesNames.length
+            ?`Sophie's votes are in! She liked: ${yesNames.join(', ')} ♥`
+            :'Sophie\'s votes are in — check the discover page';
+          toast(msg);
+          // Regenerate suggestions so vote state is shown
+          setTimeout(()=>generateSuggestions(true),300);
+        },400);
+      }
+    }
+  }
+
+  updateStats();renderBookings();
+  setSmartGreeting();
+  // Init occasion context panel for default selection
+  selectOccasion(document.querySelector('#date-occasion .occasion-chip.active'),'first_date');
+  initFromUrl();
+  setTimeout(generateSuggestions,400);
+  const _dw=document.getElementById('date-when');
+  if(_dw)_dw.value=new Date().toISOString().slice(0,10);
+
+</script>
