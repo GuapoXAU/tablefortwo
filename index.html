@@ -618,7 +618,11 @@
                 <div class="occasion-chip" onclick="selectOccasion(this,'special')">
                   <span class="occasion-icon">◈</span><span>Special occasion</span>
                 </div>
+                <div class="occasion-chip" onclick="selectOccasion(this,'just_because')">
+                  <span class="occasion-icon">♡</span><span>Just because</span>
+                </div>
               </div>
+              <div id="occasion-context" style="margin-top:10px"></div>
             </div>
 
             <!-- Step 2: Vibe -->
@@ -1347,17 +1351,87 @@
   let _occasion='first_date';
   const _OCCASION_HEADLINES={
     first_date:"Let's make a great first impression",
-    partner:"Let's plan something unforgettable",
-    special:"Let's make this occasion unforgettable",
-    anniversary:"Let's make this anniversary unforgettable"
+    partner:"Let's plan something special for Sophie",
+    special:"What's the occasion? Let's make it unforgettable",
+    just_because:"Just the two of you — no reason needed ♥",
+    anniversary:"Let's make this anniversary unforgettable",
+    birthday:"Let's make their birthday unforgettable",
+    valentines:"The perfect Valentine's evening",
+    proposal:"The most important evening of all ✦",
+    celebration:"Let's celebrate in style",
+    milestone:"Let's mark this milestone in style"
   };
+  let _specialOccasion='';
+
   function selectOccasion(el,val){
     el.closest('[id^=date-occasion]').querySelectorAll('.occasion-chip').forEach(c=>c.classList.remove('active'));
     el.classList.add('active');
     _occasion=val;
     const hl=document.getElementById('discover-headline');
     if(hl&&_OCCASION_HEADLINES[val])hl.innerHTML=_OCCASION_HEADLINES[val];
+    // Update context panel
+    const ctx=document.getElementById('occasion-context');
+    if(!ctx)return;
+    if(val==='first_date'){
+      ctx.innerHTML=`<div style="padding:11px 13px;background:linear-gradient(135deg,#FDF8F9,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)">
+        <div style="font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:7px">✦ Matching both your tastes</div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
+          <span class="badge badge-rose">Indian cuisine</span>
+          <span class="badge badge-rose">Mediterranean</span>
+          <span class="badge badge-plum">Outdoor dates</span>
+          <span class="badge badge-plum">Cultural venues</span>
+          <span class="badge badge-rose">Intimate settings</span>
+        </div>
+        <div style="font-size:11px;color:var(--ink-muted)">Impressive ideas that work for a first impression — exciting but not overwhelming</div>
+      </div>`;
+    } else if(val==='partner'){
+      ctx.innerHTML=`<div style="padding:11px 13px;background:#EDE6F2;border:0.5px solid var(--plum-mid);border-radius:var(--r-md)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:28px;height:28px;border-radius:50%;background:#EDE6F2;color:#3C3489;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--plum-mid);flex-shrink:0">SP</div>
+          <div style="font-size:12px;font-weight:600;color:var(--plum)">Sophie's preferences</div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
+          <span class="badge badge-plum">🥗 Vegetarian</span>
+          <span class="badge badge-plum">Mediterranean</span>
+          <span class="badge badge-plum">Indian</span>
+          <span class="badge badge-plum">Thai</span>
+          <span class="badge badge-rose">Romantic</span>
+          <span class="badge badge-rose">Outdoor</span>
+        </div>
+        <div style="font-size:11px;color:var(--ink-muted)">Ideas prioritise Sophie's vegetarian diet and love of outdoor & romantic settings</div>
+      </div>`;
+    } else if(val==='just_because'){
+      ctx.innerHTML=`<div style="padding:11px 13px;background:var(--rose-light);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)">
+        <div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:4px">♥ No reason needed</div>
+        <div style="font-size:11px;color:var(--ink-muted)">We'll find something that feels special without the pressure of a big occasion — just a great night out together</div>
+      </div>`;
+    } else if(val==='special'){
+      _specialOccasion='';
+      ctx.innerHTML=`<div style="padding:11px 13px;background:var(--bg2);border:0.5px solid var(--bdr);border-radius:var(--r-md)">
+        <div style="font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:9px;letter-spacing:0.3px">What's the occasion?</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px" id="special-occasion-chips">
+          <div class="occasion-chip" onclick="selectSpecialOccasion(this,'anniversary')"><span>💍</span><span>Anniversary</span></div>
+          <div class="occasion-chip" onclick="selectSpecialOccasion(this,'birthday')"><span>🎂</span><span>Birthday</span></div>
+          <div class="occasion-chip" onclick="selectSpecialOccasion(this,'valentines')"><span>♥</span><span>Valentine's</span></div>
+          <div class="occasion-chip" onclick="selectSpecialOccasion(this,'proposal')"><span>💎</span><span>Proposal</span></div>
+          <div class="occasion-chip" onclick="selectSpecialOccasion(this,'celebration')"><span>🥂</span><span>Celebration</span></div>
+          <div class="occasion-chip" onclick="selectSpecialOccasion(this,'milestone')"><span>✦</span><span>Milestone</span></div>
+        </div>
+      </div>`;
+    } else {
+      ctx.innerHTML='';
+    }
   }
+
+  function selectSpecialOccasion(el,val){
+    document.querySelectorAll('#special-occasion-chips .occasion-chip').forEach(c=>c.classList.remove('active'));
+    el.classList.add('active');
+    _specialOccasion=val;
+    _occasion=val;
+    const hl=document.getElementById('discover-headline');
+    if(hl&&_OCCASION_HEADLINES[val])hl.innerHTML=_OCCASION_HEADLINES[val];
+  }
+
   function selectOccasionClassic(el,val){selectOccasion(el,val);}
 
   let _vibeType='romantic';
@@ -1396,11 +1470,15 @@
       vibe=typeEl?typeEl.value:'all';
       activeTags=[...document.querySelectorAll('#vibe-tags .tag.on')].map(t=>t.textContent.trim());
     }
-    const occasionLabel={first_date:'First date',partner:'My partner',special:'Special occasion',anniversary:'Anniversary'}[_occasion]||'';
+    const occasionLabel={first_date:'First date',partner:'My partner',special:'Special occasion',just_because:'Just because',anniversary:'Anniversary',birthday:'Birthday',valentines:"Valentine's",proposal:'Proposal',celebration:'Celebration',milestone:'Milestone'}[_occasion]||'';
     const area=document.getElementById('suggestions-area');
-    const loadMsg=_occasion==='special'?'Finding something truly special for Jamie & Sophie...'
+    const loadMsg=_occasion==='proposal'?'Finding the perfect proposal evening ✦...'
       :_occasion==='anniversary'?'Finding the perfect anniversary for Jamie & Sophie...'
+      :_occasion==='birthday'?'Finding the perfect birthday evening...'
+      :_occasion==='valentines'?"Finding the perfect Valentine's evening..."
       :_occasion==='first_date'?'Finding the perfect first date ideas for Jamie...'
+      :_occasion==='just_because'?'Finding a great night out — just because ♥...'
+      :['celebration','milestone','special'].includes(_occasion)?'Finding something truly special for Jamie & Sophie...'
       :'Matching ideas to Jamie & Sophie\'s tastes...';
     if(!_instant) area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">${loadMsg}</div></div></div>`;
     setTimeout(()=>{
@@ -2309,6 +2387,8 @@
 
   updateStats();renderBookings();
   setSmartGreeting();
+  // Init occasion context panel for default selection
+  selectOccasion(document.querySelector('#date-occasion .occasion-chip.active'),'first_date');
   initFromUrl();
   setTimeout(generateSuggestions,400);
   const _dw=document.getElementById('date-when');
