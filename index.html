@@ -1483,12 +1483,12 @@
                   </div>
                 </div>
                 <div class="vote-center" style="font-size:18px;color:${bothLove?'var(--rose)':'var(--rose-mid)'}">${bothLove?'♥':'◦'}</div>
-                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                <div class="sophie-vote-col" style="display:flex;flex-direction:column;align-items:center;gap:5px">
                   <span style="font-size:10px;font-weight:600;color:var(--ink-soft)">Sophie</span>
-                  <div style="display:flex;gap:4px">
-                    <button class="vote-btn yes${v.s===true?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','s',true,'${safeKey}')">♥ Yes</button>
-                    <button class="vote-btn no${v.s===false?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','s',false,'${safeKey}')">✗ No</button>
-                  </div>
+                  ${v.s===null
+                    ?'<button class="btn btn-sm" style="font-size:10px;padding:4px 10px;white-space:nowrap;border-color:var(--rose-mid);color:var(--rose-dark)" onclick="event.stopPropagation();shareSophieLink()">Share ✦</button>'
+                    :`<div style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:12px;background:${v.s?'var(--rose-light)':'#F3F4F6'};color:${v.s?'var(--rose-dark)':'#6B7280'};border:1px solid ${v.s?'var(--rose-mid)':'#E5E7EB'}">${v.s?'♥ Yes':'✗ Pass'}</div>`
+                  }
                 </div>
               </div>
               ${bothLove?`<div class="both-love-row" style="margin-top:8px;padding:6px 10px;background:var(--rose-light);border-radius:6px;text-align:center;font-size:12px;font-weight:600;color:var(--rose-dark)">♥ You both love this — perfect!</div>`:'<div class="both-love-row" style="display:none"></div>'}
@@ -1528,8 +1528,6 @@
     const btns=box.querySelectorAll('.vote-btn');
     if(btns[0]) btns[0].classList.toggle('active',v.j===true);
     if(btns[1]) btns[1].classList.toggle('active',v.j===false);
-    if(btns[2]) btns[2].classList.toggle('active',v.s===true);
-    if(btns[3]) btns[3].classList.toggle('active',v.s===false);
     const bothLove=v.j===true&&v.s===true;
     const center=box.querySelector('.vote-center');
     if(center){center.textContent=bothLove?'♥':'◦';center.style.color=bothLove?'var(--rose)':'var(--rose-mid)';}
