@@ -795,6 +795,17 @@
                     <span class="tag" onclick="toggleTag(this)">Sporty</span>
                   </div>
                 </div>
+                <div class="form-group" style="margin-top:4px">
+                  <label class="form-label">Love language</label>
+                  <div style="font-size:11px;color:var(--ink-muted);margin-bottom:6px">How Jamie feels most loved — shapes what kind of date lands best</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:5px">
+                    <span class="tag ll-chip on" data-person="jamie" data-val="quality_time" onclick="setLoveLang('jamie','quality_time')">⏳ Quality Time</span>
+                    <span class="tag ll-chip" data-person="jamie" data-val="words_of_affirmation" onclick="setLoveLang('jamie','words_of_affirmation')">💬 Words of Affirmation</span>
+                    <span class="tag ll-chip" data-person="jamie" data-val="acts_of_service" onclick="setLoveLang('jamie','acts_of_service')">🤝 Acts of Service</span>
+                    <span class="tag ll-chip" data-person="jamie" data-val="receiving_gifts" onclick="setLoveLang('jamie','receiving_gifts')">🎁 Receiving Gifts</span>
+                    <span class="tag ll-chip" data-person="jamie" data-val="physical_touch" onclick="setLoveLang('jamie','physical_touch')">🤗 Physical Touch</span>
+                  </div>
+                </div>
               </div>
               <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--rose);flex-shrink:0">♥</div>
               <div class="profile-half">
@@ -816,6 +827,17 @@
                     <span class="tag" onclick="toggleTag(this)">Live music</span>
                     <span class="tag on" onclick="toggleTag(this)">Outdoor</span>
                     <span class="tag" onclick="toggleTag(this)">Cosy</span>
+                  </div>
+                </div>
+                <div class="form-group" style="margin-top:4px">
+                  <label class="form-label">Love language</label>
+                  <div style="font-size:11px;color:var(--ink-muted);margin-bottom:6px">How Sophie feels most loved — shapes what kind of date lands best</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:5px">
+                    <span class="tag ll-chip" data-person="sophie" data-val="quality_time" onclick="setLoveLang('sophie','quality_time')">⏳ Quality Time</span>
+                    <span class="tag ll-chip" data-person="sophie" data-val="words_of_affirmation" onclick="setLoveLang('sophie','words_of_affirmation')">💬 Words of Affirmation</span>
+                    <span class="tag ll-chip" data-person="sophie" data-val="acts_of_service" onclick="setLoveLang('sophie','acts_of_service')">🤝 Acts of Service</span>
+                    <span class="tag ll-chip" data-person="sophie" data-val="receiving_gifts" onclick="setLoveLang('sophie','receiving_gifts')">🎁 Receiving Gifts</span>
+                    <span class="tag ll-chip on" data-person="sophie" data-val="physical_touch" onclick="setLoveLang('sophie','physical_touch')">🤗 Physical Touch</span>
                   </div>
                 </div>
               </div>
@@ -1446,6 +1468,27 @@
   let _discoverGuided=true;
   const _votes={};
   const _VEG_UNFRIENDLY=new Set(['Core by Clare Smyth','Alain Ducasse at The Dorchester']);
+
+  // ── Love language state ──
+  let _jamieLoveLang='quality_time';
+  let _sophieLoveLang='physical_touch';
+  const _LL_LABELS={quality_time:'Quality Time',words_of_affirmation:'Words of Affirmation',acts_of_service:'Acts of Service',receiving_gifts:'Receiving Gifts',physical_touch:'Physical Touch'};
+  const _LL_ICONS={quality_time:'⏳',words_of_affirmation:'💬',acts_of_service:'🤝',receiving_gifts:'🎁',physical_touch:'🤗'};
+  // maps love language → vibes/types that align with it
+  const _LL_IDEA_MAP={
+    quality_time:{vibes:['Candlelit','Intimate'],types:['foodie'],hint:'Uninterrupted, present time together'},
+    words_of_affirmation:{vibes:['Unique / memorable'],types:['cultural'],hint:'Experiences worth talking about for years'},
+    acts_of_service:{vibes:['Walkable'],types:['all'],hint:'The effort and planning is the gesture'},
+    receiving_gifts:{vibes:['Unique / memorable'],types:['all'],hint:'Something tangible to remember the night'},
+    physical_touch:{vibes:['Walkable','Outdoor seats','Candlelit'],types:['outdoor','foodie'],hint:'Close, tactile and present'}
+  };
+  function setLoveLang(person,val){
+    if(person==='jamie') _jamieLoveLang=val;
+    else _sophieLoveLang=val;
+    document.querySelectorAll(`.ll-chip[data-person="${person}"]`).forEach(c=>{
+      c.classList.toggle('on',c.dataset.val===val);
+    });
+  }
   let _currentSuggestions=[];  // stores last 4 ideas shown — needed for Sophie share link
 
   function toggleDiscoverView(){
@@ -1499,13 +1542,39 @@
         return sb-sa;
       });
       ideas=ideas.slice(0,4);
+
+      // ── Love language scoring boost ──
+      const sLL=_LL_IDEA_MAP[_sophieLoveLang]||{vibes:[],types:[]};
+      const jLL=_LL_IDEA_MAP[_jamieLoveLang]||{vibes:[],types:[]};
+      function llMatchScore(idea,llMap){
+        const vibeHit=llMap.vibes.some(v=>idea.vibes.includes(v))?1:0;
+        const typeHit=(llMap.types.includes('all')||llMap.types.includes(idea.type))?1:0;
+        return vibeHit+typeHit;
+      }
+      ideas.sort((a,b)=>{
+        const sa=llMatchScore(a,sLL)+llMatchScore(a,jLL);
+        const sb=llMatchScore(b,sLL)+llMatchScore(b,jLL);
+        return sb-sa;
+      });
+
       const topScore=Math.max(...ideas.map(i=>i.score));
       const occasionSuffix=occasionLabel?` · ${occasionLabel}`:'';
 
       // ── Feature 1: both-loved summary ──
       const bothLoved=Object.entries(_votes).filter(([,v])=>v.j===true&&v.s===true).map(([k])=>k);
 
+      // ── Love language context line ──
+      const sLLLabel=_LL_LABELS[_sophieLoveLang]||'';
+      const jLLLabel=_LL_LABELS[_jamieLoveLang]||'';
+      const sLLIcon=_LL_ICONS[_sophieLoveLang]||'';
+      const jLLIcon=_LL_ICONS[_jamieLoveLang]||'';
+
       let html=`<div class="section-head"><div class="section-title">Ideas for you in ${loc}${occasionSuffix}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
+      html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft)">
+        <span style="font-size:15px">♥</span>
+        <div><span style="font-weight:600;color:var(--ink)">Personalised for your love languages</span> · <span style="color:var(--rose-dark)">${jLLIcon} Jamie: ${jLLLabel}</span> &nbsp;·&nbsp; <span style="color:var(--plum)">${sLLIcon} Sophie: ${sLLLabel}</span>
+        <div style="margin-top:2px;color:var(--ink-muted)">Ideas ranked to match how you each feel most loved — <a href="#" onclick="event.preventDefault();go('profiles',document.querySelector('[onclick*=profiles]'))" style="color:var(--rose-dark);text-decoration:none">update in profiles ↗</a></div></div>
+      </div>`;
 
       // Dietary notice
       if(vegFiltered.length){
@@ -1533,6 +1602,14 @@
         const label=bothLove?'♥ You both love this':isTop?'Best match':'';
         const labelBg=bothLove?'background:var(--rose)':'';
 
+        // ── Love language badge ──
+        const sLLMatch=llMatchScore(idea,sLL)>0;
+        const jLLMatch=llMatchScore(idea,jLL)>0;
+        let llBadge='';
+        if(sLLMatch&&jLLMatch) llBadge=`<span class="badge badge-plum" style="margin-top:4px">${jLLIcon}${sLLIcon} Speaks both your love languages</span>`;
+        else if(sLLMatch) llBadge=`<span class="badge badge-plum" style="margin-top:4px">${sLLIcon} ${sLLLabel} — perfect for Sophie</span>`;
+        else if(jLLMatch) llBadge=`<span class="badge badge-rose" style="margin-top:4px">${jLLIcon} ${jLLLabel} — lands well for Jamie</span>`;
+
         html+=`<div class="idea-card${bothLove?' both-love-card':isTop?' top-pick':''}" data-idea="${safeKey}">
           ${label?`<div class="idea-top-label" style="${labelBg}">${label}</div>`:''}
           <div class="idea-emoji"><img src="${idea.img}" alt="${idea.name}" loading="lazy" onerror="this.parentElement.innerHTML='${idea.emoji}'"></div>
@@ -1545,6 +1622,7 @@
               ${vegOk
                 ?'<span class="badge" style="background:#F0FDF4;color:#166534;border:0.5px solid #86EFAC">✓ Sophie-friendly</span>'
                 :'<span class="badge badge-amber">⚠ Limited veg</span>'}
+              ${llBadge}
             </div>
             <div class="idea-price">${idea.price}</div>
             <div class="idea-match"><div class="match-bar-bg"><div class="match-bar" style="width:${idea.score}%"></div></div>${idea.score}% match</div>
