@@ -806,6 +806,12 @@
                     <span class="tag ll-chip" data-person="jamie" data-val="physical_touch" onclick="setLoveLang('jamie','physical_touch')">🤗 Physical Touch</span>
                   </div>
                 </div>
+                <div class="form-group" style="margin-top:8px;padding-top:10px;border-top:0.5px solid var(--bdr)">
+                  <label class="form-label">Date of birth <span style="font-size:10px;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-weight:400">— optional</span></label>
+                  <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px">Reveals star sign, life path number & Chinese zodiac — skip if you prefer</div>
+                  <input type="date" class="form-input" id="jamie-dob" onchange="updateCosmic('jamie',this.value)" style="max-width:190px">
+                  <div id="jamie-cosmic" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
+                </div>
               </div>
               <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--rose);flex-shrink:0">♥</div>
               <div class="profile-half">
@@ -840,6 +846,12 @@
                     <span class="tag ll-chip on" data-person="sophie" data-val="physical_touch" onclick="setLoveLang('sophie','physical_touch')">🤗 Physical Touch</span>
                   </div>
                 </div>
+                <div class="form-group" style="margin-top:8px;padding-top:10px;border-top:0.5px solid var(--bdr)">
+                  <label class="form-label">Date of birth <span style="font-size:10px;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-weight:400">— optional</span></label>
+                  <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px">Reveals star sign, life path number & Chinese zodiac — skip if you prefer</div>
+                  <input type="date" class="form-input" id="sophie-dob" onchange="updateCosmic('sophie',this.value)" style="max-width:190px">
+                  <div id="sophie-cosmic" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
+                </div>
               </div>
             </div>
             <div class="divider"></div>
@@ -868,6 +880,7 @@
               <div class="stat"><div class="stat-label">Favourite vibe</div><div class="stat-val" style="font-size:16px">Intimate</div><div class="stat-note">Both agree</div></div>
               <div class="stat"><div class="stat-label">Spent together</div><div class="stat-val">£842</div><div class="stat-note">This year</div></div>
             </div>
+            <div id="cosmic-compat" style="display:none;margin-top:14px;padding:12px 14px;background:linear-gradient(135deg,#FDF8F9,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)"></div>
           </div>
         </div>
       </div>
@@ -1489,6 +1502,115 @@
       c.classList.toggle('on',c.dataset.val===val);
     });
   }
+
+  // ── Cosmic profile state ──
+  let _jamieSign='',_sophieSign='',_jamieLPNum=0,_sophieLPNum=0,_jamieZodiac='',_sophieZodiac='';
+  const _SIGN_EMOJI={Aries:'♈',Taurus:'♉',Gemini:'♊',Cancer:'♋',Leo:'♌',Virgo:'♍',Libra:'♎',Scorpio:'♏',Sagittarius:'♐',Capricorn:'♑',Aquarius:'♒',Pisces:'♓'};
+  const _ZODIAC_EMOJI={Rat:'🐀',Ox:'🐂',Tiger:'🐅',Rabbit:'🐇',Dragon:'🐉',Snake:'🐍',Horse:'🐎',Goat:'🐐',Monkey:'🐒',Rooster:'🐓',Dog:'🐕',Pig:'🐖'};
+  const _SIGN_ELEMENT={Aries:'fire',Leo:'fire',Sagittarius:'fire',Taurus:'earth',Virgo:'earth',Capricorn:'earth',Gemini:'air',Libra:'air',Aquarius:'air',Cancer:'water',Scorpio:'water',Pisces:'water'};
+  const _LP_TITLE={1:'The Leader',2:'The Peacemaker',3:'The Creative',4:'The Builder',5:'The Explorer',6:'The Nurturer',7:'The Seeker',8:'The Achiever',9:'The Humanitarian',11:'The Visionary',22:'The Master Builder',33:'The Master Teacher'};
+  // Chinese zodiac compatibility trines (same trine = harmonious)
+  const _CZ_TRINE=[['Rat','Dragon','Monkey'],['Ox','Snake','Rooster'],['Tiger','Horse','Dog'],['Rabbit','Goat','Pig']];
+
+  function _starSign(day,month){
+    if((month==1&&day>=20)||(month==2&&day<19))return'Aquarius';
+    if((month==2&&day>=19)||(month==3&&day<21))return'Pisces';
+    if((month==3&&day>=21)||(month==4&&day<20))return'Aries';
+    if((month==4&&day>=20)||(month==5&&day<21))return'Taurus';
+    if((month==5&&day>=21)||(month==6&&day<21))return'Gemini';
+    if((month==6&&day>=21)||(month==7&&day<23))return'Cancer';
+    if((month==7&&day>=23)||(month==8&&day<23))return'Leo';
+    if((month==8&&day>=23)||(month==9&&day<23))return'Virgo';
+    if((month==9&&day>=23)||(month==10&&day<23))return'Libra';
+    if((month==10&&day>=23)||(month==11&&day<22))return'Scorpio';
+    if((month==11&&day>=22)||(month==12&&day<22))return'Sagittarius';
+    return'Capricorn';
+  }
+  function _reduceNum(n){
+    if(n===11||n===22||n===33)return n;
+    while(n>9){n=String(n).split('').reduce((a,b)=>a+parseInt(b),0);if(n===11||n===22||n===33)return n;}
+    return n;
+  }
+  function _lifePath(day,month,year){
+    return _reduceNum(_reduceNum(day)+_reduceNum(month)+_reduceNum(String(year).split('').reduce((a,b)=>a+parseInt(b),0)));
+  }
+  function _chineseZodiac(year){
+    const a=['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Monkey','Rooster','Dog','Pig'];
+    return a[((year-1900)%12+12)%12];
+  }
+  function updateCosmic(person,dateStr){
+    const cosmicDiv=document.getElementById(person+'-cosmic');
+    if(!dateStr){
+      if(cosmicDiv)cosmicDiv.innerHTML='';
+      if(person==='jamie'){_jamieSign='';_jamieLPNum=0;_jamieZodiac='';}
+      else{_sophieSign='';_sophieLPNum=0;_sophieZodiac='';}
+      updateCosmicCompatibility();return;
+    }
+    const[year,month,day]=dateStr.split('-').map(Number);
+    const sign=_starSign(day,month);
+    const lp=_lifePath(day,month,year);
+    const zodiac=_chineseZodiac(year);
+    if(person==='jamie'){_jamieSign=sign;_jamieLPNum=lp;_jamieZodiac=zodiac;}
+    else{_sophieSign=sign;_sophieLPNum=lp;_sophieZodiac=zodiac;}
+    if(cosmicDiv){
+      cosmicDiv.innerHTML=`
+        <span class="badge badge-rose" title="${sign}">${_SIGN_EMOJI[sign]||'✦'} ${sign}</span>
+        <span class="badge badge-plum" title="${_LP_TITLE[lp]||''}">🔢 Life Path ${lp}${_LP_TITLE[lp]?' · '+_LP_TITLE[lp]:''}</span>
+        <span class="badge badge-muted" title="Chinese Zodiac">${_ZODIAC_EMOJI[zodiac]||'🐾'} ${zodiac}</span>`;
+    }
+    updateCosmicCompatibility();
+  }
+  function updateCosmicCompatibility(){
+    const el=document.getElementById('cosmic-compat');if(!el)return;
+    if(!_jamieSign&&!_sophieSign){el.style.display='none';return;}
+    el.style.display='';
+    let rows=[];
+    // Star sign compatibility
+    if(_jamieSign&&_sophieSign){
+      const jEl=_SIGN_ELEMENT[_jamieSign],sEl=_SIGN_ELEMENT[_sophieSign];
+      let signNote='',signIcon='';
+      if(jEl===sEl){signNote=`Same element (${jEl}) — natural understanding`;signIcon='✦';}
+      else if((jEl==='fire'&&sEl==='air')||(jEl==='air'&&sEl==='fire')){signNote='Fire & air — you ignite each other';signIcon='🔥';}
+      else if((jEl==='earth'&&sEl==='water')||(jEl==='water'&&sEl==='earth')){signNote='Earth & water — deeply nourishing bond';signIcon='💧';}
+      else if((jEl==='fire'&&sEl==='water')||(jEl==='water'&&sEl==='fire')){signNote='Fire & water — passionate tension, always interesting';signIcon='⚡';}
+      else{signNote='Different elements — you balance each other';signIcon='◎';}
+      rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--bdr)">
+        <span style="font-size:13px">${signIcon}</span>
+        <div style="flex:1"><span style="font-size:12px;font-weight:600;color:var(--ink)">${_SIGN_EMOJI[_jamieSign]} ${_jamieSign}</span><span style="color:var(--ink-muted);font-size:12px"> & </span><span style="font-size:12px;font-weight:600;color:var(--ink)">${_SIGN_EMOJI[_sophieSign]} ${_sophieSign}</span></div>
+        <span style="font-size:11px;color:var(--ink-muted)">${signNote}</span>
+      </div>`);
+    } else {
+      const who=_jamieSign?'Jamie':'Sophie';
+      const sign=_jamieSign||_sophieSign;
+      rows.push(`<div style="font-size:11px;color:var(--ink-muted);padding:4px 0;border-bottom:0.5px solid var(--bdr)">${_SIGN_EMOJI[sign]||'✦'} ${who}: ${sign} — add the other's birthdate to see star sign compatibility</div>`);
+    }
+    // Life path compatibility
+    if(_jamieLPNum&&_sophieLPNum){
+      const compatible=[[1,2],[2,6],[3,6],[4,8],[5,7],[1,5],[2,4],[3,9],[6,9],[7,11],[8,22]];
+      const pair=[Math.min(_jamieLPNum,_sophieLPNum),Math.max(_jamieLPNum,_sophieLPNum)];
+      const isMatch=compatible.some(p=>p[0]===pair[0]&&p[1]===pair[1]);
+      const sameNum=_jamieLPNum===_sophieLPNum;
+      const lpNote=sameNum?'Matching life paths — you understand each other instinctively':isMatch?'Complementary life paths — each makes the other stronger':'Different paths — you bring out new sides of each other';
+      rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--bdr)">
+        <span style="font-size:13px">🔢</span>
+        <div style="flex:1"><span style="font-size:12px;font-weight:600;color:var(--ink)">LP ${_jamieLPNum}</span><span style="font-size:11px;color:var(--ink-muted)"> ${_LP_TITLE[_jamieLPNum]||''}</span><span style="color:var(--ink-muted);font-size:12px"> & </span><span style="font-size:12px;font-weight:600;color:var(--ink)">LP ${_sophieLPNum}</span><span style="font-size:11px;color:var(--ink-muted)"> ${_LP_TITLE[_sophieLPNum]||''}</span></div>
+        <span style="font-size:11px;color:var(--ink-muted)">${lpNote}</span>
+      </div>`);
+    }
+    // Chinese zodiac compatibility
+    if(_jamieZodiac&&_sophieZodiac){
+      const jTrine=_CZ_TRINE.findIndex(t=>t.includes(_jamieZodiac));
+      const sTrine=_CZ_TRINE.findIndex(t=>t.includes(_sophieZodiac));
+      const czNote=jTrine>=0&&jTrine===sTrine?'Same zodiac trine — natural harmony and deep understanding':_jamieZodiac===_sophieZodiac?'Same Chinese zodiac year — mirror souls':'Different zodiacs — complementary energies';
+      rows.push(`<div style="display:flex;align-items:center;gap:8px;padding:5px 0">
+        <span style="font-size:13px">${_ZODIAC_EMOJI[_jamieZodiac]||'🐾'}</span>
+        <div style="flex:1"><span style="font-size:12px;font-weight:600;color:var(--ink)">${_jamieZodiac}</span><span style="color:var(--ink-muted);font-size:12px"> & </span><span style="font-size:12px;font-weight:600;color:var(--ink)">${_sophieZodiac}</span><span style="font-size:11px;color:var(--ink-muted)"> ${_ZODIAC_EMOJI[_sophieZodiac]||''}</span></div>
+        <span style="font-size:11px;color:var(--ink-muted)">${czNote}</span>
+      </div>`);
+    }
+    el.innerHTML=`<div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px">✦ Cosmic compatibility</div>${rows.join('')}`;
+  }
+
   let _currentSuggestions=[];  // stores last 4 ideas shown — needed for Sophie share link
 
   function toggleDiscoverView(){
@@ -1575,6 +1697,16 @@
         <div><span style="font-weight:600;color:var(--ink)">Personalised for your love languages</span> · <span style="color:var(--rose-dark)">${jLLIcon} Jamie: ${jLLLabel}</span> &nbsp;·&nbsp; <span style="color:var(--plum)">${sLLIcon} Sophie: ${sLLLabel}</span>
         <div style="margin-top:2px;color:var(--ink-muted)">Ideas ranked to match how you each feel most loved — <a href="#" onclick="event.preventDefault();go('profiles',document.querySelector('[onclick*=profiles]'))" style="color:var(--rose-dark);text-decoration:none">update in profiles ↗</a></div></div>
       </div>`;
+      if(_jamieSign||_sophieSign){
+        const jCosmic=_jamieSign?`${_SIGN_EMOJI[_jamieSign]||'✦'} ${_jamieSign}${_jamieLPNum?' · LP'+_jamieLPNum:''}${_jamieZodiac?' · '+_jamieZodiac:''}`:null;
+        const sCosmic=_sophieSign?`${_SIGN_EMOJI[_sophieSign]||'✦'} ${_sophieSign}${_sophieLPNum?' · LP'+_sophieLPNum:''}${_sophieZodiac?' · '+_sophieZodiac:''}`:null;
+        const cosmicParts=[jCosmic?`<span style="color:var(--rose-dark)">Jamie: ${jCosmic}</span>`:'',sCosmic?`<span style="color:var(--plum)">Sophie: ${sCosmic}</span>`:''].filter(Boolean).join(' &nbsp;·&nbsp; ');
+        html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--bg2);border:0.5px solid var(--bdr);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft)">
+          <span style="font-size:15px">✦</span>
+          <div><span style="font-weight:600;color:var(--ink)">Cosmic profile</span> · ${cosmicParts}
+          ${(!_jamieSign||!_sophieSign)?'<div style="margin-top:2px;color:var(--ink-muted)">Add both birthdates to see full cosmic compatibility</div>':''}</div>
+        </div>`;
+      }
 
       // Dietary notice
       if(vegFiltered.length){
@@ -2341,135 +2473,3 @@
     if(!data||!data.ideas||!data.ideas.length){
       document.getElementById('sv-headline').textContent='This link has expired or is invalid.';return;
     }
-    _svIdeas=data.ideas;
-    _svVotes=data.ideas.map(()=>null);
-    const overlay=document.getElementById('sophie-overlay');
-    overlay.style.display='flex';
-    // Hide the main app
-    document.querySelector('.app').style.display='none';
-    const lp=document.getElementById('landing');if(lp)lp.style.display='none';
-    // Render cards
-    const container=document.getElementById('sv-cards');
-    container.innerHTML=data.ideas.map((idea,idx)=>{
-      const jLabel=idea.jv===true
-        ?'<div style="font-size:11px;color:#C4687A;font-weight:500;margin-top:6px">Jamie said ♥ Yes to this</div>'
-        :idea.jv===false
-        ?'<div style="font-size:11px;color:#9CA3AF;margin-top:6px">Jamie said ✗ Pass on this</div>'
-        :'';
-      return `<div style="border:1.5px solid #F3E8EB;border-radius:14px;overflow:hidden;margin-bottom:14px;background:#fff" id="sv-card-${idx}">
-        <div style="height:130px;background:#f0f0f0;overflow:hidden;position:relative">
-          <img src="${idea.img}" alt="${idea.n}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<div style=\\'height:130px;display:flex;align-items:center;justify-content:center;font-size:40px;background:#FDF8F9\\'>${idea.emoji}</div>'">
-        </div>
-        <div style="padding:12px 14px">
-          <div style="font-size:15px;font-weight:600;color:#1a1a1a">${idea.n}</div>
-          <div style="font-size:12px;color:#777;margin-top:2px">${idea.loc}</div>
-          <div style="font-size:13px;color:#C4687A;font-weight:500;margin-top:3px">${idea.price}</div>
-          ${jLabel}
-          <div style="display:flex;gap:8px;margin-top:12px">
-            <button id="sv-yes-${idx}" onclick="svVote(${idx},true)" style="flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;transition:all .15s;font-family:inherit;color:#374151">♥ I'm in</button>
-            <button id="sv-no-${idx}" onclick="svVote(${idx},false)" style="flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;transition:all .15s;font-family:inherit;color:#374151">✗ Pass</button>
-          </div>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  function svVote(idx,val){
-    _svVotes[idx]=_svVotes[idx]===val?null:val;
-    const yBtn=document.getElementById('sv-yes-'+idx);
-    const nBtn=document.getElementById('sv-no-'+idx);
-    const card=document.getElementById('sv-card-'+idx);
-    if(_svVotes[idx]===true){
-      yBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #C4687A;border-radius:10px;font-size:14px;font-weight:700;background:#FEF0F3;cursor:pointer;font-family:inherit;color:#8B3A4A';
-      nBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;font-family:inherit;color:#9CA3AF';
-      card.style.borderColor='#C4687A';
-    } else if(_svVotes[idx]===false){
-      nBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #9CA3AF;border-radius:10px;font-size:14px;font-weight:700;background:#F3F4F6;cursor:pointer;font-family:inherit;color:#6B7280';
-      yBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;font-family:inherit;color:#9CA3AF';
-      card.style.borderColor='#E5E7EB';
-    } else {
-      yBtn.style.cssText='flex:1;padding:11px;border:1.5px solid #E5E7EB;border-radius:10px;font-size:14px;font-weight:600;background:#fff;cursor:pointer;font-family:inherit;color:#374151';
-      nBtn.style.cssText=yBtn.style.cssText;
-      card.style.borderColor='#F3E8EB';
-    }
-  }
-
-  function submitSophieVote(){
-    const answered=_svVotes.filter(v=>v!==null).length;
-    if(answered===0){toast('Tap yes or no on at least one idea first');return;}
-    const results={votes:_svIdeas.map((idea,i)=>({n:idea.n,sv:_svVotes[i]}))};
-    const encoded=_enc(results);
-    const url=window.location.origin+window.location.pathname+'?app&svotes='+encoded;
-    document.getElementById('sv-submit-btn').style.display='none';
-    const resultDiv=document.getElementById('sv-result');
-    const yesCount=_svVotes.filter(v=>v===true).length;
-    const matchMsg=yesCount===0?'You passed on everything — maybe suggest something else!'
-      :yesCount===1?'You liked 1 idea — Jamie will be pleased!'
-      :'You liked '+yesCount+' ideas — Jamie will be thrilled! ♥';
-    resultDiv.style.display='block';
-    resultDiv.innerHTML=`
-      <div style="text-align:center;padding:20px 0 12px">
-        <div style="font-size:36px;margin-bottom:10px">♥</div>
-        <div style="font-size:18px;font-weight:700;color:#1a1a1a;margin-bottom:6px;font-family:Georgia,serif">Done!</div>
-        <div style="font-size:14px;color:#555;line-height:1.6;margin-bottom:20px">${matchMsg}</div>
-      </div>
-      <div style="padding:14px;background:#FDF8F9;border:0.5px solid #F5E6EA;border-radius:12px;margin-bottom:12px">
-        <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#C4687A;margin-bottom:8px;font-weight:600">Send this link to Jamie</div>
-        <div id="sv-url-box" style="font-size:11px;color:#555;word-break:break-all;background:#fff;padding:10px;border-radius:8px;border:0.5px solid #eee;line-height:1.5">${url}</div>
-      </div>
-      <button onclick="svCopyLink('${url.replace(/'/g,"\\'")}',this)" style="width:100%;padding:13px;background:linear-gradient(135deg,#8B3A4A,#C4687A);color:#fff;font-size:14px;font-weight:600;border:none;border-radius:10px;cursor:pointer;font-family:inherit;margin-bottom:8px">Copy link for Jamie ✦</button>
-      <button onclick="svShareLink('${url.replace(/'/g,"\\'")}',this)" style="width:100%;padding:13px;background:#fff;color:#C4687A;font-size:14px;font-weight:600;border:1.5px solid #C4687A;border-radius:10px;cursor:pointer;font-family:inherit">Share via WhatsApp / Message ↗</button>`;
-  }
-
-  function svCopyLink(url,btn){
-    navigator.clipboard?.writeText(url).then(()=>{btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='Copy link for Jamie ✦',2500);}).catch(()=>{});
-  }
-  function svShareLink(url,btn){
-    const text="Sophie's votes are in! Open this to see what I picked ♥\n"+url;
-    if(navigator.share){navigator.share({title:"Sophie's votes — Table for Two",url}).catch(()=>{});}
-    else{window.open('https://wa.me/?text='+encodeURIComponent(text),'_blank');}
-  }
-
-  // ── On load: handle ?sophie= and ?svotes= URL params ──
-  function initFromUrl(){
-    const params=new URLSearchParams(window.location.search);
-    // Sophie's voting view
-    if(params.has('sophie')){
-      initSophieView(params.get('sophie'));
-      return;
-    }
-    // Jamie importing Sophie's results
-    if(params.has('svotes')){
-      const data=_dec(params.get('svotes'));
-      if(data&&data.votes){
-        data.votes.forEach(({n,sv})=>{
-          if(sv!==null){
-            if(!_votes[n])_votes[n]={j:null,s:null};
-            _votes[n].s=sv;
-          }
-        });
-        // Show discover page and regenerate with Sophie's votes applied
-        setTimeout(()=>{
-          go('discover',document.querySelector('[onclick*=discover]'));
-          const yesNames=data.votes.filter(v=>v.sv===true).map(v=>v.n);
-          const msg=yesNames.length
-            ?`Sophie's votes are in! She liked: ${yesNames.join(', ')} ♥`
-            :'Sophie\'s votes are in — check the discover page';
-          toast(msg);
-          // Regenerate suggestions so vote state is shown
-          setTimeout(()=>generateSuggestions(true),300);
-        },400);
-      }
-    }
-  }
-
-  updateStats();renderBookings();
-  setSmartGreeting();
-  // Init occasion context panel for default selection
-  selectOccasion(document.querySelector('#date-occasion .occasion-chip.active'),'first_date');
-  initFromUrl();
-  setTimeout(generateSuggestions,400);
-  const _dw=document.getElementById('date-when');
-  if(_dw)_dw.value=new Date().toISOString().slice(0,10);
-
-</script>
