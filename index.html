@@ -1456,6 +1456,27 @@
     'bow':{z:2,lat:51.527,lng:-0.025},'mile end':{z:2,lat:51.525,lng:-0.034},
     'poplar':{z:2,lat:51.510,lng:-0.017},'whitechapel':{z:2,lat:51.519,lng:-0.059},
     'stoke newington':{z:2,lat:51.562,lng:-0.075},'homerton':{z:2,lat:51.546,lng:-0.042},
+    'woolwich':{z:4,lat:51.491,lng:0.069},'plumstead':{z:4,lat:51.487,lng:0.095},
+    'abbey wood':{z:4,lat:51.491,lng:0.120},'charlton':{z:3,lat:51.482,lng:0.031},
+    'eltham':{z:4,lat:51.451,lng:0.052},'bexleyheath':{z:5,lat:51.461,lng:0.138},
+    'sidcup':{z:5,lat:51.426,lng:0.103},'erith':{z:5,lat:51.482,lng:0.178},
+    'thamesmead':{z:4,lat:51.503,lng:0.122},'kidbrooke':{z:3,lat:51.464,lng:0.026},
+    'blackheath':{z:3,lat:51.465,lng:0.009},'catford':{z:3,lat:51.444,lng:-0.020},
+    'hither green':{z:3,lat:51.452,lng:-0.001},'grove park':{z:4,lat:51.432,lng:-0.008},
+    'bromley':{z:5,lat:51.406,lng:0.015},'beckenham':{z:4,lat:51.409,lng:-0.022},
+    'orpington':{z:6,lat:51.375,lng:0.100},'dartford':{z:6,lat:51.447,lng:0.216},
+    'surbiton':{z:5,lat:51.394,lng:-0.305},'kingston':{z:6,lat:51.412,lng:-0.300},
+    'twickenham':{z:5,lat:51.450,lng:-0.334},'weybridge':{z:6,lat:51.371,lng:-0.356},
+    'staines':{z:6,lat:51.433,lng:-0.513},'heathrow':{z:6,lat:51.477,lng:-0.461},
+    'hayes':{z:4,lat:51.506,lng:-0.421},'uxbridge':{z:6,lat:51.546,lng:-0.479},
+    'harrow':{z:5,lat:51.579,lng:-0.335},'edgware':{z:5,lat:51.613,lng:-0.275},
+    'barnet':{z:5,lat:51.650,lng:-0.193},'enfield':{z:5,lat:51.652,lng:-0.080},
+    'waltham cross':{z:6,lat:51.686,lng:-0.033},'chingford':{z:4,lat:51.628,lng:-0.011},
+    'ilford':{z:4,lat:51.558,lng:0.075},'romford':{z:6,lat:51.575,lng:0.183},
+    'dagenham':{z:5,lat:51.549,lng:0.148},'east ham':{z:3,lat:51.540,lng:0.053},
+    'upton park':{z:3,lat:51.535,lng:0.035},'plaistow':{z:3,lat:51.531,lng:0.021},
+    'canning town':{z:3,lat:51.514,lng:0.009},'custom house':{z:3,lat:51.510,lng:0.029},
+    'north greenwich':{z:2,lat:51.500,lng:0.004},'greenwich peninsula':{z:2,lat:51.500,lng:0.004},
   };
 
   function _matchArea(text){
@@ -1489,15 +1510,23 @@
     area.innerHTML='<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Comparing your options...</div></div></div>';
     setTimeout(()=>{
       const fA=_matchArea(fromVal),tA=_matchArea(toVal);
-      const fLat=fA?fA.lat:51.510,fLng=fA?fA.lng:-0.118;
-      const tLat=tA?tA.lat:51.505,tLng=tA?tA.lng:-0.090;
-      const fZ=fA?fA.z:1,tZ=tA?tA.z:1;
+      const unknownFrom=!fA,unknownTo=!tA;
+      const anyUnknown=unknownFrom||unknownTo;
+      // Only fall back to London center if we have at least one recognised area
+      // If NEITHER is known, we cannot calculate anything meaningful
+      if(!fA&&!tA){
+        area.innerHTML='<div class="card"><div class="card-body"><div style="padding:14px;background:#FEF3F2;border:0.5px solid #FCA5A5;border-radius:var(--r-md)"><div style="font-size:13px;font-weight:600;color:#B91C1C;margin-bottom:4px">Areas not recognised</div><div style="font-size:13px;color:#7F1D1D;line-height:1.5">We couldn\'t find either location in our database. Try being more specific (e.g. "Woolwich Arsenal", "Covent Garden, London") or use a known London neighbourhood.</div></div></div></div>';
+        return;
+      }
+      const fLat=fA?fA.lat:tA.lat,fLng=fA?fA.lng:tA.lng;
+      const tLat=tA?tA.lat:fA.lat,tLng=tA?tA.lng:fA.lng;
+      const fZ=fA?fA.z:(tA?tA.z:1),tZ=tA?tA.z:(fA?fA.z:1);
       const km=_geoKm(fLat,fLng,tLat,tLng);
       const kmRoad=km*1.35;
       const opts=[];
 
-      // Walking
-      if(km<2.8){
+      // Walking — only suggest if BOTH areas were recognised (otherwise distance is unreliable)
+      if(km<2.8&&!anyUnknown){
         opts.push({mode:'Walking',icon:'🚶',time:Math.round(km*13),cost:0,costStr:'Free',
           desc:'A romantic stroll together — no waiting, no cost, and you arrive relaxed',
           badge:km<1.5?'Most romantic':'',type:'walk'});
@@ -1561,7 +1590,11 @@
 
       _transportOpts=opts;
 
-      let html='<div class="card" style="margin-bottom:1rem"><div class="card-head"><div><div class="card-title">'+fromVal+' → '+toVal+'</div><div class="card-sub">'+Math.round(km*10)/10+'km as the crow flies · '+(fA?fA.name:'your area')+' to '+(tA?tA.name:'destination')+'</div></div></div><div class="card-body">';
+      let html='<div class="card" style="margin-bottom:1rem"><div class="card-head"><div><div class="card-title">'+fromVal+' → '+toVal+'</div><div class="card-sub">~'+Math.round(km*10)/10+'km · '+(fA?fA.name:'⚠ unrecognised')+' to '+(tA?tA.name:'⚠ unrecognised')+'</div></div></div><div class="card-body">';
+      if(anyUnknown){
+        const unknown=(unknownFrom?'"'+fromVal+'"':'')+(unknownFrom&&unknownTo?' and ':'')+( unknownTo?'"'+toVal+'"':'');
+        html+='<div style="padding:11px 14px;background:#FEF9EC;border:0.5px solid #F59E0B;border-radius:var(--r-md);margin-bottom:1rem;font-size:12px;color:#92400E;line-height:1.5">⚠ We didn\'t recognise '+unknown+' in our area database, so distance and time estimates may be off. Use the TfL or Google Maps links below for accurate journey times.</div>';
+      }
       html+='<div style="padding:12px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border-radius:var(--r-md);border-left:3px solid var(--rose);margin-bottom:1rem"><div style="font-size:11px;font-weight:600;color:var(--rose-dark);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">'+rec.icon+' Our recommendation</div><div style="font-size:13px;color:var(--ink-soft);line-height:1.55">'+rec.text+'</div></div>';
       html+='<div style="display:flex;flex-direction:column;gap:10px">';
 
