@@ -165,6 +165,18 @@
   .toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:var(--r-md);font-size:13px;z-index:999;opacity:0;transform:translateY(8px);transition:all 0.25s;pointer-events:none}
   .toast.show{opacity:1;transform:translateY(0)}
 
+  /* ── Feature: Partner vote buttons ── */
+  .vote-btn{padding:5px 11px;border-radius:20px;border:1px solid var(--bdr2);background:var(--bg);cursor:pointer;font-size:11px;font-weight:500;transition:all .15s;font-family:inherit;color:var(--ink-soft)}
+  .vote-btn:hover{border-color:var(--rose-mid);background:var(--rose-light)}
+  .vote-btn.yes.active{background:var(--rose-light);border-color:var(--rose);color:var(--rose-dark)}
+  .vote-btn.no.active{background:#F3F4F6;border-color:#9CA3AF;color:#6B7280}
+  .idea-card.both-love-card{border:1.5px solid var(--rose)!important;box-shadow:0 0 0 3px rgba(196,104,122,0.1)}
+
+  /* ── Feature: Star ratings ── */
+  .star-row{display:inline-flex;gap:2px}
+  .star{font-size:17px;cursor:pointer;color:#E5E7EB;transition:color .1s;line-height:1;user-select:none}
+  .star.lit{color:#F59E0B}
+
   /* Mobile header — hidden on desktop */
   .mobile-header{display:none;background:var(--bg,#fff);background-color:var(--bg,#fff);border-bottom:0.5px solid var(--bdr2,#e5e5e5);padding:12px 16px 10px;align-items:center;justify-content:space-between;flex-shrink:0;z-index:30}
   .mobile-logo{font-size:17px;font-weight:500;color:var(--rose-dark);font-family:var(--font-serif,serif)}
@@ -1085,7 +1097,7 @@
           <div class="stat"><div class="stat-label">Dates booked</div><div class="stat-val" id="s-dates">3</div><div class="stat-note">2 upcoming</div></div>
           <div class="stat"><div class="stat-label">Reminders</div><div class="stat-val" id="s-rems">4</div><div class="stat-note">Next: Friday</div></div>
           <div class="stat"><div class="stat-label">Total spent</div><div class="stat-val">£<span id="s-spent">0</span></div><div class="stat-note">Together</div></div>
-          <div class="stat"><div class="stat-label">Best match</div><div class="stat-val" style="font-size:16px">Dining</div><div class="stat-note">Your top category</div></div>
+          <div class="stat"><div class="stat-label">Your ratings</div><div class="stat-val" id="s-avg-rating" style="font-size:16px;line-height:1.6">—</div><div class="stat-note" id="s-avg-note">Rate past dates</div></div>
         </div>
         <div class="card">
           <div class="card-head"><div class="card-title">Your dates</div><div style="display:flex;gap:6px" id="filter-btns">
@@ -1344,6 +1356,11 @@
   }
 
   let _discoverGuided=true;
+  // Feature 1: per-idea votes  {ideaName: {j:null|true|false, s:null|true|false}}
+  const _votes={};
+  // Feature 3: venues with limited vegetarian options
+  const _VEG_UNFRIENDLY=new Set(['Core by Clare Smyth','Alain Ducasse at The Dorchester']);
+
   function toggleDiscoverView(){
     _discoverGuided=!_discoverGuided;
     document.getElementById('discover-guided').style.display=_discoverGuided?'':'none';
@@ -1351,14 +1368,12 @@
     document.getElementById('view-toggle-btn').textContent=_discoverGuided?'classic view':'guided view';
   }
 
-  function generateSuggestions(){
-    // Read from whichever view is active
+  function generateSuggestions(_instant){
     const sliderEl=document.getElementById(_discoverGuided?'budget-slider':'budget-slider-classic');
     const sliderVal=sliderEl?parseInt(sliderEl.value):1;
     const budget=BUDGET_KEYS[sliderVal]||'mid';
     const locEl=document.getElementById(_discoverGuided?'loc-select':'loc-select-classic');
     const loc=locEl?locEl.value:'London, UK';
-    // Vibe: guided uses _vibeType/_vibeTag, classic uses dropdown + tags
     let vibe,activeTags;
     if(_discoverGuided){
       vibe=_vibeType;
@@ -1374,10 +1389,19 @@
       :_occasion==='anniversary'?'Finding the perfect anniversary for Jamie & Sophie...'
       :_occasion==='first_date'?'Finding the perfect first date ideas for Jamie...'
       :'Matching ideas to Jamie & Sophie\'s tastes...';
-    area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">${loadMsg}</div></div></div>`;
+    if(!_instant) area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">${loadMsg}</div></div></div>`;
     setTimeout(()=>{
-      let ideas=[...(IDEAS[budget]||IDEAS.mid)];
-      if(vibe!=='all') ideas=ideas.filter(i=>i.type===vibe||vibe==='all').concat(ideas.filter(i=>i.type!==vibe)).slice(0,4);
+      let allIdeas=[...(IDEAS[budget]||IDEAS.mid)];
+
+      // ── Feature 3: Dietary — push veg-unfriendly to the back ──
+      const vegFiltered=allIdeas.filter(i=>_VEG_UNFRIENDLY.has(i.name));
+      allIdeas.sort((a,b)=>{
+        const aOk=!_VEG_UNFRIENDLY.has(a.name),bOk=!_VEG_UNFRIENDLY.has(b.name);
+        return aOk===bOk?0:(aOk?-1:1);
+      });
+
+      let ideas=[...allIdeas];
+      if(vibe!=='all') ideas=ideas.filter(i=>i.type===vibe).concat(ideas.filter(i=>i.type!==vibe)).slice(0,4);
       if(activeTags.length) ideas.sort((a,b)=>{
         const sa=activeTags.filter(t=>a.vibes.includes(t)).length;
         const sb=activeTags.filter(t=>b.vibes.includes(t)).length;
@@ -1386,22 +1410,79 @@
       ideas=ideas.slice(0,4);
       const topScore=Math.max(...ideas.map(i=>i.score));
       const occasionSuffix=occasionLabel?` · ${occasionLabel}`:'';
+
+      // ── Feature 1: both-loved summary ──
+      const bothLoved=Object.entries(_votes).filter(([,v])=>v.j===true&&v.s===true).map(([k])=>k);
+
       let html=`<div class="section-head"><div class="section-title">Ideas for you in ${loc}${occasionSuffix}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
+
+      // Dietary notice
+      if(vegFiltered.length){
+        html+=`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#F0FDF4;border:0.5px solid #86EFAC;border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:#166534">
+          <span>🥗</span><span>Sophie is vegetarian — her-friendly options shown first. <strong>${vegFiltered.length} venue${vegFiltered.length>1?'s':''}</strong> with limited veg options are at the bottom.</span>
+        </div>`;
+      }
+
+      // Both loved banner
+      if(bothLoved.length){
+        html+=`<div style="padding:10px 14px;background:linear-gradient(135deg,#FEF0F3,#FDF4FF);border:1.5px solid var(--rose);border-radius:var(--r-md);margin-bottom:12px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px">♥</span>
+          <div><div style="font-size:13px;font-weight:600;color:var(--rose-dark)">You both love ${bothLoved.length} idea${bothLoved.length>1?'s':''}!</div>
+          <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">${bothLoved.join(' · ')}</div></div>
+        </div>`;
+      }
+
       html+=`<div class="g2">`;
       ideas.forEach((idea,idx)=>{
         const isTop=idea.score===topScore&&idx===ideas.findIndex(i=>i.score===topScore);
-        html+=`<div class="idea-card${isTop?' top-pick':''}" onclick="quickBook('${idea.name}','experience','${idea.price}')">
-          ${isTop?'<div class="idea-top-label">Best match</div>':''}
+        const vegOk=!_VEG_UNFRIENDLY.has(idea.name);
+        const safeKey=idea.name.replace(/['"<>&]/g,'_');
+        const v=_votes[idea.name]||{j:null,s:null};
+        const bothLove=v.j===true&&v.s===true;
+        const label=bothLove?'♥ You both love this':isTop?'Best match':'';
+        const labelBg=bothLove?'background:var(--rose)':'';
+
+        html+=`<div class="idea-card${bothLove?' both-love-card':isTop?' top-pick':''}" data-idea="${safeKey}">
+          ${label?`<div class="idea-top-label" style="${labelBg}">${label}</div>`:''}
           <div class="idea-emoji"><img src="${idea.img}" alt="${idea.name}" loading="lazy" onerror="this.parentElement.innerHTML='${idea.emoji}'"></div>
           <div class="idea-body">
             <div class="idea-name">${idea.name}</div>
             <div class="idea-loc">${idea.loc}</div>
             <div style="font-size:12px;color:var(--ink-muted);margin-top:6px;font-style:italic">✦ ${idea.why}</div>
-            <div class="idea-tags">${idea.vibes.map(v=>`<span class="badge badge-rose">${v}</span>`).join('')}</div>
+            <div class="idea-tags">
+              ${idea.vibes.map(v=>`<span class="badge badge-rose">${v}</span>`).join('')}
+              ${vegOk
+                ?'<span class="badge" style="background:#F0FDF4;color:#166534;border:0.5px solid #86EFAC">✓ Sophie-friendly</span>'
+                :'<span class="badge badge-amber">⚠ Limited veg</span>'}
+            </div>
             <div class="idea-price">${idea.price}</div>
             <div class="idea-match"><div class="match-bar-bg"><div class="match-bar" style="width:${idea.score}%"></div></div>${idea.score}% match</div>
+
+            <!-- ── Feature 1: Partner vote panel ── -->
+            <div class="vote-box" data-idea="${safeKey}" style="margin-top:10px;padding:10px;background:var(--bg2);border-radius:var(--r-md);border:0.5px solid var(--bdr)">
+              <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px">Does this work for both of you?</div>
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <span style="font-size:10px;font-weight:600;color:var(--ink-soft)">Jamie</span>
+                  <div style="display:flex;gap:4px">
+                    <button class="vote-btn yes${v.j===true?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','j',true,'${safeKey}')">♥ Yes</button>
+                    <button class="vote-btn no${v.j===false?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','j',false,'${safeKey}')">✗ No</button>
+                  </div>
+                </div>
+                <div class="vote-center" style="font-size:18px;color:${bothLove?'var(--rose)':'var(--rose-mid)'}">${bothLove?'♥':'◦'}</div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+                  <span style="font-size:10px;font-weight:600;color:var(--ink-soft)">Sophie</span>
+                  <div style="display:flex;gap:4px">
+                    <button class="vote-btn yes${v.s===true?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','s',true,'${safeKey}')">♥ Yes</button>
+                    <button class="vote-btn no${v.s===false?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','s',false,'${safeKey}')">✗ No</button>
+                  </div>
+                </div>
+              </div>
+              ${bothLove?`<div class="both-love-row" style="margin-top:8px;padding:6px 10px;background:var(--rose-light);border-radius:6px;text-align:center;font-size:12px;font-weight:600;color:var(--rose-dark)">♥ You both love this — perfect!</div>`:'<div class="both-love-row" style="display:none"></div>'}
+            </div>
+
             <div style="display:flex;gap:8px;margin-top:10px">
-              <button class="btn btn-rose btn-sm" onclick="event.stopPropagation();quickBook('${idea.name}','experience','${idea.price}')">Book this ✦</button>
+              <button class="btn btn-rose btn-sm" onclick="event.stopPropagation();quickBook('${idea.name}','experience','${idea.price}')">${bothLove?'♥ Book it together':'Book this ✦'}</button>
               <button class="btn btn-sm" onclick="event.stopPropagation();go('planner',document.querySelector('[onclick*=planner]'))">+ Plan it</button>
             </div>
           </div>
@@ -1418,7 +1499,50 @@
         </div>
       </div>`;
       area.innerHTML=html;
-    },900);
+    },_instant?0:900);
+  }
+
+  // ── Feature 1: Partner vote handler ──
+  function castIdeaVote(ideaName,person,val,safeKey){
+    if(!_votes[ideaName]) _votes[ideaName]={j:null,s:null};
+    // Toggle off if tapping same button again
+    _votes[ideaName][person]=_votes[ideaName][person]===val?null:val;
+    // Update DOM directly — no full re-render needed
+    const box=document.querySelector(`.vote-box[data-idea="${safeKey}"]`);
+    if(!box) return;
+    const v=_votes[ideaName];
+    const btns=box.querySelectorAll('.vote-btn');
+    if(btns[0]) btns[0].classList.toggle('active',v.j===true);
+    if(btns[1]) btns[1].classList.toggle('active',v.j===false);
+    if(btns[2]) btns[2].classList.toggle('active',v.s===true);
+    if(btns[3]) btns[3].classList.toggle('active',v.s===false);
+    const bothLove=v.j===true&&v.s===true;
+    const center=box.querySelector('.vote-center');
+    if(center){center.textContent=bothLove?'♥':'◦';center.style.color=bothLove?'var(--rose)':'var(--rose-mid)';}
+    const banner=box.querySelector('.both-love-row');
+    if(banner){banner.style.display=bothLove?'':'none';if(bothLove)banner.textContent='♥ You both love this — perfect!';}
+    const card=box.closest('.idea-card');
+    if(card){
+      card.classList.toggle('both-love-card',bothLove);
+      // Update top label
+      let lbl=card.querySelector('.idea-top-label');
+      if(bothLove){
+        if(!lbl){lbl=document.createElement('div');lbl.className='idea-top-label';card.insertBefore(lbl,card.firstChild);}
+        lbl.style.background='var(--rose)';lbl.textContent='♥ You both love this';
+      } else if(lbl&&lbl.textContent==='♥ You both love this'){lbl.remove();}
+      // Update book button label
+      const bookBtn=card.querySelector('.btn-rose.btn-sm');
+      if(bookBtn) bookBtn.textContent=bothLove?'♥ Book it together':'Book this ✦';
+    }
+    // Update the both-loved summary banner if it already exists
+    const summaryArea=document.getElementById('suggestions-area');
+    const summaryBanner=summaryArea?.querySelector('[data-both-banner]');
+    const bothLovedAll=Object.entries(_votes).filter(([,val])=>val.j===true&&val.s===true).map(([k])=>k);
+    if(summaryBanner){
+      if(bothLovedAll.length){summaryBanner.querySelector('.bl-count').textContent=`You both love ${bothLovedAll.length} idea${bothLovedAll.length>1?'s':''}!`;summaryBanner.querySelector('.bl-names').textContent=bothLovedAll.join(' · ');summaryBanner.style.display='';}
+      else{summaryBanner.style.display='none';}
+    }
+    if(bothLove) toast(`♥ You both love ${ideaName}! Tap "Book it together" to lock it in.`);
   }
 
   function quickBook(name,type,amount){
@@ -1714,20 +1838,56 @@
     const el=document.getElementById('bookings-list');if(!el)return;
     const list=activeFilter==='all'?bookings:bookings.filter(b=>b.type===activeFilter);
     if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--ink-muted)">No dates yet — start discovering!</div>';return;}
-    el.innerHTML=list.map(b=>`
-      <div class="booking-row">
+    const today=new Date().toISOString().slice(0,10);
+    el.innerHTML=list.map(b=>{
+      const isPast=b.date<today;
+      const hasRating=b.rating!=null;
+      // ── Feature 2: Star rating row ──
+      let ratingHtml='';
+      if(isPast&&!hasRating){
+        ratingHtml=`<div style="margin-top:6px;display:flex;align-items:center;gap:6px">
+          <span style="font-size:11px;color:var(--ink-muted)">Rate this date:</span>
+          <span class="star-row" id="stars-${b.id}">
+            ${[1,2,3,4,5].map(n=>`<span class="star" onmouseenter="hoverStars(${b.id},${n})" onmouseleave="clearStarHover(${b.id})" onclick="rateBooking(${b.id},${n})">★</span>`).join('')}
+          </span>
+        </div>`;
+      } else if(hasRating){
+        const stars=[1,2,3,4,5].map(n=>`<span class="star${n<=b.rating?' lit':''}">★</span>`).join('');
+        ratingHtml=`<div style="margin-top:5px;display:flex;align-items:center;gap:5px"><span class="star-row">${stars}</span><span style="font-size:11px;color:var(--ink-muted)">${b.rating}/5</span></div>`;
+      }
+      return `<div class="booking-row">
         <div class="booking-icon">${b.icon||'📅'}</div>
-        <div>
+        <div style="flex:1">
           <div class="booking-name">${b.name}</div>
           <div class="booking-meta">${b.meta} · ${fmtDate(b.date)}</div>
-          <span class="badge badge-green" style="margin-top:5px">confirmed</span>
+          <span class="badge ${isPast?'badge-muted':'badge-green'}" style="margin-top:5px">${isPast?'completed':'confirmed'}</span>
+          ${ratingHtml}
         </div>
         <div class="booking-right">
           <div class="booking-price">${b.amount}</div>
           <div class="booking-date">${fmtDate(b.date)}</div>
-          <button class="btn btn-sm" style="margin-top:5px;font-size:10px" onclick="cancelBooking(${b.id})">Cancel</button>
+          <button class="btn btn-sm" style="margin-top:5px;font-size:10px" onclick="cancelBooking(${b.id})">Remove</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
+  }
+
+  function hoverStars(id,n){
+    const row=document.getElementById('stars-'+id);if(!row)return;
+    row.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('lit',i<n));
+  }
+  function clearStarHover(id){
+    const b=bookings.find(x=>x.id===id);if(!b)return;
+    const row=document.getElementById('stars-'+id);if(!row)return;
+    row.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('lit',b.rating!=null&&i<b.rating));
+  }
+  // ── Feature 2: Rate a past booking ──
+  function rateBooking(id,stars){
+    const b=bookings.find(x=>x.id===id);if(!b)return;
+    b.rating=stars;
+    renderBookings();updateStats();
+    const labels=['','Disappointing','Could be better','Good night out','Really lovely','Perfect evening ♥'];
+    toast(`${[...Array(stars)].map(()=>'★').join('')} ${labels[stars]}`);
   }
 
   function cancelBooking(id){bookings=bookings.filter(b=>b.id!==id);renderBookings();updateStats();toast('Booking removed');}
@@ -1741,8 +1901,23 @@
   function updateStats(){
     const s=document.getElementById('s-dates');if(s)s.textContent=bookings.length;
     const r=document.getElementById('s-rems');if(r)r.textContent=reminders.length;
-    const total=bookings.reduce((acc,b)=>{const n=parseFloat(b.amount.replace(/[£,]/g,''));return acc+(isNaN(n)?0:n);},0);
+    const total=bookings.reduce((acc,b)=>{const n=parseFloat((b.amount||'').replace(/[£,]/g,''));return acc+(isNaN(n)?0:n);},0);
     const sp=document.getElementById('s-spent');if(sp)sp.textContent=Math.round(total).toLocaleString();
+    // ── Feature 2: Average rating stat ──
+    const rated=bookings.filter(b=>b.rating!=null);
+    const avgEl=document.getElementById('s-avg-rating');
+    const avgNoteEl=document.getElementById('s-avg-note');
+    if(avgEl){
+      if(rated.length){
+        const avg=rated.reduce((a,b)=>a+b.rating,0)/rated.length;
+        const stars=[1,2,3,4,5].map(n=>`<span style="color:${n<=Math.round(avg)?'#F59E0B':'#E5E7EB'}">★</span>`).join('');
+        avgEl.innerHTML=stars;
+        if(avgNoteEl) avgNoteEl.textContent=avg.toFixed(1)+' avg · '+rated.length+' rated';
+      } else {
+        avgEl.innerHTML='<span style="font-size:14px;color:var(--ink-muted)">—</span>';
+        if(avgNoteEl) avgNoteEl.textContent='Rate past dates';
+      }
+    }
   }
 
   function renderReminders(){
