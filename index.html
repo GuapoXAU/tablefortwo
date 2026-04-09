@@ -941,7 +941,13 @@
       <div class="page" id="page-hotels">
         <div class="card">
           <div class="card-head"><div class="card-title">Book a romantic stay</div></div>
-          <div class="card-body">
+          <!-- Tabs -->
+          <div style="display:flex;gap:0;border-bottom:1px solid #F3E8EB;margin:0 1rem">
+            <button id="tab-hotel" onclick="switchStayTab('hotel')" style="flex:1;padding:10px 0;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:#E11D48;border-bottom:2px solid #E11D48;transition:all .2s">🏨 Hotel</button>
+            <button id="tab-airbnb" onclick="switchStayTab('airbnb')" style="flex:1;padding:10px 0;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:#9CA3AF;border-bottom:2px solid transparent;transition:all .2s">🏡 Airbnb</button>
+          </div>
+          <!-- Hotel form -->
+          <div id="stay-hotel" class="card-body">
             <div class="g2">
               <div class="form-group"><label class="form-label">Destination</label><input type="text" class="form-input" placeholder="City or hotel" id="hotel-dest"></div>
               <div class="form-group"><label class="form-label">Room</label><select class="form-input"><option>Double room</option><option>Superior double</option><option>Suite</option><option>Penthouse</option></select></div>
@@ -953,6 +959,26 @@
             <div class="form-group"><label class="form-label">Special touches</label><input type="text" class="form-input" placeholder="Rose petals, champagne, anniversary note..."></div>
             <div style="display:flex;gap:10px;margin-top:4px">
               <button class="btn btn-rose" onclick="bookHotel()">Reserve room</button>
+              <button class="btn btn-sm">+ Date planner</button>
+            </div>
+          </div>
+          <!-- Airbnb form -->
+          <div id="stay-airbnb" class="card-body" style="display:none">
+            <div class="g2">
+              <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-input" placeholder="City, neighbourhood or address" id="bnb-dest"></div>
+              <div class="form-group"><label class="form-label">Property type</label><select class="form-input" id="bnb-type"><option>Entire place</option><option>Private room</option><option>Unique stays</option><option>Cabin</option><option>Treehouse</option><option>Houseboat</option></select></div>
+            </div>
+            <div class="g2">
+              <div class="form-group"><label class="form-label">Check-in</label><input type="date" class="form-input" id="bnb-in"></div>
+              <div class="form-group"><label class="form-label">Check-out</label><input type="date" class="form-input" id="bnb-out"></div>
+            </div>
+            <div class="g2">
+              <div class="form-group"><label class="form-label">Guests</label><select class="form-input" id="bnb-guests"><option>2 guests</option><option>3 guests</option><option>4 guests</option></select></div>
+              <div class="form-group"><label class="form-label">Min bedrooms</label><select class="form-input" id="bnb-beds"><option>Studio / 1 bed</option><option>2 bedrooms</option><option>3+ bedrooms</option></select></div>
+            </div>
+            <div class="form-group"><label class="form-label">Wishlist note</label><input type="text" class="form-input" placeholder="Hot tub, sea view, countryside retreat..." id="bnb-note"></div>
+            <div style="display:flex;gap:10px;margin-top:4px">
+              <button class="btn btn-rose" onclick="bookAirbnb()">Search Airbnb ↗</button>
               <button class="btn btn-sm">+ Date planner</button>
             </div>
           </div>
@@ -1398,7 +1424,7 @@
   function quickBook(name,type,amount){
     const today=new Date();
     const date=new Date(today.getFullYear(),today.getMonth()+1,15).toISOString().slice(0,10);
-    bookings.push({id:Date.now(),type,name,date,meta:'Just booked',amount,icon:type==='restaurant'?'🍽️':type==='hotel'?'🏨':type==='cab'?'🚗':'🎬'});
+    bookings.push({id:Date.now(),type,name,date,meta:'Just booked',amount,icon:type==='restaurant'?'🍽️':type==='hotel'?'🏨':type==='airbnb'?'🏡':type==='cab'?'🚗':'🎬'});
     updateStats();renderBookings();toast('✦ Added to your dates — '+name);
   }
 
@@ -1413,6 +1439,27 @@
     const ci=document.getElementById('hotel-in').value||new Date().toISOString().slice(0,10);
     bookings.push({id:Date.now(),type:'hotel',name:d,date:ci,meta:'1 night',amount:'£180',icon:'🏨'});
     updateStats();toast('✦ Room reserved at '+d);
+  }
+  function switchStayTab(tab){
+    document.getElementById('stay-hotel').style.display=tab==='hotel'?'':'none';
+    document.getElementById('stay-airbnb').style.display=tab==='airbnb'?'':'none';
+    document.getElementById('tab-hotel').style.color=tab==='hotel'?'#E11D48':'#9CA3AF';
+    document.getElementById('tab-hotel').style.borderBottomColor=tab==='hotel'?'#E11D48':'transparent';
+    document.getElementById('tab-airbnb').style.color=tab==='airbnb'?'#E11D48':'#9CA3AF';
+    document.getElementById('tab-airbnb').style.borderBottomColor=tab==='airbnb'?'#E11D48':'transparent';
+  }
+  function bookAirbnb(){
+    const dest=document.getElementById('bnb-dest').value||'London';
+    const ci=document.getElementById('bnb-in').value||new Date().toISOString().slice(0,10);
+    const co=document.getElementById('bnb-out').value||new Date(Date.now()+86400000).toISOString().slice(0,10);
+    const type=document.getElementById('bnb-type').value;
+    const note=document.getElementById('bnb-note').value;
+    // Build Airbnb search URL
+    const q=encodeURIComponent(dest);
+    const url=`https://www.airbnb.co.uk/s/${q}/homes?checkin=${ci}&checkout=${co}&adults=2`;
+    window.open(url,'_blank');
+    bookings.push({id:Date.now(),type:'airbnb',name:dest+(note?' — '+note:''),date:ci,meta:type,amount:'',icon:'🏡'});
+    updateStats();renderBookings();toast('✦ Airbnb search opened for '+dest);
   }
   function bookCab(){
     const f=document.getElementById('cab-from').value||'Home';
