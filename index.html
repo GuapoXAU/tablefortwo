@@ -1632,6 +1632,14 @@
     el.innerHTML=`<div style="font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px">✦ Cosmic compatibility</div>${rows.join('')}`;
   }
 
+  // ── Social proof: deterministic "booked" count per idea ──
+  const _AVATAR_COLORS=['#FBEAF0','#EDE6F2','#E8F4FD','#E8F5E9','#FFF3E0','#FCE4EC','#F3E5F5','#E3F2FD'];
+  function _bookedCount(name,score,type){
+    const hash=name.split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+    const base={foodie:22,romantic:19,cultural:16,outdoor:13,fun:11}[type]||14;
+    return base+(hash%38)+Math.round(score*0.22);
+  }
+
   let _currentSuggestions=[];  // stores last 4 ideas shown — needed for Sophie share link
 
   function toggleDiscoverView(){
@@ -1862,6 +1870,18 @@
             </div>
             <div class="idea-price">${idea.price}</div>
             <div class="idea-match"><div class="match-bar-bg"><div class="match-bar" style="width:${idea.score}%"></div></div>${idea.score}% match</div>
+
+            <!-- ── Social proof ── -->
+            ${(()=>{
+              const n=_bookedCount(idea.name,idea.score,idea.type);
+              const shown=Math.min(3,Math.max(2,Math.round(n/18)));
+              const avatars=Array.from({length:shown},(_,i)=>`<div style="width:16px;height:16px;border-radius:50%;background:${_AVATAR_COLORS[(idea.name.charCodeAt(i)+(i*7))%_AVATAR_COLORS.length]};border:1.5px solid var(--bg);margin-right:-5px;flex-shrink:0"></div>`).join('');
+              const label=n>=60?`${n} couples booked this month`:n>=30?`${n} couples going this month`:`${n} couples booked recently`;
+              return `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:0.5px solid var(--bdr)">
+                <div style="display:flex;align-items:center">${avatars}<div style="width:16px;height:16px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--bdr);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:var(--ink-muted);font-weight:600">+${n-shown}</div></div>
+                <span style="font-size:10px;color:var(--ink-muted);line-height:1.3">${label}</span>
+              </div>`;
+            })()}
 
             <!-- ── Feature 1: Partner vote panel ── -->
             <div class="vote-box" data-idea="${safeKey}" style="margin-top:10px;padding:10px;background:var(--bg2);border-radius:var(--r-md);border:0.5px solid var(--bdr)">
