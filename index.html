@@ -3624,19 +3624,19 @@
   // ════════════════════════════════════════════════
   let _bfData={};
   const _bfVenueData={
-    'Dishoom, London':               {emoji:'🫕',area:'Covent Garden',  time:'7:30 PM',date:'Sat 19 Apr',tip:'Covent Garden is busy on weekends — a cab is much easier than parking',cabEst:'£12–15',cabMins:18,modeEmoji:'🚕',recommended:true},
-    'Sketch, Mayfair':               {emoji:'🎨',area:'Mayfair',        time:'8:00 PM',date:'Sat 19 Apr',tip:'Bond St. tube is a 5-min walk — Elizabeth line, quick and easy',        cabEst:'£16–20',cabMins:22,modeEmoji:'🚇',recommended:false},
-    'Ottolenghi, Islington':         {emoji:'🥗',area:'Islington',      time:'7:00 PM',date:'Sat 19 Apr',tip:'Angel tube is right there — Northern line from the City is a breeze',   cabEst:'£11–13',cabMins:15,modeEmoji:'🚕',recommended:true},
-    'Secret Cinema: Baz Luhrmann Night':{emoji:'🎬',area:'Secret venue',time:'7:45 PM',date:'Sat 19 Apr',tip:'Location revealed 48 hrs before — a cab gives you the flexibility you\'ll want',cabEst:'£14–18',cabMins:20,modeEmoji:'🚕',recommended:true},
-    'Kew Gardens evening stroll':    {emoji:'🌿',area:'Richmond',       time:'6:30 PM',date:'Sat 19 Apr',tip:'District line to Richmond is easy — about 35 min from central London',  cabEst:'£22–28',cabMins:40,modeEmoji:'🚇',recommended:false},
-    'Saatchi Gallery + cocktails':   {emoji:'🖼️',area:'Chelsea',        time:'6:00 PM',date:'Sat 19 Apr',tip:'Chelsea is awkward by tube — a cab via Sloane Square is nicest',        cabEst:'£13–16',cabMins:17,modeEmoji:'🚕',recommended:true}
+    'Dishoom, London':               {emoji:'🫕',area:'Covent Garden',  time:'7:30 PM',date:'Sat 19 Apr',tip:'Covent Garden is busy on weekends — a cab is much easier than parking',cabEst:'£12–15',cabMins:18,modeEmoji:'🚕',recommended:true,  hotel:'The Hoxton, Covent Garden',    hotelDesc:'A 5-min walk from Dishoom — industrial-chic rooms in the heart of it all',hotelPrice:'from £165'},
+    'Sketch, Mayfair':               {emoji:'🎨',area:'Mayfair',        time:'8:00 PM',date:'Sat 19 Apr',tip:'Bond St. tube is a 5-min walk — Elizabeth line, quick and easy',        cabEst:'£16–20',cabMins:22,modeEmoji:'🚇',recommended:false, hotel:'The Connaught',                 hotelDesc:'A 3-min stroll — one of London\'s most iconic luxury hotels',             hotelPrice:'from £420'},
+    'Ottolenghi, Islington':         {emoji:'🥗',area:'Islington',      time:'7:00 PM',date:'Sat 19 Apr',tip:'Angel tube is right there — Northern line from the City is a breeze',   cabEst:'£11–13',cabMins:15,modeEmoji:'🚕',recommended:true,  hotel:'The Zetter Townhouse',          hotelDesc:'Islington\'s most romantic boutique hotel — just around the corner',      hotelPrice:'from £220'},
+    'Secret Cinema: Baz Luhrmann Night':{emoji:'🎬',area:'Secret venue',time:'7:45 PM',date:'Sat 19 Apr',tip:'Location revealed 48 hrs before — a cab gives you the flexibility you\'ll want',cabEst:'£14–18',cabMins:20,modeEmoji:'🚕',recommended:true,hotel:'Ace Hotel, Shoreditch',         hotelDesc:'Cool and central — great base whatever the secret location turns out to be',hotelPrice:'from £160'},
+    'Kew Gardens evening stroll':    {emoji:'🌿',area:'Richmond',       time:'6:30 PM',date:'Sat 19 Apr',tip:'District line to Richmond is easy — about 35 min from central London',  cabEst:'£22–28',cabMins:40,modeEmoji:'🚇',recommended:false, hotel:'The Petersham',                 hotelDesc:'Richmond\'s grandest hotel — overlooking the Thames, 5 min from Kew',     hotelPrice:'from £280'},
+    'Saatchi Gallery + cocktails':   {emoji:'🖼️',area:'Chelsea',        time:'6:00 PM',date:'Sat 19 Apr',tip:'Chelsea is awkward by tube — a cab via Sloane Square is nicest',        cabEst:'£13–16',cabMins:17,modeEmoji:'🚕',recommended:true,  hotel:'The Levin Hotel',               hotelDesc:'Chelsea boutique hotel — steps from King\'s Road and Sloane Square',      hotelPrice:'from £195'}
   };
   function _bfInfo(name,type){
     if(_bfVenueData[name])return _bfVenueData[name];
-    return{emoji:type==='restaurant'?'🍽️':type==='experience'?'🎟️':'🎬',area:'London',time:'7:30 PM',date:'Sat 19 Apr',tip:'A cab is usually the easiest option for a date night',cabEst:'£14–18',cabMins:20,modeEmoji:'🚕',recommended:true};
+    return{emoji:type==='restaurant'?'🍽️':type==='experience'?'🎟️':'🎬',area:'London',time:'7:30 PM',date:'Sat 19 Apr',tip:'A cab is usually the easiest option for a date night',cabEst:'£14–18',cabMins:20,modeEmoji:'🚕',recommended:true,hotel:'A central London hotel',hotelDesc:'Make a night of it — we\'ll find you something close by',hotelPrice:'from £150'};
   }
   function showBookingFlow(name,type,amount){
-    _bfData={name,type,amount,step:1,transportBooked:false};
+    _bfData={name,type,amount,step:1,transportBooked:false,hotelBooked:false,calAdded:false};
     _renderBfStep();
     const ov=document.getElementById('bf-overlay');
     if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
@@ -3646,16 +3646,16 @@
     if(ov){ov.style.display='none';document.body.style.overflow='';}
   }
   function _bfDots(cur){
-    return[1,2,3].map(i=>`<div class="bf-dot${i===cur?' active':i<cur?' done':''}"></div>`).join('');
+    return[1,2,3,4].map(i=>`<div class="bf-dot${i===cur?' active':i<cur?' done':''}"></div>`).join('');
   }
   function _renderBfStep(){
     const el=document.getElementById('bf-content');if(!el)return;
-    const{name,type,amount,step,transportBooked}=_bfData;
+    const{name,type,amount,step,transportBooked,hotelBooked}=_bfData;
     const v=_bfInfo(name,type);
     if(step===1){
       el.innerHTML=`
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 3</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div>
           <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
         </div>
         <div class="bf-step-dots">${_bfDots(1)}</div>
@@ -3684,7 +3684,7 @@
     }else if(step===2){
       el.innerHTML=`
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 3</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div>
           <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
         </div>
         <div class="bf-step-dots">${_bfDots(2)}</div>
@@ -3703,34 +3703,52 @@
           <button class="btn${v.recommended?' btn-rose':''} btn-sm" style="pointer-events:none">Book ✦</button>
         </div>
         <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipTransport()">I'll sort transport myself →</button>`;
+    }else if(step===3){
+      el.innerHTML=`
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 3 of 4</div>
+          <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+        </div>
+        <div class="bf-step-dots">${_bfDots(3)}</div>
+        <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Make a night of it?</div>
+        <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px">Based on where you're going, here's what we'd suggest nearby</div>
+        <div style="background:var(--plum-light);border:1px solid var(--plum-mid);border-radius:12px;padding:13px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
+          <span style="font-size:20px">✦</span>
+          <div><div style="font-size:12px;font-weight:600;color:var(--plum);margin-bottom:3px">✦ Our pick near ${v.area}</div><div style="font-size:12px;color:var(--ink-soft);line-height:1.5">${v.hotelDesc}</div></div>
+        </div>
+        <div class="bf-transport-opt highlight" onclick="bfBookHotel()" style="border-color:var(--plum-mid);background:var(--plum-light)">
+          <span style="font-size:22px">🏨</span>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:600;color:var(--ink)">${v.hotel}</div>
+            <div style="font-size:12px;color:var(--ink-soft)">${v.hotelPrice} · 1 night · Breakfast included</div>
+          </div>
+          <button class="btn btn-sm" style="pointer-events:none;background:var(--plum);color:#fff;border-color:var(--plum)">Book ✦</button>
+        </div>
+        <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipAccom()">Just the evening for us →</button>`;
     }else{
+      const hasAny=transportBooked||hotelBooked;
+      const itemsHtml=[
+        `<div style="display:flex;align-items:center;gap:10px;${hasAny?'padding-bottom:11px;border-bottom:0.5px solid var(--bdr);margin-bottom:11px':''}">
+          <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--ink)">${name}</div><div style="font-size:11px;color:var(--ink-muted)">${v.date} · ${v.time} · ${amount}</div></div>
+        </div>`,
+        transportBooked?`<div style="display:flex;align-items:center;gap:10px;${hotelBooked?'padding-bottom:11px;border-bottom:0.5px solid var(--bdr);margin-bottom:11px':''}">
+          <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--ink)">Cab to ${v.area}</div><div style="font-size:11px;color:var(--ink-muted)">~${v.cabMins} min · est. ${v.cabEst}</div></div>
+        </div>`:'',
+        hotelBooked?`<div style="display:flex;align-items:center;gap:10px">
+          <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
+          <div><div style="font-size:13px;font-weight:600;color:var(--ink)">${v.hotel}</div><div style="font-size:11px;color:var(--ink-muted)">${v.hotelPrice} · 1 night</div></div>
+        </div>`:''
+      ].filter(Boolean).join('');
       el.innerHTML=`
         <div style="text-align:center;padding:12px 0 6px">
           <div style="font-size:40px;margin-bottom:10px">🎉</div>
           <div style="font-size:20px;font-weight:700;color:var(--ink);margin-bottom:5px">You're all set!</div>
-          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:22px">Here's what we've locked in for you</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:20px">Here's what we've locked in for you</div>
         </div>
-        <div style="background:var(--bg2);border-radius:14px;padding:16px;margin-bottom:16px">
-          <div style="display:flex;align-items:center;gap:10px;${transportBooked?'padding-bottom:12px;border-bottom:0.5px solid var(--bdr);margin-bottom:12px':''}">
-            <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--ink)">${name}</div>
-              <div style="font-size:11px;color:var(--ink-muted)">${v.date} · ${v.time} · ${amount}</div>
-            </div>
-          </div>
-          ${transportBooked?`
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
-            <div>
-              <div style="font-size:13px;font-weight:600;color:var(--ink)">Cab to ${v.area}</div>
-              <div style="font-size:11px;color:var(--ink-muted)">~${v.cabMins} min · est. ${v.cabEst}</div>
-            </div>
-          </div>`:`
-          <div style="display:flex;align-items:center;gap:10px;padding-top:0">
-            <div style="width:30px;height:30px;border-radius:50%;background:var(--bg);border:1.5px dashed var(--bdr2);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-muted);flex-shrink:0">→</div>
-            <div style="font-size:13px;color:var(--ink-soft)">Transport — you're sorting it</div>
-          </div>`}
-        </div>
+        <div style="background:var(--bg2);border-radius:14px;padding:16px;margin-bottom:14px">${itemsHtml}</div>
+        <button id="bf-cal-btn" class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:8px;border-color:var(--rose-mid);color:var(--rose-dark)" onclick="bfAddToCalendar(this)">📅 Add to calendar</button>
         <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:10px" onclick="closeBf()">Done ✦</button>
         <div style="text-align:center"><span style="font-size:12px;color:var(--ink-muted);cursor:pointer;text-decoration:underline" onclick="closeBf()">Add a memory after the date →</span></div>`;
     }
@@ -3748,6 +3766,35 @@
     _bfData.transportBooked=true;_bfData.step=3;_renderBfStep();
   }
   function bfSkipTransport(){_bfData.step=3;_renderBfStep();}
+  function bfBookHotel(){
+    const v=_bfInfo(_bfData.name,_bfData.type);
+    const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
+    bookings.push({id:Date.now(),type:'hotel',name:v.hotel,date:d.toISOString().slice(0,10),meta:'1 night · 2 guests · Breakfast included',amount:v.hotelPrice.replace('from ',''),icon:'🏨'});
+    updateStats();renderBookings();toast('✦ '+v.hotel+' added to your dates');
+    _bfData.hotelBooked=true;_bfData.step=4;_renderBfStep();
+  }
+  function bfSkipAccom(){_bfData.step=4;_renderBfStep();}
+  function bfAddToCalendar(btn){
+    if(_bfData.calAdded)return;
+    const v=_bfInfo(_bfData.name,_bfData.type);
+    const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
+    const dateStr=d.toISOString().slice(0,10);
+    // Parse time string e.g. "7:30 PM" → "19:30"
+    let timeStr='19:30';
+    try{const t=v.time.replace(' PM','').replace(' AM','');const[h,m]=t.split(':');let hr=parseInt(h);if(v.time.includes('PM')&&hr<12)hr+=12;timeStr=String(hr).padStart(2,'0')+':'+(m||'00');}catch(e){}
+    const cat=_bfData.type==='restaurant'?'Dinner reservation':'Experience / activity';
+    reminders.push({id:Date.now(),title:_bfData.name,date:dateStr,time:timeStr,cat,color:catColors[cat]||'#C4687A'});
+    if(_bfData.transportBooked){
+      reminders.push({id:Date.now()+1,title:'Cab to '+v.area,date:dateStr,time:String(parseInt(timeStr.split(':')[0])-1).padStart(2,'0')+':'+timeStr.split(':')[1],cat:'Cab pickup',color:'#3A6A8A'});
+    }
+    if(_bfData.hotelBooked){
+      reminders.push({id:Date.now()+2,title:v.hotel+' check-in',date:dateStr,time:'15:00',cat:'Hotel check-in',color:'#C4687A'});
+    }
+    renderReminders();renderCal();updateStats();
+    _bfData.calAdded=true;
+    if(btn){btn.innerHTML='✓ Added to calendar';btn.disabled=true;btn.style.background='#16a34a';btn.style.color='#fff';btn.style.borderColor='#16a34a';}
+    toast('📅 Added to your date planner — check the Planner tab');
+  }
 
   // Wire quickBook to show booking flow after a short delay
   const _origQuickBook=quickBook;
