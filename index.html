@@ -417,6 +417,22 @@
   .bf-transport-opt:hover{border-color:var(--rose-mid);background:var(--rose-light)}
   .bf-transport-opt.highlight{border-color:var(--rose);background:var(--rose-light)}
 
+  /* ── Booking execution layer ── */
+  .bf-loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 0;gap:12px;text-align:center}
+  .bf-pulse-dots{display:flex;gap:7px;margin-top:4px}
+  .bf-pulse-dot{width:8px;height:8px;border-radius:50%;background:var(--rose-mid);animation:bfPulse 1.2s ease-in-out infinite}
+  .bf-pulse-dot:nth-child(2){animation-delay:0.2s}
+  .bf-pulse-dot:nth-child(3){animation-delay:0.4s}
+  @keyframes bfPulse{0%,100%{transform:scale(0.8);opacity:0.35}50%{transform:scale(1.2);opacity:1}}
+  .bf-confirm-card{background:linear-gradient(150deg,#FDFAFA,#FDF8F9);border:1px solid var(--rose-mid);border-radius:14px;padding:16px;margin-bottom:14px}
+  .bf-otable-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500}
+  .bf-driver-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;color:#fff}
+  .bf-notif-row{background:rgba(255,255,255,0.08);border-radius:12px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px}
+  .bf-notif-row:last-child{margin-bottom:0}
+  .bf-notif-appicon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#8B3A4A,#C4687A);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:#fff}
+  .bf-concierge-banner{background:linear-gradient(135deg,#8B3A4A,#C4687A);border-radius:14px;padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;color:#fff}
+  @keyframes slideDownNotif{from{transform:translateX(-50%) translateY(-80px);opacity:0}to{transform:translateX(-50%) translateY(0);opacity:1}}
+
   /* ── Couple quiz ── */
   .quiz-q{margin-bottom:18px}
   .quiz-q-label{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:9px}
@@ -3620,8 +3636,33 @@
   updateQuizResult();
 
   // ════════════════════════════════════════════════
-  // ── MULTI-STEP BOOKING FLOW ──
+  // ── PERCEIVED EXECUTION BOOKING FLOW ──
   // ════════════════════════════════════════════════
+
+  // ── Local persistence ──
+  function _saveState(){
+    try{localStorage.setItem('t4t_bk',JSON.stringify(bookings));localStorage.setItem('t4t_rm',JSON.stringify(reminders));}catch(e){}
+  }
+  (function _loadState(){
+    try{
+      const b=localStorage.getItem('t4t_bk');const r=localStorage.getItem('t4t_rm');
+      if(b){bookings=JSON.parse(b);}if(r){reminders=JSON.parse(r);}
+      renderBookings();renderReminders();renderCal();updateStats();
+    }catch(e){}
+  })();
+
+  // ── iOS-style push notification banner ──
+  function _showFakePush(title,body,delay){
+    setTimeout(()=>{
+      const el=document.createElement('div');
+      el.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;max-width:340px;width:calc(100% - 32px);background:#fff;border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);animation:slideDownNotif 0.4s cubic-bezier(.22,.68,0,1.2);cursor:pointer';
+      el.innerHTML=`<div style="width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#8B3A4A,#C4687A);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">♥</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:1px">${title}</div><div style="font-size:11px;color:#555;line-height:1.4">${body}</div></div><div style="font-size:10px;color:#aaa;flex-shrink:0;white-space:nowrap">now</div>`;
+      el.onclick=()=>el.remove();
+      document.body.appendChild(el);
+      setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(-12px)';el.style.transition='all 0.4s ease';setTimeout(()=>el.remove(),400);},4500);
+    },delay||0);
+  }
+
   let _bfData={};
   const _bfVenueData={
     'Dishoom, London':               {emoji:'🫕',area:'Covent Garden',  time:'7:30 PM',date:'Sat 19 Apr',tip:'Covent Garden is busy on weekends — a cab is much easier than parking',cabEst:'£12–15',cabMins:18,modeEmoji:'🚕',recommended:true,  hotel:'The Hoxton, Covent Garden',    hotelDesc:'A 5-min walk from Dishoom — industrial-chic rooms in the heart of it all',hotelPrice:'from £165'},
@@ -3631,12 +3672,35 @@
     'Kew Gardens evening stroll':    {emoji:'🌿',area:'Richmond',       time:'6:30 PM',date:'Sat 19 Apr',tip:'District line to Richmond is easy — about 35 min from central London',  cabEst:'£22–28',cabMins:40,modeEmoji:'🚇',recommended:false, hotel:'The Petersham',                 hotelDesc:'Richmond\'s grandest hotel — overlooking the Thames, 5 min from Kew',     hotelPrice:'from £280'},
     'Saatchi Gallery + cocktails':   {emoji:'🖼️',area:'Chelsea',        time:'6:00 PM',date:'Sat 19 Apr',tip:'Chelsea is awkward by tube — a cab via Sloane Square is nicest',        cabEst:'£13–16',cabMins:17,modeEmoji:'🚕',recommended:true,  hotel:'The Levin Hotel',               hotelDesc:'Chelsea boutique hotel — steps from King\'s Road and Sloane Square',      hotelPrice:'from £195'}
   };
+  const _bfDrivers=[
+    {name:'Marcus T.',car:'Toyota Prius',   reg:'LX24 RKT',rating:'4.9',trips:'1,847',eta:4,initials:'MT',color:'#3B6EA0'},
+    {name:'Priya S.',  car:'VW Passat',      reg:'MA23 UJP',rating:'4.8',trips:'2,203',eta:5,initials:'PS',color:'#7C5295'},
+    {name:'James O.', car:'Mercedes E-Class',reg:'KL72 VBW',rating:'5.0',trips:'956', eta:3,initials:'JO',color:'#2D8A5E'},
+    {name:'Aisha R.', car:'BMW 5 Series',   reg:'PN21 QXM',rating:'4.9',trips:'1,432',eta:6,initials:'AR',color:'#A04040'},
+  ];
   function _bfInfo(name,type){
     if(_bfVenueData[name])return _bfVenueData[name];
     return{emoji:type==='restaurant'?'🍽️':type==='experience'?'🎟️':'🎬',area:'London',time:'7:30 PM',date:'Sat 19 Apr',tip:'A cab is usually the easiest option for a date night',cabEst:'£14–18',cabMins:20,modeEmoji:'🚕',recommended:true,hotel:'A central London hotel',hotelDesc:'Make a night of it — we\'ll find you something close by',hotelPrice:'from £150'};
   }
+  function _bfRef(){return 'T4T-'+Math.random().toString(36).slice(2,6).toUpperCase();}
+  function _bfMinus(timeStr,mins){
+    try{
+      const isPM=timeStr.includes('PM');
+      const t=timeStr.replace(' PM','').replace(' AM','').trim();
+      const[hStr,mStr]=t.split(':');
+      let h=parseInt(hStr);const m=parseInt(mStr||'0');
+      if(isPM&&h<12)h+=12;
+      let total=h*60+m-mins;if(total<0)total+=1440;
+      const oh=Math.floor(total/60);const om=total%60;
+      const suffix=oh>=12?'PM':'AM';
+      const dh=oh>12?oh-12:(oh===0?12:oh);
+      return dh+':'+String(om).padStart(2,'0')+' '+suffix;
+    }catch(e){return '';}
+  }
+
   function showBookingFlow(name,type,amount){
-    _bfData={name,type,amount,step:1,transportBooked:false,hotelBooked:false,calAdded:false};
+    _bfData={name,type,amount,step:1,subState:'idle',transportBooked:false,hotelBooked:false,calAdded:false,
+      bookingRef:_bfRef(),driver:_bfDrivers[Math.floor(Math.random()*_bfDrivers.length)]};
     _renderBfStep();
     const ov=document.getElementById('bf-overlay');
     if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
@@ -3645,154 +3709,352 @@
     const ov=document.getElementById('bf-overlay');
     if(ov){ov.style.display='none';document.body.style.overflow='';}
   }
+  function closeBfAndNotify(){
+    closeBf();
+    if(!_bfData.name)return;
+    const v=_bfInfo(_bfData.name,_bfData.type);
+    _showFakePush('Table for Two ♥','Your booking at '+_bfData.name+' on '+v.date+' at '+v.time+' is confirmed 🎉',1200);
+    if(_bfData.transportBooked&&_bfData.driver){
+      _showFakePush('Your ride',''+_bfData.driver.name+' will collect you — '+_bfData.driver.car+' · '+_bfData.driver.reg,5500);
+    }
+    setTimeout(()=>_showFakePush('Table for Two','We\'ll remind you when it\'s time to leave ♥ Have an amazing evening',10000),0);
+  }
   function _bfDots(cur){
     return[1,2,3,4].map(i=>`<div class="bf-dot${i===cur?' active':i<cur?' done':''}"></div>`).join('');
   }
+  function _bfLoading(icon,lines){
+    return`<div class="bf-loading-state"><div style="font-size:44px;line-height:1">${icon}</div>${lines.map((l,i)=>`<div style="font-size:${i===0?'15px':'13px'};font-weight:${i===0?'700':'400'};color:${i===0?'var(--ink)':'var(--ink-soft)'}">${l}</div>`).join('')}<div class="bf-pulse-dots"><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div></div></div>`;
+  }
+
   function _renderBfStep(){
     const el=document.getElementById('bf-content');if(!el)return;
-    const{name,type,amount,step,transportBooked,hotelBooked}=_bfData;
+    const{name,type,amount,step,subState,transportBooked,hotelBooked,driver,bookingRef}=_bfData;
     const v=_bfInfo(name,type);
+
+    // ── Step 1: Venue booking ──
     if(step===1){
-      el.innerHTML=`
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div>
-          <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
-        </div>
-        <div class="bf-step-dots">${_bfDots(1)}</div>
-        <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Confirm your booking</div>
-        <div style="font-size:13px;color:var(--ink-soft);margin-bottom:18px">Review the details before we lock it in</div>
-        <div class="bf-venue-card">
-          <div style="display:flex;align-items:flex-start;gap:13px">
-            <div style="font-size:34px;line-height:1;margin-top:2px">${v.emoji}</div>
-            <div style="flex:1;min-width:0">
-              <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px">${name}</div>
-              <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">${v.area}</div>
-              <div style="display:flex;flex-wrap:wrap;gap:7px">
-                <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:8px;padding:5px 9px"><span style="font-size:12px">📅</span><span style="font-size:12px;color:var(--ink-soft)">${v.date}</span></div>
-                <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:8px;padding:5px 9px"><span style="font-size:12px">🕐</span><span style="font-size:12px;color:var(--ink-soft)">${v.time}</span></div>
-                <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:8px;padding:5px 9px"><span style="font-size:12px">👥</span><span style="font-size:12px;color:var(--ink-soft)">2 guests</span></div>
+      if(!subState||subState==='idle'){
+        el.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div>
+            <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+          </div>
+          <div class="bf-step-dots">${_bfDots(1)}</div>
+          <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Confirm your booking</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:18px">Review the details before we lock it in</div>
+          <div class="bf-venue-card">
+            <div style="display:flex;align-items:flex-start;gap:13px">
+              <div style="font-size:34px;line-height:1;margin-top:2px">${v.emoji}</div>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:15px;font-weight:700;color:var(--ink);margin-bottom:2px">${name}</div>
+                <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px">${v.area}</div>
+                <div style="display:flex;flex-wrap:wrap;gap:7px">
+                  <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:8px;padding:5px 9px"><span>📅</span><span style="font-size:12px;color:var(--ink-soft)">${v.date}</span></div>
+                  <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:8px;padding:5px 9px"><span>🕐</span><span style="font-size:12px;color:var(--ink-soft)">${v.time}</span></div>
+                  <div style="display:flex;align-items:center;gap:5px;background:var(--bg);border:0.5px solid var(--bdr);border-radius:8px;padding:5px 9px"><span>👥</span><span style="font-size:12px;color:var(--ink-soft)">2 guests</span></div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:0.5px solid var(--bdr)">
+              <span style="font-size:12px;color:var(--ink-muted)">Total estimate</span>
+              <span style="font-size:16px;font-weight:700;color:var(--rose-dark)">${amount}</span>
+            </div>
+          </div>
+          <button id="bf-confirm-btn" class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600" onclick="bfConfirm()">Confirm booking ✦</button>
+          <div style="text-align:center;margin-top:11px"><span style="font-size:12px;color:var(--ink-muted);cursor:pointer;text-decoration:underline" onclick="closeBf()">Cancel</span></div>`;
+
+      }else if(subState==='checking'){
+        el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div></div><div class="bf-step-dots">${_bfDots(1)}</div>`
+          +_bfLoading(v.emoji,['Checking availability…','Contacting '+name]);
+
+      }else if(subState==='securing'){
+        el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div></div><div class="bf-step-dots">${_bfDots(1)}</div>`
+          +_bfLoading('📋',['Securing your table…','Locking in for 2 on '+v.date]);
+
+      }else if(subState==='confirmed'){
+        el.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div>
+            <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+          </div>
+          <div class="bf-step-dots">${_bfDots(1)}</div>
+          <div style="text-align:center;padding:8px 0 14px">
+            <div style="width:52px;height:52px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px">✓</div>
+            <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px">Table reserved!</div>
+            <div style="font-size:13px;color:var(--ink-soft)">Confirmation sent to your email</div>
+          </div>
+          <div class="bf-confirm-card">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+              <div style="font-size:30px">${v.emoji}</div>
+              <div><div style="font-size:14px;font-weight:700;color:var(--ink)">${name}</div><div style="font-size:12px;color:var(--ink-soft)">${v.area}</div></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+              <div style="background:var(--bg);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Date</div><div style="font-size:13px;font-weight:600;color:var(--ink)">${v.date}</div></div>
+              <div style="background:var(--bg);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Time</div><div style="font-size:13px;font-weight:600;color:var(--ink)">${v.time}</div></div>
+              <div style="background:var(--bg);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Party</div><div style="font-size:13px;font-weight:600;color:var(--ink)">2 guests</div></div>
+              <div style="background:var(--bg);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Ref</div><div style="font-size:12px;font-weight:600;color:var(--rose-dark)">${bookingRef}</div></div>
+            </div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <span class="bf-otable-badge" style="background:#D1FAE5;color:#065F46;border:0.5px solid #6EE7B7">💳 Pay at the restaurant</span>
+              <span class="bf-otable-badge" style="background:#FEF3C7;color:#92400E;border:0.5px solid #FCD34D">✓ Free cancellation</span>
+            </div>
+          </div>
+          <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600" onclick="_bfData.step=2;_bfData.subState='idle';_renderBfStep()">Sort your ride →</button>`;
+      }
+
+    // ── Step 2: Ride booking ──
+    }else if(step===2){
+      if(!subState||subState==='idle'){
+        el.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div>
+            <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+          </div>
+          <div class="bf-step-dots">${_bfDots(2)}</div>
+          <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Sort your ride?</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px">Getting to <strong>${v.area}</strong> — here's what we'd suggest</div>
+          <div style="background:var(--rose-light);border:1px solid var(--rose-mid);border-radius:12px;padding:13px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
+            <span style="font-size:20px">${v.modeEmoji}</span>
+            <div><div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:3px">${v.recommended?'✦ Our recommendation':'Suggested option'}</div><div style="font-size:12px;color:var(--ink-soft);line-height:1.5">${v.tip}</div></div>
+          </div>
+          <div class="bf-transport-opt${v.recommended?' highlight':''}" onclick="bfBookTransport()">
+            <span style="font-size:22px">🚕</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--ink)">Book a cab to ${v.area}</div>
+              <div style="font-size:12px;color:var(--ink-soft)">~${v.cabMins} min · est. ${v.cabEst} · 2 passengers</div>
+            </div>
+            <button class="btn${v.recommended?' btn-rose':''} btn-sm" style="pointer-events:none">Book ✦</button>
+          </div>
+          <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipTransport()">I'll sort transport myself →</button>`;
+
+      }else if(subState==='finding'){
+        el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div></div><div class="bf-step-dots">${_bfDots(2)}</div>`
+          +_bfLoading('🚕',['Finding drivers nearby…','Matching you with the best option']);
+
+      }else if(subState==='connecting'){
+        el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div></div><div class="bf-step-dots">${_bfDots(2)}</div>`
+          +_bfLoading('📍',['Driver confirmed…','Sending details to '+driver.name]);
+
+      }else if(subState==='assigned'){
+        const arrT=new Date();arrT.setMinutes(arrT.getMinutes()+driver.eta);
+        const arrStr=arrT.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+        el.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div>
+            <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+          </div>
+          <div class="bf-step-dots">${_bfDots(2)}</div>
+          <div style="text-align:center;padding:8px 0 14px">
+            <div style="width:52px;height:52px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px">✓</div>
+            <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px">Ride confirmed!</div>
+            <div style="font-size:13px;color:var(--ink-soft)">Your driver is on the way</div>
+          </div>
+          <div style="border-radius:14px;overflow:hidden;margin-bottom:14px;border:0.5px solid var(--bdr)">
+            <div style="background:linear-gradient(135deg,#1a1a2e,#16213e);padding:14px 16px;display:flex;align-items:center;gap:12px">
+              <div class="bf-driver-avatar" style="background:${driver.color}">${driver.initials}</div>
+              <div style="flex:1">
+                <div style="font-size:15px;font-weight:700;color:#fff">${driver.name}</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:2px">${driver.car} · <span style="font-family:monospace;letter-spacing:1.5px">${driver.reg}</span></div>
+              </div>
+              <div style="text-align:right">
+                <div style="font-size:14px;color:#FCD34D;font-weight:700">★ ${driver.rating}</div>
+                <div style="font-size:10px;color:rgba(255,255,255,0.45);margin-top:2px">${driver.trips} trips</div>
+              </div>
+            </div>
+            <div style="background:var(--bg2);padding:12px 16px;display:flex;flex-direction:column;gap:10px">
+              <div style="display:flex;align-items:center;gap:9px">
+                <div style="width:8px;height:8px;border-radius:50%;background:#22C55E;flex-shrink:0"></div>
+                <div style="font-size:12px;color:var(--ink);flex:1">Pickup · Home</div>
+                <div style="font-size:11px;font-weight:600;color:var(--ink-soft)">Arriving ${arrStr}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:9px">
+                <div style="width:8px;height:8px;border-radius:50%;background:var(--rose);flex-shrink:0"></div>
+                <div style="font-size:12px;color:var(--ink);flex:1">Drop-off · ${v.area}</div>
+                <div style="font-size:11px;color:var(--ink-muted)">~${v.cabMins} min</div>
+              </div>
+              <div style="border-top:0.5px solid var(--bdr);padding-top:9px;display:flex;align-items:center;justify-content:space-between">
+                <div style="font-size:12px;color:var(--ink-muted)">Estimated fare</div>
+                <div style="font-size:14px;font-weight:700;color:var(--ink)">${v.cabEst}</div>
               </div>
             </div>
           </div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;padding-top:10px;border-top:0.5px solid var(--bdr)">
-            <span style="font-size:12px;color:var(--ink-muted)">Total estimate</span>
-            <span style="font-size:16px;font-weight:700;color:var(--rose-dark)">${amount}</span>
-          </div>
-        </div>
-        <button id="bf-confirm-btn" class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600" onclick="bfConfirm()">Confirm booking ✦</button>
-        <div style="text-align:center;margin-top:11px"><span style="font-size:12px;color:var(--ink-muted);cursor:pointer;text-decoration:underline" onclick="closeBf()">Cancel</span></div>`;
-    }else if(step===2){
-      el.innerHTML=`
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div>
-          <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
-        </div>
-        <div class="bf-step-dots">${_bfDots(2)}</div>
-        <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Sort your transport?</div>
-        <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px">Getting to <strong>${v.area}</strong> — here's what we'd suggest</div>
-        <div style="background:var(--rose-light);border:1px solid var(--rose-mid);border-radius:12px;padding:13px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
-          <span style="font-size:20px">${v.modeEmoji}</span>
-          <div><div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:3px">${v.recommended?'✦ Our recommendation':'Suggested option'}</div><div style="font-size:12px;color:var(--ink-soft);line-height:1.5">${v.tip}</div></div>
-        </div>
-        <div class="bf-transport-opt${v.recommended?' highlight':''}" onclick="bfBookTransport()">
-          <span style="font-size:22px">🚕</span>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--ink)">Book a cab to ${v.area}</div>
-            <div style="font-size:12px;color:var(--ink-soft)">~${v.cabMins} min · est. ${v.cabEst} · 2 passengers</div>
-          </div>
-          <button class="btn${v.recommended?' btn-rose':''} btn-sm" style="pointer-events:none">Book ✦</button>
-        </div>
-        <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipTransport()">I'll sort transport myself →</button>`;
+          <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600" onclick="_bfData.step=3;_bfData.subState='idle';_renderBfStep()">Make a night of it? →</button>`;
+      }
+
+    // ── Step 3: Hotel booking ──
     }else if(step===3){
+      if(!subState||subState==='idle'){
+        el.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 3 of 4</div>
+            <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+          </div>
+          <div class="bf-step-dots">${_bfDots(3)}</div>
+          <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Make a night of it?</div>
+          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px">Based on where you're going, here's what we'd suggest nearby</div>
+          <div style="background:var(--plum-light);border:1px solid var(--plum-mid);border-radius:12px;padding:13px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
+            <span style="font-size:20px">✦</span>
+            <div><div style="font-size:12px;font-weight:600;color:var(--plum);margin-bottom:3px">✦ Our pick near ${v.area}</div><div style="font-size:12px;color:var(--ink-soft);line-height:1.5">${v.hotelDesc}</div></div>
+          </div>
+          <div class="bf-transport-opt highlight" onclick="bfBookHotel()" style="border-color:var(--plum-mid);background:var(--plum-light)">
+            <span style="font-size:22px">🏨</span>
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:600;color:var(--ink)">${v.hotel}</div>
+              <div style="font-size:12px;color:var(--ink-soft)">${v.hotelPrice} · 1 night · Breakfast included</div>
+            </div>
+            <button class="btn btn-sm" style="pointer-events:none;background:var(--plum);color:#fff;border-color:var(--plum)">Book ✦</button>
+          </div>
+          <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipAccom()">Just the evening for us →</button>`;
+
+      }else if(subState==='checking'){
+        el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 3 of 4</div></div><div class="bf-step-dots">${_bfDots(3)}</div>`
+          +_bfLoading('🏨',['Checking availability…','Reserving your room at '+v.hotel]);
+
+      }else if(subState==='confirmed'){
+        const hRef='HOT-'+Math.random().toString(36).slice(2,6).toUpperCase();
+        el.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 3 of 4</div>
+            <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+          </div>
+          <div class="bf-step-dots">${_bfDots(3)}</div>
+          <div style="text-align:center;padding:8px 0 14px">
+            <div style="width:52px;height:52px;border-radius:50%;background:var(--plum-light);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px">🏨</div>
+            <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px">Room reserved!</div>
+            <div style="font-size:13px;color:var(--ink-soft)">Confirmation on its way to your email</div>
+          </div>
+          <div style="background:var(--plum-light);border:1px solid var(--plum-mid);border-radius:14px;padding:16px;margin-bottom:14px">
+            <div style="font-size:14px;font-weight:700;color:var(--plum);margin-bottom:11px">${v.hotel}</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
+              <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--plum);opacity:0.8;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Check-in</div><div style="font-size:12px;font-weight:600;color:var(--plum)">${v.date} · 3:00 PM</div></div>
+              <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--plum);opacity:0.8;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Check-out</div><div style="font-size:12px;font-weight:600;color:var(--plum)">Sun 20 Apr · 11 AM</div></div>
+            </div>
+            <div style="display:flex;gap:7px;flex-wrap:wrap">
+              <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">🍳 Breakfast included</span>
+              <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">✓ Free cancellation</span>
+              <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">Ref: ${hRef}</span>
+            </div>
+          </div>
+          <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;background:var(--plum);border-color:var(--plum)" onclick="_bfData.step=4;_bfData.subState='idle';_renderBfStep()">Almost there →</button>`;
+      }
+
+    // ── Step 4: Timeline + Notifications ──
+    }else{
+      // Build timeline
+      const tl=[];
+      if(hotelBooked) tl.push({time:'3:00 PM',emoji:'🏨',label:'Check in',sub:v.hotel,dot:'#7C5295',bg:'var(--plum-light)'});
+      if(transportBooked){
+        const leaveTime=_bfMinus(v.time,v.cabMins+12);
+        const cabTime=_bfMinus(v.time,v.cabMins);
+        tl.push({time:leaveTime,emoji:'🔔',label:'We\'ll remind you to leave',sub:'Push notification sent to your phone',dot:'#22C55E',bg:'#F0FDF4'});
+        tl.push({time:cabTime,emoji:'🚕',label:driver.name+' · your cab',sub:driver.car+' · '+driver.reg+' from Home',dot:'#3B6EA0',bg:'#EFF6FF'});
+      }
+      tl.push({time:v.time,emoji:v.emoji,label:name,sub:v.area+' · Table for 2 · '+amount,dot:'var(--rose)',bg:'var(--rose-light)'});
+      if(hotelBooked) tl.push({time:'Late evening',emoji:'🌙',label:'Into the night at '+v.hotel,sub:'Your romantic evening continues…',dot:'#7C5295',bg:'var(--plum-light)'});
+
+      const tlHtml=tl.map((item,i)=>`
+        <div style="display:flex;gap:12px">
+          <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
+            <div style="width:32px;height:32px;border-radius:50%;background:${item.bg};border:2px solid ${item.dot};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${item.emoji}</div>
+            ${i<tl.length-1?`<div style="width:1.5px;flex:1;background:var(--bdr2);min-height:16px;margin:2px 0"></div>`:''}
+          </div>
+          <div style="flex:1;padding-top:4px;${i<tl.length-1?'padding-bottom:12px':''}">
+            <div style="font-size:11px;font-weight:600;color:var(--ink-muted);margin-bottom:1px">${item.time}</div>
+            <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:1px">${item.label}</div>
+            <div style="font-size:11px;color:var(--ink-muted)">${item.sub}</div>
+          </div>
+        </div>`).join('');
+
+      // Build notification previews
+      const notifs=[
+        {title:'Table for Two ♥',body:'Your table at '+name+' is confirmed for '+v.date+' at '+v.time+' 🎉',t:'Earlier'},
+        ...(transportBooked?[{title:'Your ride · Table for Two',body:driver.name+' is on the way — '+driver.car+' · '+driver.reg,t:'On the night'}]:[]),
+        {title:'Table for Two',body:'Time to head out now — have an amazing evening together ♥',t:'On the night'},
+      ];
+
       el.innerHTML=`
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 3 of 4</div>
+          <div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">All set!</div>
           <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
         </div>
-        <div class="bf-step-dots">${_bfDots(3)}</div>
-        <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Make a night of it?</div>
-        <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px">Based on where you're going, here's what we'd suggest nearby</div>
-        <div style="background:var(--plum-light);border:1px solid var(--plum-mid);border-radius:12px;padding:13px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
-          <span style="font-size:20px">✦</span>
-          <div><div style="font-size:12px;font-weight:600;color:var(--plum);margin-bottom:3px">✦ Our pick near ${v.area}</div><div style="font-size:12px;color:var(--ink-soft);line-height:1.5">${v.hotelDesc}</div></div>
-        </div>
-        <div class="bf-transport-opt highlight" onclick="bfBookHotel()" style="border-color:var(--plum-mid);background:var(--plum-light)">
-          <span style="font-size:22px">🏨</span>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600;color:var(--ink)">${v.hotel}</div>
-            <div style="font-size:12px;color:var(--ink-soft)">${v.hotelPrice} · 1 night · Breakfast included</div>
+        <div class="bf-step-dots">${_bfDots(4)}</div>
+        <div class="bf-concierge-banner">
+          <div style="font-size:28px">🎩</div>
+          <div>
+            <div style="font-size:14px;font-weight:700">Everything is planned for you</div>
+            <div style="font-size:12px;opacity:0.85;margin-top:2px">We'll coordinate it all and remind you when to leave ♥</div>
           </div>
-          <button class="btn btn-sm" style="pointer-events:none;background:var(--plum);color:#fff;border-color:var(--plum)">Book ✦</button>
         </div>
-        <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipAccom()">Just the evening for us →</button>`;
-    }else{
-      const hasAny=transportBooked||hotelBooked;
-      const itemsHtml=[
-        `<div style="display:flex;align-items:center;gap:10px;${hasAny?'padding-bottom:11px;border-bottom:0.5px solid var(--bdr);margin-bottom:11px':''}">
-          <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
-          <div><div style="font-size:13px;font-weight:600;color:var(--ink)">${name}</div><div style="font-size:11px;color:var(--ink-muted)">${v.date} · ${v.time} · ${amount}</div></div>
-        </div>`,
-        transportBooked?`<div style="display:flex;align-items:center;gap:10px;${hotelBooked?'padding-bottom:11px;border-bottom:0.5px solid var(--bdr);margin-bottom:11px':''}">
-          <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
-          <div><div style="font-size:13px;font-weight:600;color:var(--ink)">Cab to ${v.area}</div><div style="font-size:11px;color:var(--ink-muted)">~${v.cabMins} min · est. ${v.cabEst}</div></div>
-        </div>`:'',
-        hotelBooked?`<div style="display:flex;align-items:center;gap:10px">
-          <div style="width:30px;height:30px;border-radius:50%;background:#D1FAE5;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✓</div>
-          <div><div style="font-size:13px;font-weight:600;color:var(--ink)">${v.hotel}</div><div style="font-size:11px;color:var(--ink-muted)">${v.hotelPrice} · 1 night</div></div>
-        </div>`:''
-      ].filter(Boolean).join('');
-      el.innerHTML=`
-        <div style="text-align:center;padding:12px 0 6px">
-          <div style="font-size:40px;margin-bottom:10px">🎉</div>
-          <div style="font-size:20px;font-weight:700;color:var(--ink);margin-bottom:5px">You're all set!</div>
-          <div style="font-size:13px;color:var(--ink-soft);margin-bottom:20px">Here's what we've locked in for you</div>
+        <div style="background:var(--bg2);border:0.5px solid var(--bdr);border-radius:14px;padding:14px 14px 6px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:12px">Your date timeline</div>
+          ${tlHtml}
         </div>
-        <div style="background:var(--bg2);border-radius:14px;padding:16px;margin-bottom:14px">${itemsHtml}</div>
-        <button id="bf-cal-btn" class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:8px;border-color:var(--rose-mid);color:var(--rose-dark)" onclick="bfAddToCalendar(this)">📅 Add to calendar</button>
-        <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:10px" onclick="closeBf()">Done ✦</button>
+        <div style="background:#1C1C1E;border-radius:14px;padding:14px;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.4);margin-bottom:10px">Upcoming notifications</div>
+          ${notifs.map(n=>`
+            <div class="bf-notif-row">
+              <div class="bf-notif-appicon">♥</div>
+              <div style="flex:1;min-width:0">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+                  <span style="font-size:11px;font-weight:700;color:#fff">${n.title}</span>
+                  <span style="font-size:10px;color:rgba(255,255,255,0.35);flex-shrink:0;margin-left:8px">${n.t}</span>
+                </div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.65);line-height:1.4">${n.body}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+        <button id="bf-cal-btn" class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;font-weight:600;margin-bottom:8px;border-color:var(--rose-mid);color:var(--rose-dark)" onclick="bfAddToCalendar(this)">📅 Add to planner</button>
+        <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:10px" onclick="closeBfAndNotify()">Done — let's do this ✦</button>
         <div style="text-align:center"><span style="font-size:12px;color:var(--ink-muted);cursor:pointer;text-decoration:underline" onclick="closeBf()">Add a memory after the date →</span></div>`;
     }
   }
+
   function bfConfirm(){
-    const btn=document.getElementById('bf-confirm-btn');
-    if(btn){btn.innerHTML='✓ Booking confirmed!';btn.disabled=true;btn.style.background='#16a34a';btn.style.borderColor='#16a34a';}
-    setTimeout(()=>{_bfData.step=2;_renderBfStep();},900);
+    _bfData.subState='checking';_renderBfStep();
+    setTimeout(()=>{_bfData.subState='securing';_renderBfStep();},1600);
+    setTimeout(()=>{_bfData.subState='confirmed';_renderBfStep();},3200);
   }
   function bfBookTransport(){
     const v=_bfInfo(_bfData.name,_bfData.type);
-    const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
-    bookings.push({id:Date.now(),type:'cab',name:'Home → '+v.area,date:d.toISOString().slice(0,10),meta:'Cab · Standard · 2 passengers',amount:v.cabEst.split('–')[0],icon:'🚗'});
-    updateStats();renderBookings();toast('✦ Cab to '+v.area+' added');
-    _bfData.transportBooked=true;_bfData.step=3;_renderBfStep();
+    _bfData.subState='finding';_renderBfStep();
+    setTimeout(()=>{_bfData.subState='connecting';_renderBfStep();},1600);
+    setTimeout(()=>{
+      const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
+      bookings.push({id:Date.now(),type:'cab',name:'Home → '+v.area,date:d.toISOString().slice(0,10),meta:'Cab · Standard · 2 passengers · '+_bfData.driver.car,amount:v.cabEst.split('–')[0],icon:'🚗'});
+      updateStats();renderBookings();_saveState();toast('✦ Cab confirmed · '+_bfData.driver.name);
+      _bfData.transportBooked=true;_bfData.subState='assigned';_renderBfStep();
+    },3000);
   }
-  function bfSkipTransport(){_bfData.step=3;_renderBfStep();}
+  function bfSkipTransport(){_bfData.step=3;_bfData.subState='idle';_renderBfStep();}
   function bfBookHotel(){
     const v=_bfInfo(_bfData.name,_bfData.type);
-    const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
-    bookings.push({id:Date.now(),type:'hotel',name:v.hotel,date:d.toISOString().slice(0,10),meta:'1 night · 2 guests · Breakfast included',amount:v.hotelPrice.replace('from ',''),icon:'🏨'});
-    updateStats();renderBookings();toast('✦ '+v.hotel+' added to your dates');
-    _bfData.hotelBooked=true;_bfData.step=4;_renderBfStep();
+    _bfData.subState='checking';_renderBfStep();
+    setTimeout(()=>{
+      const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
+      bookings.push({id:Date.now(),type:'hotel',name:v.hotel,date:d.toISOString().slice(0,10),meta:'1 night · 2 guests · Breakfast included',amount:v.hotelPrice.replace('from ',''),icon:'🏨'});
+      updateStats();renderBookings();_saveState();toast('✦ '+v.hotel+' reserved');
+      _bfData.hotelBooked=true;_bfData.subState='confirmed';_renderBfStep();
+    },2400);
   }
-  function bfSkipAccom(){_bfData.step=4;_renderBfStep();}
+  function bfSkipAccom(){_bfData.step=4;_bfData.subState='idle';_renderBfStep();}
   function bfAddToCalendar(btn){
     if(_bfData.calAdded)return;
     const v=_bfInfo(_bfData.name,_bfData.type);
     const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
     const dateStr=d.toISOString().slice(0,10);
-    // Parse time string e.g. "7:30 PM" → "19:30"
     let timeStr='19:30';
     try{const t=v.time.replace(' PM','').replace(' AM','');const[h,m]=t.split(':');let hr=parseInt(h);if(v.time.includes('PM')&&hr<12)hr+=12;timeStr=String(hr).padStart(2,'0')+':'+(m||'00');}catch(e){}
     const cat=_bfData.type==='restaurant'?'Dinner reservation':'Experience / activity';
     reminders.push({id:Date.now(),title:_bfData.name,date:dateStr,time:timeStr,cat,color:catColors[cat]||'#C4687A'});
     if(_bfData.transportBooked){
-      reminders.push({id:Date.now()+1,title:'Cab to '+v.area,date:dateStr,time:String(parseInt(timeStr.split(':')[0])-1).padStart(2,'0')+':'+timeStr.split(':')[1],cat:'Cab pickup',color:'#3A6A8A'});
+      reminders.push({id:Date.now()+1,title:'Cab to '+v.area+' · '+_bfData.driver.name,date:dateStr,time:String(parseInt(timeStr.split(':')[0])-1).padStart(2,'0')+':'+timeStr.split(':')[1],cat:'Cab pickup',color:'#3A6A8A'});
     }
     if(_bfData.hotelBooked){
       reminders.push({id:Date.now()+2,title:v.hotel+' check-in',date:dateStr,time:'15:00',cat:'Hotel check-in',color:'#C4687A'});
     }
-    renderReminders();renderCal();updateStats();
+    renderReminders();renderCal();updateStats();_saveState();
     _bfData.calAdded=true;
-    if(btn){btn.innerHTML='✓ Added to calendar';btn.disabled=true;btn.style.background='#16a34a';btn.style.color='#fff';btn.style.borderColor='#16a34a';}
+    if(btn){btn.innerHTML='✓ Added to planner';btn.disabled=true;btn.style.background='#16a34a';btn.style.color='#fff';btn.style.borderColor='#16a34a';}
     toast('📅 Added to your date planner — check the Planner tab');
   }
 
