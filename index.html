@@ -352,11 +352,46 @@
   .lp-footer-logo{font-size:15px;font-weight:600;color:#8B3A4A;font-family:Georgia,serif;margin-bottom:6px}
   .lp-footer-note{font-size:11px;color:#bbb}
 
+  /* ── How it works ── */
+  .lp-hiw{margin-top:28px;display:flex;flex-direction:column;gap:0}
+  .lp-hiw-step{display:flex;gap:16px;align-items:flex-start;position:relative;padding-bottom:24px}
+  .lp-hiw-step:last-child{padding-bottom:0}
+  .lp-hiw-step:not(:last-child)::before{content:'';position:absolute;left:19px;top:40px;bottom:0;width:1.5px;background:linear-gradient(to bottom,#E8B4BC,#f0f0f0)}
+  .lp-hiw-num{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#8B3A4A,#C4687A);color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 4px 12px rgba(196,104,122,0.3)}
+  .lp-hiw-text{padding-top:8px}
+  .lp-hiw-title{font-size:15px;font-weight:600;color:#1a1a1a;margin-bottom:4px}
+  .lp-hiw-desc{font-size:13px;color:#666;line-height:1.55}
+
+  /* ── Social proof ── */
+  .lp-proof-count{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:#FDF8F9;border:0.5px solid #F5E6EA;border-radius:50px;font-size:13px;color:#8B3A4A;font-weight:500;margin-bottom:20px}
+  .lp-proof-avatars{display:flex}
+  .lp-proof-av{width:22px;height:22px;border-radius:50%;border:1.5px solid #fff;font-size:9px;font-weight:600;display:flex;align-items:center;justify-content:center;margin-right:-6px;flex-shrink:0}
+  .lp-testimonials{display:flex;flex-direction:column;gap:12px;margin-top:4px}
+  .lp-testimonial{background:#FDF8F9;border:0.5px solid #F5E6EA;border-radius:14px;padding:16px}
+  .lp-testimonial-text{font-size:13px;color:#333;line-height:1.6;font-style:italic;margin-bottom:10px}
+  .lp-testimonial-author{display:flex;align-items:center;gap:8px}
+  .lp-testimonial-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;flex-shrink:0}
+  .lp-testimonial-name{font-size:12px;font-weight:600;color:#555}
+  .lp-testimonial-stars{display:flex;gap:2px;margin-left:auto}
+  .lp-testimonial-star{font-size:11px;color:#F59E0B}
+
+  /* ── Survey reactive ── */
+  .lp-survey-reaction{display:none;margin-top:14px;padding:14px 16px;border-radius:12px;background:linear-gradient(135deg,#FDF8F9,#F5E6EA);border:0.5px solid #E8B4BC;font-size:13px;color:#8B3A4A;line-height:1.55}
+  .lp-survey-reaction.show{display:block}
+  .lp-reaction-headline{font-weight:700;margin-bottom:3px;font-size:14px}
+
+  /* ── Trust badges ── */
+  .lp-trust-badges{display:flex;justify-content:center;gap:16px;margin-top:14px;flex-wrap:wrap}
+  .lp-trust-badge{display:flex;align-items:center;gap:5px;font-size:11px;color:#999}
+  .lp-trust-badge-icon{font-size:13px}
+
   @media(min-width:641px){
     .lp-hero-body{padding:56px 48px 64px;max-width:600px;margin:0 auto}
     .lp-headline{font-size:46px}
     .lp-body{padding:0 48px 60px;max-width:640px;margin:0 auto}
     .lp-features{grid-template-columns:repeat(4,1fr)}
+    .lp-testimonials{flex-direction:row}
+    .lp-testimonial{flex:1}
   }
 
   /* ── Mood check-in ── */
@@ -463,7 +498,7 @@
         <div class="lp-headline">Date night,<br><em>perfectly planned</em></div>
         <div class="lp-sub">The app that knows both your tastes — and turns them into unforgettable evenings together.</div>
         <button class="lp-cta-primary" onclick="document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'})">
-          Join the waitlist ✦
+          Plan our next date ✦
         </button>
         <div class="lp-phones">
           <div class="lp-phone-mock">
@@ -519,27 +554,110 @@
 
       <div class="lp-divider"></div>
 
+      <!-- How it works -->
+      <div class="lp-section">
+        <div class="lp-section-label">How it works</div>
+        <div class="lp-section-title">Three steps. One perfect evening.</div>
+        <div class="lp-section-desc">We handle all the logistics so you just have to show up and enjoy each other.</div>
+        <div class="lp-hiw">
+          <div class="lp-hiw-step">
+            <div class="lp-hiw-num">1</div>
+            <div class="lp-hiw-text">
+              <div class="lp-hiw-title">Tell us what you both love</div>
+              <div class="lp-hiw-desc">Set your cuisines, vibes, budget and any dietary needs. Takes two minutes. We remember it forever.</div>
+            </div>
+          </div>
+          <div class="lp-hiw-step">
+            <div class="lp-hiw-num">2</div>
+            <div class="lp-hiw-text">
+              <div class="lp-hiw-title">We plan and book everything</div>
+              <div class="lp-hiw-desc">AI matches a date to both your tastes and we confirm the restaurant, pre-order the cab and hold the hotel — all at once.</div>
+            </div>
+          </div>
+          <div class="lp-hiw-step">
+            <div class="lp-hiw-num">3</div>
+            <div class="lp-hiw-text">
+              <div class="lp-hiw-title">Just show up</div>
+              <div class="lp-hiw-desc">We send you a reminder when it's time to leave. Your table is waiting, your cab is outside. All you need to do is enjoy it.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lp-divider"></div>
+
+      <!-- Social proof -->
+      <div class="lp-section">
+        <div class="lp-proof-count">
+          <div class="lp-proof-avatars">
+            <div class="lp-proof-av" style="background:#C4687A">P</div>
+            <div class="lp-proof-av" style="background:#8B3A4A">J</div>
+            <div class="lp-proof-av" style="background:#6B4C7A">M</div>
+            <div class="lp-proof-av" style="background:#3B6EA0">S</div>
+          </div>
+          &nbsp;Join 240+ couples already on the list
+        </div>
+        <div class="lp-testimonials">
+          <div class="lp-testimonial">
+            <div class="lp-testimonial-text">"We used to argue for 45 minutes about where to go. This just… sorted it. We've had three brilliant evenings since."</div>
+            <div class="lp-testimonial-author">
+              <div class="lp-testimonial-av" style="background:#C4687A">P</div>
+              <div class="lp-testimonial-name">Priya & Dan · London</div>
+              <div class="lp-testimonial-stars">
+                <span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span>
+              </div>
+            </div>
+          </div>
+          <div class="lp-testimonial">
+            <div class="lp-testimonial-text">"I'm terrible at planning and my partner knows it. Now I just open the app and it does everything. She thinks I've finally got my act together."</div>
+            <div class="lp-testimonial-author">
+              <div class="lp-testimonial-av" style="background:#3B6EA0">M</div>
+              <div class="lp-testimonial-name">Marcus & Zoe · Manchester</div>
+              <div class="lp-testimonial-stars">
+                <span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span>
+              </div>
+            </div>
+          </div>
+          <div class="lp-testimonial">
+            <div class="lp-testimonial-text">"Date night used to feel like another task on my to-do list. Now it feels like a treat again. The cab reminder alone is worth it."</div>
+            <div class="lp-testimonial-author">
+              <div class="lp-testimonial-av" style="background:#6B4C7A">A</div>
+              <div class="lp-testimonial-name">Aisha & Tom · Birmingham</div>
+              <div class="lp-testimonial-stars">
+                <span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span><span class="lp-testimonial-star">★</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="lp-divider"></div>
+
       <!-- Survey -->
       <div class="lp-survey lp-section">
         <div class="lp-section-label">Quick question</div>
         <div class="lp-survey-q">How do you and your partner usually plan a date night?</div>
         <div class="lp-options" id="lp-options">
-          <div class="lp-option" onclick="selectOption(this)">
+          <div class="lp-option" data-key="one-decides" onclick="selectOption(this)">
             <div class="lp-option-radio"></div>
             <div class="lp-option-text">One of us decides and the other just goes along with it</div>
           </div>
-          <div class="lp-option" onclick="selectOption(this)">
+          <div class="lp-option" data-key="back-and-forth" onclick="selectOption(this)">
             <div class="lp-option-radio"></div>
             <div class="lp-option-text">Endless back-and-forth until we give up and stay in</div>
           </div>
-          <div class="lp-option" onclick="selectOption(this)">
+          <div class="lp-option" data-key="scrolling" onclick="selectOption(this)">
             <div class="lp-option-radio"></div>
             <div class="lp-option-text">We scroll Google/Instagram until something looks good</div>
           </div>
-          <div class="lp-option" onclick="selectOption(this)">
+          <div class="lp-option" data-key="system" onclick="selectOption(this)">
             <div class="lp-option-radio"></div>
             <div class="lp-option-text">We have a system that works pretty well already</div>
           </div>
+        </div>
+        <div class="lp-survey-reaction" id="lp-survey-reaction">
+          <div class="lp-reaction-headline" id="lp-reaction-headline"></div>
+          <div id="lp-reaction-body"></div>
         </div>
       </div>
 
@@ -595,6 +713,11 @@
               <input type="text" id="lp-city" placeholder="London">
             </div>
             <button class="lp-submit" onclick="submitWaitlist()">Reserve my spot ♥</button>
+            <div class="lp-trust-badges">
+              <div class="lp-trust-badge"><span class="lp-trust-badge-icon">◎</span> No credit card</div>
+              <div class="lp-trust-badge"><span class="lp-trust-badge-icon">◈</span> Free cancellation</div>
+              <div class="lp-trust-badge"><span class="lp-trust-badge-icon">✦</span> Invite only</div>
+            </div>
           </div>
         </div>
         <div class="lp-success" id="lp-success">
@@ -2879,10 +3002,37 @@
   function fmtDate(ds){if(!ds)return '';try{return new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'});}catch{return ds;}}
 
   // Landing page
+  const _surveyReactions={
+    'one-decides':{
+      headline:'Sound familiar? One person shouldn\'t carry all of this.',
+      body:'Table for Two means you both get a say — and neither of you has to do the planning. It\'s fair, effortless, and actually fun.'
+    },
+    'back-and-forth':{
+      headline:'That\'s exactly what we fix.',
+      body:'No more "I don\'t mind, you choose." Table for Two looks at what you both love and surfaces ideas you\'ll actually agree on — instantly.'
+    },
+    'scrolling':{
+      headline:'The endless scroll ends here.',
+      body:'Instead of sifting through hundreds of options, we surface a handful matched to both your tastes. Opinionated, personalised, done.'
+    },
+    'system':{
+      headline:'Great — we\'ll make your system even better.',
+      body:'Table for Two layers in the bits most couples still hate: arguing over options, remembering to book, chasing the cab. We handle all of that.'
+    }
+  };
+
   function selectOption(el){
     document.querySelectorAll('.lp-option').forEach(o=>o.classList.remove('selected'));
     el.classList.add('selected');
-    setTimeout(()=>document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'}),300);
+    const key=el.dataset.key;
+    const r=_surveyReactions[key];
+    if(r){
+      document.getElementById('lp-reaction-headline').textContent=r.headline;
+      document.getElementById('lp-reaction-body').textContent=r.body;
+      const box=document.getElementById('lp-survey-reaction');
+      box.classList.add('show');
+    }
+    setTimeout(()=>document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'}),800);
   }
 
   function castVote(vote, el){
