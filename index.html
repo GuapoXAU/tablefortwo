@@ -885,15 +885,15 @@
                 <input type="range" id="budget-slider" min="0" max="3" step="1" value="1" oninput="updateBudgetLabel(this.value)"
                   style="width:100%;accent-color:var(--rose);cursor:pointer">
                 <div style="display:flex;justify-content:space-between;margin-top:5px">
-                  <span style="font-size:10px;color:var(--ink-muted)">Under £50</span>
-                  <span style="font-size:10px;color:var(--ink-muted)">£300+</span>
+                  <span style="font-size:11px;color:var(--ink-muted)">Under £50</span>
+                  <span style="font-size:11px;color:var(--ink-muted)">£300+</span>
                 </div>
               </div>
             </div>
 
             <!-- Step 4: When -->
             <div class="guided-step" style="margin-bottom:16px">
-              <div class="guided-step-label"><span class="step-num">4</span>When is the date?</div>
+              <div class="guided-step-label"><span class="step-num">4</span>When?</div>
               <div class="g2" style="gap:10px">
                 <div class="form-group" style="margin:0">
                   <label class="form-label">Date</label>
@@ -952,8 +952,8 @@
                   <input type="range" id="budget-slider-classic" min="0" max="3" step="1" value="1" oninput="updateBudgetLabelClassic(this.value)"
                     style="width:100%;accent-color:var(--rose);height:4px;cursor:pointer">
                   <div style="display:flex;justify-content:space-between;margin-top:5px">
-                    <span style="font-size:10px;color:var(--ink-muted)">Under £50</span>
-                    <span style="font-size:10px;color:var(--ink-muted)">£300+</span>
+                    <span style="font-size:11px;color:var(--ink-muted)">Under £50</span>
+                    <span style="font-size:11px;color:var(--ink-muted)">£300+</span>
                   </div>
                 </div>
               </div>
@@ -2297,7 +2297,7 @@
       const jLLIcon=_LL_ICONS[_jamieLoveLang]||'';
 
       let html=`<div class="section-head"><div class="section-title">Here's what you're doing in ${loc}${occasionSuffix}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
-      html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft)">
+      html+=`<div id="ll-personalisation-banner" style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft);transition:opacity 0.6s ease">
         <span style="font-size:15px">♥</span>
         <div><span style="font-weight:600;color:var(--ink)">Personalised for your love languages</span> · <span style="color:var(--rose-dark)">${jLLIcon} Jamie: ${jLLLabel}</span> &nbsp;·&nbsp; <span style="color:var(--plum)">${sLLIcon} Sophie: ${sLLLabel}</span>
         <div style="margin-top:2px;color:var(--ink-muted)">Ideas ranked to match how you each feel most loved — <a href="#" onclick="event.preventDefault();go('profiles',document.querySelector('[onclick*=profiles]'))" style="color:var(--rose-dark);text-decoration:none">update in profiles ↗</a></div></div>
@@ -2436,16 +2436,16 @@
               const label=n>=60?`${n} couples booked this month`:n>=30?`${n} couples going this month`:`${n} couples booked recently`;
               return `<div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding-top:8px;border-top:0.5px solid var(--bdr)">
                 <div style="display:flex;align-items:center">${avatars}<div style="width:16px;height:16px;border-radius:50%;background:var(--bg2);border:1.5px solid var(--bdr);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:7px;color:var(--ink-muted);font-weight:600">+${n-shown}</div></div>
-                <span style="font-size:10px;color:var(--ink-muted);line-height:1.3">${label}</span>
+                <span style="font-size:11px;color:var(--ink-muted);line-height:1.3">${label}</span>
               </div>`;
             })()}
 
             <!-- ── Feature 1: Partner vote panel ── -->
             <div class="vote-box" data-idea="${safeKey}" style="margin-top:10px;padding:10px;background:var(--bg2);border-radius:var(--r-md);border:0.5px solid var(--bdr)">
-              <div style="font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px">Does this work for both of you?</div>
+              <div style="font-size:11px;letter-spacing:0.5px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:8px">Does this work for both of you?</div>
               <div style="display:flex;align-items:center;justify-content:space-between;gap:6px">
                 <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
-                  <span style="font-size:10px;font-weight:600;color:var(--ink-soft)">Jamie</span>
+                  <span style="font-size:11px;font-weight:600;color:var(--ink-soft)">Jamie</span>
                   <div style="display:flex;gap:4px">
                     <button class="vote-btn yes${v.j===true?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','j',true,'${safeKey}')">♥ Yes</button>
                     <button class="vote-btn no${v.j===false?' active':''}" onclick="event.stopPropagation();castIdeaVote('${idea.name}','j',false,'${safeKey}')">✗ No</button>
@@ -2453,9 +2453,9 @@
                 </div>
                 <div class="vote-center" style="font-size:18px;color:${bothLove?'var(--rose)':'var(--rose-mid)'}">${bothLove?'♥':'◦'}</div>
                 <div class="sophie-vote-col" style="display:flex;flex-direction:column;align-items:center;gap:5px">
-                  <span style="font-size:10px;font-weight:600;color:var(--ink-soft)">Sophie</span>
+                  <span style="font-size:11px;font-weight:600;color:var(--ink-soft)">Sophie</span>
                   ${v.s===null
-                    ?'<button class="btn btn-sm" style="font-size:10px;padding:4px 10px;white-space:nowrap;border-color:var(--rose-mid);color:var(--rose-dark)" onclick="event.stopPropagation();shareSophieLink()">Share ✦</button>'
+                    ?'<button class="btn btn-sm" style="font-size:11px;padding:4px 10px;white-space:nowrap;border-color:var(--rose-mid);color:var(--rose-dark)" onclick="event.stopPropagation();shareSophieLink()">Share ✦</button>'
                     :`<div style="font-size:11px;font-weight:600;padding:5px 10px;border-radius:12px;background:${v.s?'var(--rose-light)':'#F3F4F6'};color:${v.s?'var(--rose-dark)':'#6B7280'};border:1px solid ${v.s?'var(--rose-mid)':'#E5E7EB'}">${v.s?'♥ Yes':'✗ Pass'}</div>`
                   }
                 </div>
@@ -2475,6 +2475,9 @@
       html+=`</div>`;
       _currentSuggestions=ideas;
       area.innerHTML=html;
+      // Auto-dismiss love language banner after 4s (same as personalisation panels)
+      const llBanner=document.getElementById('ll-personalisation-banner');
+      if(llBanner){setTimeout(()=>{llBanner.style.opacity='0';setTimeout(()=>{if(llBanner.parentNode)llBanner.style.display='none';},650);},4000);}
     },_instant?0:900);
   }
 
