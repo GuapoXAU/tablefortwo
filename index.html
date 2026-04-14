@@ -934,7 +934,7 @@
                 <input type="text" class="form-input" id="dd-name2" placeholder="Jordan" style="font-size:12px">
               </div>
             </div>
-            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px;letter-spacing:0.2px" onclick="showMoodCheckIn()">Find our perfect date ✦</button>
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px;letter-spacing:0.2px" onclick="showMoodCheckIn()">Curate our perfect date ✦</button>
           </div>
 
           <!-- ── CLASSIC VIEW (revert) ── -->
@@ -1949,10 +1949,12 @@
     _occasion=val;
     const hl=document.getElementById('discover-headline');
     if(hl&&_OCCASION_HEADLINES[val])hl.innerHTML=_OCCASION_HEADLINES[val];
-    // Update context panel — auto-dismiss after 2.5s
+    // Update context panel — auto-dismiss after 4s for personalisation panels
     const ctx=document.getElementById('occasion-context');
     if(!ctx)return;
     clearTimeout(ctx._dismissTimer);
+    ctx.style.transition='';
+    ctx.style.opacity='1';
     if(val==='first_date'){
       ctx.innerHTML=`<div style="padding:11px 13px;background:linear-gradient(135deg,#FDF8F9,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)">
         <div style="font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:7px">✦ Matching both your tastes</div>
@@ -1965,6 +1967,7 @@
         </div>
         <div style="font-size:11px;color:var(--ink-muted)">Impressive ideas that work for a first impression — exciting but not overwhelming</div>
       </div>`;
+      ctx._dismissTimer=setTimeout(()=>{ctx.style.transition='opacity 0.6s ease';ctx.style.opacity='0';setTimeout(()=>{ctx.innerHTML='';ctx.style.transition='';ctx.style.opacity='1';},650);},4000);
     } else if(val==='partner'){
       ctx.innerHTML=`<div style="padding:11px 13px;background:#EDE6F2;border:0.5px solid var(--plum-mid);border-radius:var(--r-md)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -1981,6 +1984,7 @@
         </div>
         <div style="font-size:11px;color:var(--ink-muted)">Ideas prioritise Sophie's vegetarian diet and love of outdoor & romantic settings</div>
       </div>`;
+      ctx._dismissTimer=setTimeout(()=>{ctx.style.transition='opacity 0.6s ease';ctx.style.opacity='0';setTimeout(()=>{ctx.innerHTML='';ctx.style.transition='';ctx.style.opacity='1';},650);},4000);
     } else if(val==='just_because'){
       ctx.innerHTML=`<div style="padding:11px 13px;background:var(--rose-light);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)">
         <div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:4px">♥ No reason needed</div>
@@ -2469,15 +2473,6 @@
         </div>`;
       });
       html+=`</div>`;
-      html+=`<div style="margin-top:1.25rem;padding:16px 18px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-lg)">
-        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:5px">Want me to plan the full evening? ✦</div>
-        <div style="font-size:12px;color:var(--ink-soft);margin-bottom:14px">Add a cab to get there, a hotel for the night, and reminders for both of you — all in one place.</div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-rose btn-sm" onclick="go('cabs',document.querySelector('[onclick*=cabs]'))">+ Book a cab</button>
-          <button class="btn btn-sm" onclick="go('hotels',document.querySelector('[onclick*=hotels]'))">+ Add a hotel</button>
-          <button class="btn btn-sm" onclick="shareSophieLink()">Share with Sophie ✦</button>
-        </div>
-      </div>`;
       _currentSuggestions=ideas;
       area.innerHTML=html;
     },_instant?0:900);
