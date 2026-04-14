@@ -849,7 +849,7 @@
 
             <!-- Step 2: Vibe -->
             <div class="guided-step">
-              <div class="guided-step-label"><span class="step-num">2</span>What's the vibe?</div>
+              <div class="guided-step-label"><span class="step-num">2</span>Vibe?</div>
               <div class="vibe-grid">
                 <div class="vibe-card active" onclick="selectVibe(this,'romantic','Candlelit')">
                   <span class="vibe-icon">🕯️</span>
@@ -876,7 +876,7 @@
 
             <!-- Step 3: Budget -->
             <div class="guided-step" style="margin-bottom:16px">
-              <div class="guided-step-label"><span class="step-num">3</span>What's your budget?</div>
+              <div class="guided-step-label"><span class="step-num">3</span>Budget?</div>
               <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px 14px">
                 <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
                   <span style="font-size:12px;color:var(--ink-soft)">Up to</span>
@@ -935,9 +935,6 @@
               </div>
             </div>
             <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px;letter-spacing:0.2px" onclick="showMoodCheckIn()">Find our perfect date ✦</button>
-            <div style="margin-top:10px;padding:9px 12px;background:var(--bg2);border-radius:var(--r-md);border-left:3px solid var(--rose-mid)">
-              <div style="font-size:11px;color:var(--ink-muted);line-height:1.6"><span style="font-weight:600;color:var(--ink-soft)">Matching Jamie & Sophie</span> · No loud venues · Sophie loves Indian & outdoors · Jamie loves cultural</div>
-            </div>
           </div>
 
           <!-- ── CLASSIC VIEW (revert) ── -->
@@ -1952,9 +1949,10 @@
     _occasion=val;
     const hl=document.getElementById('discover-headline');
     if(hl&&_OCCASION_HEADLINES[val])hl.innerHTML=_OCCASION_HEADLINES[val];
-    // Update context panel
+    // Update context panel — auto-dismiss after 2.5s
     const ctx=document.getElementById('occasion-context');
     if(!ctx)return;
+    clearTimeout(ctx._dismissTimer);
     if(val==='first_date'){
       ctx.innerHTML=`<div style="padding:11px 13px;background:linear-gradient(135deg,#FDF8F9,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)">
         <div style="font-size:11px;font-weight:600;color:var(--ink-soft);margin-bottom:7px">✦ Matching both your tastes</div>
@@ -2001,8 +1999,17 @@
           <div class="occasion-chip" onclick="selectSpecialOccasion(this,'milestone')"><span>✦</span><span>Milestone</span></div>
         </div>
       </div>`;
+      // 'special' needs interaction — don't auto-dismiss
     } else {
       ctx.innerHTML='';
+    }
+    // Auto-dismiss non-interactive panels after 2.5s
+    if(val!=='special'&&ctx.innerHTML){
+      ctx.style.transition='opacity 0.3s';
+      ctx._dismissTimer=setTimeout(()=>{
+        ctx.style.opacity='0';
+        setTimeout(()=>{ctx.innerHTML='';ctx.style.opacity='1';},300);
+      },2500);
     }
   }
 
