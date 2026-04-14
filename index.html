@@ -1330,6 +1330,11 @@
   .bf-map-car{animation:carMove 1.8s ease-in-out infinite alternate;display:inline-block;font-size:20px}
 
   /* END PREMIUM DARK THEME */
+
+  /* ── Discover filter bar ── */
+  #discover-filter-panel{animation:slideDown 0.28s cubic-bezier(0.22,0.61,0.36,1)}
+  @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+  #discover-filter-chevron{display:inline-block;font-size:18px}
   </style>
 
   <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Table for Two — couple date planning app with AI suggestions, booking, reminders and calendar</h2>
@@ -1644,208 +1649,108 @@
 
       <!-- DISCOVER / AI SUGGEST -->
       <div class="page page-anim active" id="page-discover">
-        <div class="card" id="discover-card">
-          <div class="card-head" style="border-bottom:none;padding-bottom:0.5rem">
-            <div>
-              <div id="discover-headline" class="card-title" style="font-size:17px;line-height:1.3;font-family:var(--font-serif,serif)">Let's plan something<br>unforgettable tonight</div>
-              <div class="card-sub" style="margin-top:5px">Tell me a vibe — I'll handle the rest</div>
+
+        <!-- ── COMPACT FILTER BAR ── -->
+        <div id="discover-filter-bar" style="margin-bottom:14px">
+          <!-- Collapsed state: vibe prompt pill -->
+          <div id="discover-filter-collapsed" style="display:flex;align-items:center;justify-content:space-between;padding:13px 16px;background:var(--card);border-radius:16px;border:1px solid var(--bdr);cursor:pointer" onclick="toggleDiscoverFilter()">
+            <div style="display:flex;align-items:center;gap:10px">
+              <span style="font-size:20px">✦</span>
+              <div>
+                <div style="font-size:14px;font-weight:600;color:var(--text)">Tell me the vibe, I'll handle the rest</div>
+                <div id="discover-filter-summary" style="font-size:11px;color:var(--subtle);margin-top:2px">Tap to set your preferences</div>
+              </div>
             </div>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-              <span class="badge badge-rose">AI-powered</span>
-              <span id="view-toggle-btn" style="font-size:10px;color:var(--ink-muted);cursor:pointer;text-decoration:underline;letter-spacing:0.3px" onclick="toggleDiscoverView()">classic view</span>
+            <div style="display:flex;align-items:center;gap:8px">
+              <span class="badge badge-rose" style="font-size:10px">AI ✦</span>
+              <span id="discover-filter-chevron" style="font-size:16px;color:var(--subtle);transition:transform 0.3s">›</span>
             </div>
           </div>
 
-          <!-- ── GUIDED VIEW ── -->
-          <div id="discover-guided" class="card-body" style="padding-top:0.5rem">
+          <!-- Expanded preferences panel -->
+          <div id="discover-filter-panel" style="display:none;margin-top:10px;padding:18px 16px;background:var(--card);border-radius:16px;border:1px solid var(--bdr)">
 
-            <!-- Shortcuts row: Surprise us + Date roulette -->
-            <div class="g2" style="margin-bottom:14px;gap:10px">
-              <div style="padding:11px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border:1px solid var(--rose-mid);border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="surpriseUs()">
-                <div>
-                  <div style="font-size:13px;font-weight:600;color:var(--rose-dark)">Surprise us ✦</div>
-                  <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">Skip the config — I'll pick the best match</div>
-                </div>
-                <span style="font-size:18px;color:var(--rose);font-weight:300">→</span>
-              </div>
-              <div style="padding:11px 14px;background:linear-gradient(135deg,#FFF7ED,#FEF3C7);border:1px solid #FCD34D;border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="spinRoulette()">
-                <div>
-                  <div style="font-size:13px;font-weight:600;color:#92400E">Date roulette 🎲</div>
-                  <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">Can't decide? Spin the wheel</div>
-                </div>
-                <span style="font-size:18px;font-weight:300">→</span>
-              </div>
-            </div>
-
-            <!-- Step 1: Who -->
-            <div class="guided-step">
-              <div class="guided-step-label"><span class="step-num">1</span>Who is this for?</div>
+            <!-- Who is it for -->
+            <div style="margin-bottom:16px">
+              <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Who's the date for?</div>
               <div style="display:flex;gap:8px;flex-wrap:wrap" id="date-occasion">
-                <div class="occasion-chip active" onclick="selectOccasion(this,'first_date')">
-                  <span class="occasion-icon">✨</span><span>First date</span>
-                </div>
-                <div class="occasion-chip" onclick="selectOccasion(this,'partner')">
-                  <span class="occasion-icon">♥</span><span>My partner</span>
-                </div>
-                <div class="occasion-chip" onclick="selectOccasion(this,'special')">
-                  <span class="occasion-icon">◈</span><span>Special occasion</span>
-                </div>
-                <div class="occasion-chip" onclick="selectOccasion(this,'just_because')">
-                  <span class="occasion-icon">♡</span><span>Just because</span>
-                </div>
+                <div class="occasion-chip active" onclick="selectOccasion(this,'first_date')"><span class="occasion-icon">✨</span><span>First date</span></div>
+                <div class="occasion-chip" onclick="selectOccasion(this,'partner')"><span class="occasion-icon">♥</span><span>My partner</span></div>
+                <div class="occasion-chip" onclick="selectOccasion(this,'special')"><span class="occasion-icon">◈</span><span>Special occasion</span></div>
+                <div class="occasion-chip" onclick="selectOccasion(this,'just_because')"><span class="occasion-icon">♡</span><span>Just because</span></div>
               </div>
-              <div id="occasion-context" style="margin-top:10px"></div>
             </div>
 
-            <!-- Step 2: Vibe -->
-            <div class="guided-step">
-              <div class="guided-step-label"><span class="step-num">2</span>Vibe?</div>
-              <div class="vibe-grid">
-                <div class="vibe-card active" onclick="selectVibe(this,'romantic','Candlelit')">
-                  <span class="vibe-icon">🕯️</span>
-                  <div class="vibe-name">Romantic & Candlelit</div>
-                  <div class="vibe-desc">Intimate, soft lighting, just the two of you</div>
+            <!-- Vibe -->
+            <div style="margin-bottom:16px">
+              <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Vibe</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <div class="vibe-card active" onclick="selectVibe(this,'romantic','Candlelit')" style="padding:10px 12px">
+                  <span class="vibe-icon" style="font-size:18px">🕯️</span>
+                  <div class="vibe-name" style="font-size:12px">Romantic</div>
                 </div>
-                <div class="vibe-card" onclick="selectVibe(this,'fun','')">
-                  <span class="vibe-icon">✦</span>
-                  <div class="vibe-name">Fun & Flirty</div>
-                  <div class="vibe-desc">Playful energy, laughter guaranteed</div>
+                <div class="vibe-card" onclick="selectVibe(this,'fun','')" style="padding:10px 12px">
+                  <span class="vibe-icon" style="font-size:18px">✦</span>
+                  <div class="vibe-name" style="font-size:12px">Fun & Flirty</div>
                 </div>
-                <div class="vibe-card" onclick="selectVibe(this,'outdoor','Walkable')">
-                  <span class="vibe-icon">☕</span>
-                  <div class="vibe-name">Chill & Cozy</div>
-                  <div class="vibe-desc">Low-key, relaxed, no pressure</div>
+                <div class="vibe-card" onclick="selectVibe(this,'outdoor','Walkable')" style="padding:10px 12px">
+                  <span class="vibe-icon" style="font-size:18px">☕</span>
+                  <div class="vibe-name" style="font-size:12px">Chill & Cozy</div>
                 </div>
-                <div class="vibe-card" onclick="selectVibe(this,'all','Unique / memorable')">
-                  <span class="vibe-icon">◈</span>
-                  <div class="vibe-name">Unique & Memorable</div>
-                  <div class="vibe-desc">Something they'll talk about for years</div>
+                <div class="vibe-card" onclick="selectVibe(this,'all','Unique / memorable')" style="padding:10px 12px">
+                  <span class="vibe-icon" style="font-size:18px">◈</span>
+                  <div class="vibe-name" style="font-size:12px">Unique</div>
                 </div>
               </div>
             </div>
 
-            <!-- Step 3: Budget -->
-            <div class="guided-step" style="margin-bottom:16px">
-              <div class="guided-step-label"><span class="step-num">3</span>Budget?</div>
-              <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px 14px">
-                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
-                  <span style="font-size:12px;color:var(--ink-soft)">Up to</span>
-                  <span id="budget-label" style="font-size:15px;font-weight:600;color:var(--rose-dark);font-family:var(--font-serif,serif)">£50–£150</span>
-                </div>
-                <input type="range" id="budget-slider" min="0" max="3" step="1" value="1" oninput="updateBudgetLabel(this.value)"
-                  style="width:100%;accent-color:var(--rose);cursor:pointer">
-                <div style="display:flex;justify-content:space-between;margin-top:5px">
-                  <span style="font-size:11px;color:var(--ink-muted)">Under £50</span>
-                  <span style="font-size:11px;color:var(--ink-muted)">£300+</span>
-                </div>
+            <!-- Budget -->
+            <div style="margin-bottom:16px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase">Budget</div>
+                <span id="budget-label" style="font-size:13px;font-weight:600;color:var(--primary)">£50–£150</span>
+              </div>
+              <input type="range" id="budget-slider" min="0" max="3" step="1" value="1" oninput="updateBudgetLabel(this.value)" style="width:100%;accent-color:var(--primary);cursor:pointer">
+              <div style="display:flex;justify-content:space-between;margin-top:4px">
+                <span style="font-size:10px;color:var(--subtle)">Under £50</span>
+                <span style="font-size:10px;color:var(--subtle)">£300+</span>
               </div>
             </div>
 
-            <!-- Step 4: When -->
-            <div class="guided-step" style="margin-bottom:16px">
-              <div class="guided-step-label"><span class="step-num">4</span>When?</div>
-              <div class="g2" style="gap:10px">
-                <div class="form-group" style="margin:0">
-                  <label class="form-label">Date</label>
-                  <input type="date" class="form-input" id="date-when" style="font-size:13px">
-                </div>
-                <div class="form-group" style="margin:0">
-                  <label class="form-label">Time</label>
-                  <select class="form-input" id="date-time" style="font-size:13px">
-                    <option value="">Any time</option>
-                    <option>18:00 — Early evening</option>
-                    <option>19:00 — Dinner time</option>
-                    <option>19:30 — Dinner time</option>
-                    <option>20:00 — Late dinner</option>
-                    <option>20:30 — Late dinner</option>
-                    <option>21:00 — Night out</option>
-                  </select>
-                </div>
+            <!-- Date & Time -->
+            <div style="margin-bottom:16px">
+              <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">When?</div>
+              <div class="g2" style="gap:8px">
+                <input type="date" class="form-input" id="date-when" style="font-size:12px">
+                <select class="form-input" id="date-time" style="font-size:12px">
+                  <option value="">Any time</option>
+                  <option>18:00 — Early evening</option>
+                  <option>19:00 — Dinner time</option>
+                  <option>19:30 — Dinner time</option>
+                  <option>20:00 — Late dinner</option>
+                  <option>20:30 — Late dinner</option>
+                  <option>21:00 — Night out</option>
+                </select>
               </div>
             </div>
 
             <!-- Location -->
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
-              <span style="font-size:13px;color:var(--ink-muted)">📍</span>
-              <select class="form-input" id="loc-select" style="max-width:200px;font-size:12px;padding:7px 28px 7px 10px">
-                <option>London, UK</option><option>Manchester, UK</option><option>Edinburgh, UK</option><option>Birmingham, UK</option><option>Bristol, UK</option><option>Paris, France</option><option>Amsterdam, NL</option>
-              </select>
-            </div>
-
-            <!-- Mode toggles -->
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
-              <div class="surprise-toggle" id="surprise-toggle" onclick="toggleSurpriseMode()">🎁 Surprise mode</div>
-              <div class="dd-pill" id="dd-toggle" onclick="toggleDoubleDateMode()">👫 Double-date</div>
-            </div>
-            <div id="dd-names-row" style="display:none;margin-bottom:12px;padding:10px 12px;background:#EFF6FF;border:0.5px solid #93C5FD;border-radius:var(--r-md)">
-              <div style="font-size:11px;font-weight:600;color:#1D4ED8;margin-bottom:7px">Their names</div>
-              <div class="g2" style="gap:8px">
-                <input type="text" class="form-input" id="dd-name1" placeholder="Alex" style="font-size:12px">
-                <input type="text" class="form-input" id="dd-name2" placeholder="Jordan" style="font-size:12px">
-              </div>
-            </div>
-            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px;letter-spacing:0.2px" onclick="showMoodCheckIn()">Curate our perfect date ✦</button>
-          </div>
-
-          <!-- ── CLASSIC VIEW (revert) ── -->
-          <div id="discover-classic" style="display:none" class="card-body">
-            <div class="g3" style="margin-bottom:14px">
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Location</label>
-                <select class="form-input" id="loc-select-classic">
+            <div style="margin-bottom:20px">
+              <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Location</div>
+              <div style="display:flex;align-items:center;gap:8px">
+                <span style="font-size:14px">📍</span>
+                <select class="form-input" id="loc-select" style="font-size:12px;flex:1">
                   <option>London, UK</option><option>Manchester, UK</option><option>Edinburgh, UK</option><option>Birmingham, UK</option><option>Bristol, UK</option><option>Paris, France</option><option>Amsterdam, NL</option>
                 </select>
               </div>
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Budget — <span id="budget-label-classic" style="color:var(--rose-dark);font-weight:500">£50–£150</span></label>
-                <div style="padding:6px 2px 2px">
-                  <input type="range" id="budget-slider-classic" min="0" max="3" step="1" value="1" oninput="updateBudgetLabelClassic(this.value)"
-                    style="width:100%;accent-color:var(--rose);height:4px;cursor:pointer">
-                  <div style="display:flex;justify-content:space-between;margin-top:5px">
-                    <span style="font-size:11px;color:var(--ink-muted)">Under £50</span>
-                    <span style="font-size:11px;color:var(--ink-muted)">£300+</span>
-                  </div>
-                </div>
-              </div>
-              <div class="form-group" style="margin:0">
-                <label class="form-label">Date type</label>
-                <select class="form-input" id="type-select">
-                  <option value="all">Any vibe</option>
-                  <option value="romantic">Romantic & intimate</option>
-                  <option value="fun">Fun & active</option>
-                  <option value="cultural">Cultural & artsy</option>
-                  <option value="outdoor">Outdoor & fresh air</option>
-                  <option value="foodie">All about the food</option>
-                </select>
-              </div>
             </div>
-            <div style="margin-bottom:14px">
-              <div class="form-label" style="margin-bottom:8px">Who is this date with?</div>
-              <div style="display:flex;gap:8px;flex-wrap:wrap" id="date-occasion-classic">
-                <div class="occasion-chip active" onclick="selectOccasionClassic(this,'first_date')"><span class="occasion-icon">✨</span><span class="occasion-label">First date</span></div>
-                <div class="occasion-chip" onclick="selectOccasionClassic(this,'partner')"><span class="occasion-icon">♥</span><span class="occasion-label">Partner</span></div>
-                <div class="occasion-chip" onclick="selectOccasionClassic(this,'anniversary')"><span class="occasion-icon">◈</span><span class="occasion-label">Anniversary</span></div>
-              </div>
-            </div>
-            <div style="margin-bottom:14px">
-              <div class="form-label" style="margin-bottom:6px">Any must-haves?</div>
-              <div class="tag-row" id="vibe-tags">
-                <span class="tag on" onclick="toggleTag(this)">Candlelit</span>
-                <span class="tag" onclick="toggleTag(this)">Live music</span>
-                <span class="tag on" onclick="toggleTag(this)">Walkable</span>
-                <span class="tag" onclick="toggleTag(this)">Tasting menu</span>
-                <span class="tag" onclick="toggleTag(this)">Cocktail bar</span>
-                <span class="tag" onclick="toggleTag(this)">Outdoor seats</span>
-                <span class="tag on" onclick="toggleTag(this)">Unique / memorable</span>
-                <span class="tag" onclick="toggleTag(this)">Private dining</span>
-                <span class="tag" onclick="toggleTag(this)">Art gallery</span>
-                <span class="tag" onclick="toggleTag(this)">Dance floor</span>
-              </div>
-            </div>
-            <button class="btn btn-rose" onclick="generateSuggestions()">Generate date ideas ✦</button>
+
+            <!-- CTA -->
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:14px;font-size:14px;font-weight:700;border-radius:12px;letter-spacing:0.3px" onclick="curateAndCollapse()">Curate the perfect date ✦</button>
           </div>
         </div>
 
+        <!-- ── SUGGESTIONS ── -->
         <div id="suggestions-area"></div>
       </div>
 
@@ -2591,6 +2496,9 @@
     if(el&&el.classList.contains('nav-item'))el.classList.add('active');
     if(id==='discover'){
       setSmartGreeting();
+      // Auto-load suggestions if area is empty
+      const _sa=document.getElementById('suggestions-area');
+      if(_sa&&!_sa.innerHTML.trim())generateSuggestions(true);
     } else {
       document.getElementById('page-title').textContent=TITLES[id]||id;
       document.getElementById('page-sub').textContent=SUBS[id]||'';
@@ -2884,6 +2792,7 @@
   }
 
   let _discoverGuided=true;
+  let _discoverFilterOpen=false;
   const _votes={};
   const _VEG_UNFRIENDLY=new Set(['Core by Clare Smyth','Alain Ducasse at The Dorchester']);
 
@@ -3027,27 +2936,49 @@
   let _currentSuggestions=[];  // stores last 4 ideas shown — needed for Sophie share link
 
   function toggleDiscoverView(){
-    _discoverGuided=!_discoverGuided;
-    document.getElementById('discover-guided').style.display=_discoverGuided?'':'none';
-    document.getElementById('discover-classic').style.display=_discoverGuided?'none':'';
-    document.getElementById('view-toggle-btn').textContent=_discoverGuided?'classic view':'guided view';
+    // legacy — no-op since we replaced the view toggle with a filter bar
+  }
+
+  function toggleDiscoverFilter(){
+    _discoverFilterOpen=!_discoverFilterOpen;
+    const panel=document.getElementById('discover-filter-panel');
+    const chevron=document.getElementById('discover-filter-chevron');
+    if(panel){panel.style.display=_discoverFilterOpen?'block':'none';}
+    if(chevron){chevron.style.transform=_discoverFilterOpen?'rotate(90deg)':'rotate(0deg)';}
+  }
+
+  function _updateFilterSummary(){
+    const vibeLabels={romantic:'Romantic',fun:'Fun & Flirty',outdoor:'Chill & Cozy',all:'Unique'};
+    const budgetLabels=['Under £50','£50–£150','£150–£300','£300+'];
+    const sliderEl=document.getElementById('budget-slider');
+    const budgetVal=sliderEl?parseInt(sliderEl.value):1;
+    const vLabel=vibeLabels[_vibeType]||'Any vibe';
+    const bLabel=budgetLabels[budgetVal]||'£50–£150';
+    const el=document.getElementById('discover-filter-summary');
+    if(el)el.textContent=`${vLabel} · ${bLabel}`;
+  }
+
+  function curateAndCollapse(){
+    // Collapse the filter panel
+    _discoverFilterOpen=false;
+    const panel=document.getElementById('discover-filter-panel');
+    const chevron=document.getElementById('discover-filter-chevron');
+    if(panel){panel.style.display='none';}
+    if(chevron){chevron.style.transform='rotate(0deg)';}
+    // Update summary text
+    _updateFilterSummary();
+    // Show mood check-in then generate
+    showMoodCheckIn();
   }
 
   function generateSuggestions(_instant){
-    const sliderEl=document.getElementById(_discoverGuided?'budget-slider':'budget-slider-classic');
+    const sliderEl=document.getElementById('budget-slider');
     const sliderVal=sliderEl?parseInt(sliderEl.value):1;
     const budget=BUDGET_KEYS[sliderVal]||'mid';
-    const locEl=document.getElementById(_discoverGuided?'loc-select':'loc-select-classic');
+    const locEl=document.getElementById('loc-select');
     const loc=locEl?locEl.value:'London, UK';
-    let vibe,activeTags;
-    if(_discoverGuided){
-      vibe=_vibeType;
-      activeTags=_vibeTag?[_vibeTag]:[];
-    } else {
-      const typeEl=document.getElementById('type-select');
-      vibe=typeEl?typeEl.value:'all';
-      activeTags=[...document.querySelectorAll('#vibe-tags .tag.on')].map(t=>t.textContent.trim());
-    }
+    let vibe=_vibeType||'all';
+    let activeTags=_vibeTag?[_vibeTag]:[];
     const occasionLabel={first_date:'First date',partner:'My partner',special:'Special occasion',just_because:'Just because',anniversary:'Anniversary',birthday:'Birthday',valentines:"Valentine's",proposal:'Proposal',celebration:'Celebration',milestone:'Milestone'}[_occasion]||'';
     const area=document.getElementById('suggestions-area');
     const loadMsg=_occasion==='proposal'?'Finding the perfect proposal evening ✦...'
