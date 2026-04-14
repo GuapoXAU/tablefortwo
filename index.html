@@ -1999,17 +1999,8 @@
           <div class="occasion-chip" onclick="selectSpecialOccasion(this,'milestone')"><span>✦</span><span>Milestone</span></div>
         </div>
       </div>`;
-      // 'special' needs interaction — don't auto-dismiss
     } else {
       ctx.innerHTML='';
-    }
-    // Auto-dismiss non-interactive panels after 2.5s
-    if(val!=='special'&&ctx.innerHTML){
-      ctx.style.transition='opacity 0.3s';
-      ctx._dismissTimer=setTimeout(()=>{
-        ctx.style.opacity='0';
-        setTimeout(()=>{ctx.innerHTML='';ctx.style.opacity='1';},300);
-      },2500);
     }
   }
 
@@ -2301,7 +2292,7 @@
       const sLLIcon=_LL_ICONS[_sophieLoveLang]||'';
       const jLLIcon=_LL_ICONS[_jamieLoveLang]||'';
 
-      let html=`<div class="section-head"><div class="section-title">Ideas for you in ${loc}${occasionSuffix}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
+      let html=`<div class="section-head"><div class="section-title">Here's what you're doing in ${loc}${occasionSuffix}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
       html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft)">
         <span style="font-size:15px">♥</span>
         <div><span style="font-weight:600;color:var(--ink)">Personalised for your love languages</span> · <span style="color:var(--rose-dark)">${jLLIcon} Jamie: ${jLLLabel}</span> &nbsp;·&nbsp; <span style="color:var(--plum)">${sLLIcon} Sophie: ${sLLLabel}</span>
