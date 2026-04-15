@@ -1762,7 +1762,10 @@
             <div class="profile-pair">
               <div class="profile-half">
                 <div class="profile-avatar" style="background:#FBEAF0;color:#72243E">JM</div>
-                <div style="font-size:14px;font-weight:500;margin-bottom:10px;color:var(--ink)">Jamie</div>
+                <div style="font-size:14px;font-weight:500;margin-bottom:3px;color:var(--ink)">Jamie</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:10px">
+                  <span id="handle-jamie-display" style="font-size:10px;font-weight:600;color:var(--primary);font-family:monospace;letter-spacing:0.3px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 7px;cursor:pointer" title="Tap to edit" onclick="editHandle('jamie')">@jamie887</span>
+                </div>
                 <div class="form-group"><label class="form-label">Food preferences</label><select class="form-input"><option>Everything</option><option>Vegetarian</option><option>Vegan</option><option>Pescatarian</option></select></div>
                 <div class="form-group"><label class="form-label">Cuisine loves</label>
                   <div class="tag-row">
@@ -1802,7 +1805,10 @@
               <div style="display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--rose);flex-shrink:0">♥</div>
               <div class="profile-half">
                 <div class="profile-avatar" style="background:#EDE6F2;color:#3C3489">SP</div>
-                <div style="font-size:14px;font-weight:500;margin-bottom:10px;color:var(--ink)">Sophie</div>
+                <div style="font-size:14px;font-weight:500;margin-bottom:3px;color:var(--ink)">Sophie</div>
+                <div style="display:flex;align-items:center;gap:5px;margin-bottom:10px">
+                  <span id="handle-sophie-display" style="font-size:10px;font-weight:600;color:var(--primary);font-family:monospace;letter-spacing:0.3px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 7px;cursor:pointer" title="Tap to copy or edit" onclick="editHandle('sophie')">@sophie2024</span>
+                </div>
                 <div class="form-group"><label class="form-label">Food preferences</label><select class="form-input"><option>Everything</option><option selected>Vegetarian</option><option>Vegan</option><option>Pescatarian</option></select></div>
                 <div class="form-group"><label class="form-label">Cuisine loves</label>
                   <div class="tag-row">
@@ -1926,6 +1932,44 @@
               <div class="stat"><div class="stat-label">Spent together</div><div class="stat-val">£842</div><div class="stat-note">This year</div></div>
             </div>
             <div id="cosmic-compat" style="display:none;margin-top:14px;padding:12px 14px;background:linear-gradient(135deg,#FDF8F9,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:1.25rem">
+          <div class="card-head"><div class="card-title">Connect a profile</div></div>
+          <div class="card-body">
+            <div style="font-size:12px;color:var(--ink-muted);margin-bottom:14px;line-height:1.55">Share your <span style="color:var(--primary);font-family:monospace;font-weight:600">@handle</span> with someone and connect instantly — their preferences sync without either of you re-entering everything.</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+              <input type="text" id="connect-handle-input" class="form-input" placeholder="@handle" style="font-family:monospace;font-size:13px;flex:1;max-width:180px" oninput="this.value=this.value.replace(/[^a-zA-Z0-9@_]/g,'')">
+              <button class="btn btn-sm" style="background:linear-gradient(135deg,var(--accent),var(--primary));color:#000;font-weight:700;white-space:nowrap" onclick="connectByHandle()">Connect ✦</button>
+            </div>
+            <div id="connected-profiles-list"></div>
+            <div style="padding-top:10px;border-top:0.5px solid var(--bdr)">
+              <div style="font-size:11px;color:var(--ink-muted);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px">Your handles</div>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#FBEAF0;color:#72243E;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">JM</div>
+                    <span style="font-size:12px;color:var(--ink)">Jamie</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span id="handle-jamie-card" style="font-size:11px;font-weight:600;color:var(--primary);font-family:monospace;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 8px">@jamie887</span>
+                    <button onclick="copyHandle('jamie')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:12px;padding:2px 4px" title="Copy">⎘</button>
+                    <button onclick="editHandle('jamie')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:10px;padding:2px 4px" title="Edit">✎</button>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="width:28px;height:28px;border-radius:50%;background:#EDE6F2;color:#3C3489;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">SP</div>
+                    <span style="font-size:12px;color:var(--ink)">Sophie</span>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <span id="handle-sophie-card" style="font-size:11px;font-weight:600;color:var(--primary);font-family:monospace;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 8px">@sophie2024</span>
+                    <button onclick="copyHandle('sophie')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:12px;padding:2px 4px" title="Copy">⎘</button>
+                    <button onclick="editHandle('sophie')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:10px;padding:2px 4px" title="Edit">✎</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -2481,6 +2525,8 @@
   let calMonth=new Date(2026,3,1);
   let selectedDay=null;
   let activeFilter='all';
+  let _handles={jamie:'@jamie887',sophie:'@sophie2024'};
+  let _connectedHandles=[];
 
   const catColors={'Dinner reservation':'#C4687A','Experience / activity':'#6B4C7A','Hotel check-in':'#C4687A','Hotel check-out':'#8B3A4A','Cab pickup':'#3A6A8A','Personal':'#5A7A5A'};
 
@@ -2529,6 +2575,99 @@
   }
 
   function savePref(){toast('✦ Preferences saved for Jamie & Sophie');}
+
+  // ── @handle system ──
+  const _DEMO_HANDLES={
+    '@alex4291':{name:'Alex',initials:'AX',bg:'#E6F0FB',col:'#1E3A6E',food:'Vegetarian',cuisines:['Japanese','French'],style:['Intimate','Cosy'],ll:'quality_time'},
+    '@priya_k':{name:'Priya',initials:'PK',bg:'#FBF0E6',col:'#6E3A1E',food:'Vegan',cuisines:['Indian','Mediterranean'],style:['Outdoor','Romantic'],ll:'physical_touch'},
+    '@tom.w99':{name:'Tom',initials:'TW',bg:'#E6FBF0',col:'#1E6E3A',food:'Everything',cuisines:['Modern British','Italian'],style:['Adventure','Live music'],ll:'acts_of_service'},
+  };
+
+  function _syncHandleDisplays(){
+    ['jamie','sophie'].forEach(p=>{
+      const h=_handles[p];
+      ['display','card'].forEach(s=>{
+        const el=document.getElementById(`handle-${p}-${s}`);
+        if(el)el.textContent=h;
+      });
+    });
+  }
+
+  function editHandle(person){
+    const current=_handles[person];
+    const val=prompt(`Edit ${person.charAt(0).toUpperCase()+person.slice(1)}'s handle:`,current);
+    if(!val)return;
+    let cleaned=val.trim();
+    if(!cleaned.startsWith('@'))cleaned='@'+cleaned;
+    cleaned=cleaned.replace(/[^a-zA-Z0-9@_.]/g,'');
+    if(cleaned.length<2){toast('Handle too short');return;}
+    _handles[person]=cleaned;
+    try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}
+    _syncHandleDisplays();
+    toast(`✦ Handle updated to ${cleaned}`);
+  }
+
+  function copyHandle(person){
+    const h=_handles[person];
+    if(navigator.clipboard){navigator.clipboard.writeText(h).then(()=>toast(`✦ ${h} copied`)).catch(()=>toast(h));}
+    else{toast(h);}
+  }
+
+  function connectByHandle(){
+    const inp=document.getElementById('connect-handle-input');
+    if(!inp)return;
+    let val=inp.value.trim();
+    if(!val){toast('Enter a @handle first');return;}
+    if(!val.startsWith('@'))val='@'+val;
+    if(val===_handles.jamie||val===_handles.sophie){toast('That\'s already one of your handles');return;}
+    if(_connectedHandles.includes(val)){toast(`${val} already connected`);return;}
+    const demo=_DEMO_HANDLES[val.toLowerCase()];
+    if(demo){
+      _connectedHandles.push(val);
+      inp.value='';
+      _renderConnectedProfiles();
+      toast(`✦ Connected with ${val} — preferences merged`);
+    } else {
+      // Simulate unknown handle
+      toast(`No profile found for ${val}`);
+    }
+  }
+
+  function _renderConnectedProfiles(){
+    const el=document.getElementById('connected-profiles-list');
+    if(!el)return;
+    if(!_connectedHandles.length){el.innerHTML='';return;}
+    el.innerHTML=`<div style="margin-bottom:12px">
+      <div style="font-size:11px;color:var(--ink-muted);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px">Connected</div>
+      ${_connectedHandles.map(h=>{
+        const d=_DEMO_HANDLES[h.toLowerCase()]||{name:h,initials:h.slice(1,3).toUpperCase(),bg:'#F0F0F0',col:'#444',cuisines:[],style:[],ll:''};
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(201,168,76,0.05);border:0.5px solid rgba(201,168,76,0.18);border-radius:10px;margin-bottom:6px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:30px;height:30px;border-radius:50%;background:${d.bg};color:${d.col};font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center">${d.initials}</div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--ink)">${d.name} <span style="font-family:monospace;font-size:10px;color:var(--primary)">${h}</span></div>
+              <div style="font-size:10px;color:var(--ink-muted);margin-top:1px">${[...d.cuisines,...d.style].slice(0,3).join(' · ')}</div>
+            </div>
+          </div>
+          <button onclick="disconnectHandle('${h}')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:14px;padding:2px 6px" title="Disconnect">×</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  function disconnectHandle(h){
+    _connectedHandles=_connectedHandles.filter(x=>x!==h);
+    _renderConnectedProfiles();
+    toast(`${h} disconnected`);
+  }
+
+  // Load saved handles
+  (function _loadHandles(){
+    try{
+      const h=localStorage.getItem('t4t_handles');
+      if(h){_handles=Object.assign(_handles,JSON.parse(h));_syncHandleDisplays();}
+    }catch(e){}
+  })();
 
   const IDEAS={
     budget:[
