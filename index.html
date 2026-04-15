@@ -3071,6 +3071,16 @@
       }
 
       const topScore=Math.max(...ideas.map(i=>i.score));
+
+      // ── Popularity boost: popular + preference-matched ideas float to top ──
+      const POP_THRESHOLD=45;
+      ideas.forEach(i=>{i._pop=_bookedCount(i.name,i.score,i.type);});
+      ideas.sort((a,b)=>{
+        const aHot=a._pop>=POP_THRESHOLD&&a.score>=65;
+        const bHot=b._pop>=POP_THRESHOLD&&b.score>=65;
+        return aHot===bHot?0:(aHot?-1:1);
+      });
+
       const occasionSuffix=occasionLabel?` · ${occasionLabel}`:'';
 
       // ── Feature 1: both-loved summary ──
@@ -3191,7 +3201,8 @@
         const bothLove=v.j===true&&v.s===true;
 
         // Badge
-        const badge=bothLove?'♥ You both love this':isTop?'✦ Best match':'';
+        const isPopular=idea._pop>=POP_THRESHOLD&&idea.score>=65;
+        const badge=bothLove?'♥ You both love this':isPopular?'🔥 Popular pick':isTop?'✦ Best match':'';
 
         // Love language badge
         const sLLMatch=llMatchScore(idea,sLL)>0;
@@ -3207,7 +3218,7 @@
           <div class="swipe-card-img-wrap">
             <img class="swipe-card-img" src="${idea.img}" alt="${idea.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:60px;background:var(--bg2)">${idea.emoji}</div>
-            ${badge?`<div class="swipe-card-top-badge">${badge}</div>`:''}
+            ${badge?`<div class="swipe-card-top-badge" ${isPopular&&!bothLove?'style="background:rgba(234,88,12,0.92)"':''}>${badge}</div>`:''}
           </div>
           <div class="swipe-card-body">
             <div class="swipe-card-name-row">
@@ -3225,6 +3236,7 @@
               <div class="swipe-card-match-bar-bg"><div class="swipe-card-match-bar" style="width:${idea.score}%"></div></div>
               ${idea.score}% match
             </div>
+            ${isPopular?`<div style="margin-top:7px;display:flex;align-items:center;gap:5px;font-size:11px;color:#F97316;font-weight:600"><span>🔥</span>${idea._pop} couples booked this month</div>`:''}
           </div>
           <div class="swipe-actions">
             <div class="swipe-btn swipe-btn-x" title="Not for this occasion" onclick="swipeCard(${idx},'skip')">✕</div>
