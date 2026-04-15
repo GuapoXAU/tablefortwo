@@ -3244,12 +3244,18 @@
             ${isPopular?`<div style="margin-top:7px;display:flex;align-items:center;gap:5px;font-size:11px;color:#F97316;font-weight:600"><span>🔥</span>${idea._pop} couples booked this month</div>`:''}
           </div>
           <div class="swipe-actions">
-            <div class="swipe-btn swipe-btn-x" title="Not for this occasion" onclick="swipeCard(${idx},'skip')">✕</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div class="swipe-btn swipe-btn-x" title="Not for this occasion" onclick="swipeCard(${idx},'skip')">✕</div>
+              <span style="font-size:9px;font-weight:500;letter-spacing:0.5px;color:rgba(255,255,255,0.3);text-transform:uppercase">Not today</span>
+            </div>
             <div class="swipe-btn swipe-btn-book" title="Book now" style="width:auto;min-width:130px;padding:0 22px;border-radius:32px;flex-direction:column;gap:2px;height:58px" onclick="swipeCard(${idx},'book','${idea.name.replace(/'/g,"\\'")}','${idea.price}')">
               <span style="font-size:19px;line-height:1">✦</span>
               <span style="font-size:9.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;opacity:0.92">Book now</span>
             </div>
-            <div class="swipe-btn swipe-btn-heart" title="Save to wishlist" onclick="swipeCard(${idx},'save','${idea.name.replace(/'/g,"\\'")}','${idea.emoji}','${idea.price}','${idea.type}','${idea.why.replace(/'/g,"\\'")}')">♥</div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div class="swipe-btn swipe-btn-heart" title="Save to wishlist" onclick="swipeCard(${idx},'save','${idea.name.replace(/'/g,"\\'")}','${idea.emoji}','${idea.price}','${idea.type}','${idea.why.replace(/'/g,"\\'")}')">♥</div>
+              <span style="font-size:9px;font-weight:500;letter-spacing:0.5px;color:rgba(255,255,255,0.3);text-transform:uppercase">Save</span>
+            </div>
           </div>
         </div>`;
       });
