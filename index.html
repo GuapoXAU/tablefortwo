@@ -3240,7 +3240,10 @@
           </div>
           <div class="swipe-actions">
             <div class="swipe-btn swipe-btn-x" title="Not for this occasion" onclick="swipeCard(${idx},'skip')">✕</div>
-            <div class="swipe-btn swipe-btn-book" title="Start booking" onclick="swipeCard(${idx},'book','${idea.name.replace(/'/g,"\\'")}','${idea.price}')">✦</div>
+            <div class="swipe-btn swipe-btn-book" title="Book now" style="width:auto;min-width:130px;padding:0 22px;border-radius:32px;flex-direction:column;gap:2px;height:58px" onclick="swipeCard(${idx},'book','${idea.name.replace(/'/g,"\\'")}','${idea.price}')">
+              <span style="font-size:19px;line-height:1">✦</span>
+              <span style="font-size:9.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;opacity:0.92">Book now</span>
+            </div>
             <div class="swipe-btn swipe-btn-heart" title="Save to wishlist" onclick="swipeCard(${idx},'save','${idea.name.replace(/'/g,"\\'")}','${idea.emoji}','${idea.price}','${idea.type}','${idea.why.replace(/'/g,"\\'")}')">♥</div>
           </div>
         </div>`;
