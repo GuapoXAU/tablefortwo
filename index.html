@@ -1335,6 +1335,298 @@
   #discover-filter-panel{animation:slideDown 0.28s cubic-bezier(0.22,0.61,0.36,1)}
   @keyframes slideDown{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
   #discover-filter-chevron{display:inline-block;font-size:18px}
+
+  /* ═══════════════════════════════════════════
+     STARTUP POLISH — glassmorphism, micro-interactions,
+     gradient depth, premium button styling
+  ═══════════════════════════════════════════ */
+
+  /* ── Header ── */
+  .topbar{
+    backdrop-filter:blur(28px) saturate(200%);
+    -webkit-backdrop-filter:blur(28px) saturate(200%);
+    background:rgba(8,8,8,0.72)!important;
+    border-bottom:0.5px solid rgba(201,168,76,0.12);
+  }
+
+  /* ── Bottom nav ── */
+  .bottom-nav{
+    backdrop-filter:blur(32px) saturate(180%);
+    -webkit-backdrop-filter:blur(32px) saturate(180%);
+    background:rgba(6,6,6,0.82)!important;
+    border-top:0.5px solid rgba(201,168,76,0.1);
+    box-shadow:0 -8px 32px rgba(0,0,0,0.55),0 -1px 0 rgba(201,168,76,0.06);
+  }
+
+  /* ── Cards — gradient depth + top shimmer ── */
+  .card{
+    background:linear-gradient(155deg,#111009 0%,#0A0908 60%,#080706 100%)!important;
+    box-shadow:0 2px 8px rgba(0,0,0,0.45),0 1px 0 rgba(255,255,255,0.03) inset,0 -1px 0 rgba(0,0,0,0.5) inset;
+    border:0.5px solid rgba(255,255,255,0.055)!important;
+    position:relative;
+    overflow:hidden;
+  }
+  .card::after{
+    content:'';
+    position:absolute;
+    inset:0 0 auto 0;
+    height:0.5px;
+    background:linear-gradient(90deg,transparent 0%,rgba(201,168,76,0.35) 40%,rgba(201,168,76,0.35) 60%,transparent 100%);
+    pointer-events:none;
+  }
+
+  /* ── Stat cards — gradient accent top border ── */
+  .stat-card{
+    background:linear-gradient(160deg,#0F0D0B,#090807)!important;
+    position:relative;
+    overflow:hidden;
+  }
+  .stat-card::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:1.5px;
+    background:linear-gradient(90deg,transparent,rgba(201,168,76,0.55),transparent);
+    pointer-events:none;
+  }
+
+  /* ── Profile halves — radial glow ── */
+  .profile-half{
+    position:relative;
+    overflow:hidden;
+  }
+  .profile-half::before{
+    content:'';
+    position:absolute;
+    top:-40px;left:50%;
+    transform:translateX(-50%);
+    width:160px;height:160px;
+    background:radial-gradient(circle,rgba(201,168,76,0.07) 0%,transparent 70%);
+    pointer-events:none;
+  }
+
+  /* ── Primary CTA button (.btn-rose / .btn-primary) ── */
+  .btn-rose,.btn-primary{
+    background:linear-gradient(135deg,#b8922d 0%,#C9A84C 45%,#d4b060 100%)!important;
+    color:#0d0900!important;
+    font-weight:700;
+    letter-spacing:0.4px;
+    box-shadow:0 4px 18px rgba(201,168,76,0.32),0 1px 0 rgba(255,255,255,0.18) inset;
+    transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.18s ease;
+    position:relative;
+    overflow:hidden;
+  }
+  .btn-rose::after,.btn-primary::after{
+    content:'';
+    position:absolute;
+    top:-50%;left:-60%;
+    width:40%;height:200%;
+    background:rgba(255,255,255,0.12);
+    transform:skewX(-20deg);
+    animation:btnShimmerIdle 3.2s ease-in-out infinite;
+    pointer-events:none;
+  }
+  .btn-rose:active,.btn-primary:active{
+    transform:scale(0.96);
+    box-shadow:0 2px 8px rgba(201,168,76,0.22);
+  }
+  @media(hover:hover){
+    .btn-rose:hover,.btn-primary:hover{
+      transform:translateY(-1px) scale(1.015);
+      box-shadow:0 6px 24px rgba(201,168,76,0.42),0 1px 0 rgba(255,255,255,0.2) inset;
+    }
+  }
+
+  /* ── Secondary / small buttons — glass ── */
+  .btn-outline,.btn-sm:not(.btn-rose):not(.btn-primary){
+    background:rgba(255,255,255,0.05)!important;
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border:0.5px solid rgba(255,255,255,0.1)!important;
+    transition:background 0.18s ease,transform 0.18s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.18s ease;
+  }
+  .btn-outline:active,.btn-sm:not(.btn-rose):not(.btn-primary):active{
+    transform:scale(0.95);
+  }
+  @media(hover:hover){
+    .btn-outline:hover,.btn-sm:not(.btn-rose):not(.btn-primary):hover{
+      background:rgba(255,255,255,0.09)!important;
+      transform:translateY(-1px);
+      box-shadow:0 4px 12px rgba(0,0,0,0.3);
+    }
+  }
+
+  /* ── Form inputs — glass ── */
+  .form-input{
+    background:rgba(255,255,255,0.04)!important;
+    border:0.5px solid rgba(255,255,255,0.1)!important;
+    transition:border-color 0.2s ease,box-shadow 0.2s ease;
+  }
+  .form-input:focus{
+    background:rgba(255,255,255,0.06)!important;
+    border-color:rgba(201,168,76,0.45)!important;
+    box-shadow:0 0 0 3px rgba(201,168,76,0.1)!important;
+    outline:none;
+  }
+
+  /* ── Tags — spring hover + active gradient ── */
+  .tag{
+    transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),background 0.18s ease,box-shadow 0.18s ease;
+  }
+  .tag:active{transform:scale(0.93);}
+  @media(hover:hover){
+    .tag:hover{transform:scale(1.06);box-shadow:0 2px 8px rgba(0,0,0,0.3);}
+  }
+  .tag.on{
+    background:linear-gradient(135deg,rgba(201,168,76,0.22),rgba(201,168,76,0.12))!important;
+    border-color:rgba(201,168,76,0.55)!important;
+    box-shadow:0 0 0 1px rgba(201,168,76,0.15);
+  }
+
+  /* ── Occasion chips ── */
+  .occasion-chip{
+    transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.18s ease;
+  }
+  .occasion-chip.active{
+    box-shadow:0 0 0 1.5px rgba(201,168,76,0.45),0 4px 14px rgba(201,168,76,0.15)!important;
+  }
+  @media(hover:hover){
+    .occasion-chip:hover{transform:translateY(-2px) scale(1.03);box-shadow:0 6px 18px rgba(0,0,0,0.4);}
+  }
+
+  /* ── Swipe cards — cinematic depth ── */
+  .swipe-card{
+    box-shadow:0 24px 64px rgba(0,0,0,0.75),0 8px 24px rgba(0,0,0,0.5),0 2px 6px rgba(0,0,0,0.4),0 1px 0 rgba(255,255,255,0.04) inset!important;
+  }
+  @media(hover:hover){
+    .swipe-card:hover{transform:rotate(0.3deg) scale(1.005);transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1);}
+  }
+
+  /* ── Swipe book button — pulsing glow ── */
+  .swipe-book-btn{
+    position:relative;
+    overflow:hidden;
+  }
+  .swipe-book-btn::after{
+    content:'';
+    position:absolute;
+    inset:-3px;
+    border-radius:inherit;
+    background:radial-gradient(circle at 50% 120%,rgba(201,168,76,0.35),transparent 65%);
+    animation:bookGlow 2.4s ease-in-out infinite alternate;
+    pointer-events:none;
+    z-index:0;
+  }
+  @keyframes bookGlow{
+    from{opacity:0.4;transform:scale(0.96);}
+    to{opacity:1;transform:scale(1.04);}
+  }
+
+  /* ── Swipe action buttons — colored glow ── */
+  .btn-x:active,.btn-x:focus{
+    box-shadow:0 0 0 3px rgba(255,80,80,0.25),0 4px 14px rgba(255,80,80,0.2)!important;
+  }
+  .btn-heart:active,.btn-heart:focus{
+    box-shadow:0 0 0 3px rgba(201,168,76,0.3),0 4px 14px rgba(201,168,76,0.2)!important;
+  }
+  @media(hover:hover){
+    .btn-x:hover{box-shadow:0 0 0 3px rgba(255,80,80,0.2),0 4px 14px rgba(255,80,80,0.15)!important;transform:scale(1.08);}
+    .btn-heart:hover{box-shadow:0 0 0 3px rgba(201,168,76,0.25),0 4px 14px rgba(201,168,76,0.15)!important;transform:scale(1.08);}
+  }
+
+  /* ── Idea cards — top shimmer + lift ── */
+  .idea-card{
+    position:relative;
+    overflow:hidden;
+    transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.22s ease;
+  }
+  .idea-card::before{
+    content:'';
+    position:absolute;
+    inset:0 0 auto 0;
+    height:0.5px;
+    background:linear-gradient(90deg,transparent,rgba(201,168,76,0.3),transparent);
+    pointer-events:none;
+  }
+  @media(hover:hover){
+    .idea-card:hover{
+      transform:translateY(-2px);
+      box-shadow:0 8px 24px rgba(0,0,0,0.5),0 0 0 0.5px rgba(201,168,76,0.18)!important;
+    }
+  }
+
+  /* ── Badges — gradient fill ── */
+  .badge{
+    background:linear-gradient(135deg,rgba(201,168,76,0.18),rgba(201,168,76,0.08))!important;
+    border:0.5px solid rgba(201,168,76,0.3)!important;
+  }
+
+  /* ── Toast — glass dark ── */
+  #toast{
+    background:rgba(14,13,11,0.9)!important;
+    backdrop-filter:blur(24px) saturate(180%)!important;
+    -webkit-backdrop-filter:blur(24px) saturate(180%)!important;
+    border:0.5px solid rgba(255,255,255,0.1)!important;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6),0 1px 0 rgba(255,255,255,0.05) inset!important;
+  }
+
+  /* ── Bottom sheets / modals — glass dark ── */
+  .sheet,.modal-box,.bottom-sheet{
+    background:rgba(10,9,8,0.94)!important;
+    backdrop-filter:blur(32px) saturate(200%)!important;
+    -webkit-backdrop-filter:blur(32px) saturate(200%)!important;
+    border-top:0.5px solid rgba(255,255,255,0.08);
+  }
+
+  /* ── Handle badges — spring scale hover ── */
+  #handle-jamie-display,#handle-sophie-display,
+  #handle-jamie-card,#handle-sophie-card{
+    display:inline-block;
+    transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.18s ease;
+    cursor:pointer;
+  }
+  #handle-jamie-display:active,#handle-sophie-display:active,
+  #handle-jamie-card:active,#handle-sophie-card:active{
+    transform:scale(0.92);
+  }
+  @media(hover:hover){
+    #handle-jamie-display:hover,#handle-sophie-display:hover,
+    #handle-jamie-card:hover,#handle-sophie-card:hover{
+      transform:scale(1.08);
+      box-shadow:0 0 0 2px rgba(201,168,76,0.25);
+    }
+  }
+
+  /* ── Calendar days ── */
+  .cal-day{transition:transform 0.18s cubic-bezier(0.34,1.56,0.64,1),background 0.15s ease;}
+  @media(hover:hover){
+    .cal-day:hover:not(.empty){transform:scale(1.06);}
+  }
+
+  /* ── Wishlist + journal cards — glass lift ── */
+  .wishlist-item,.journal-entry{
+    transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.22s ease;
+  }
+  @media(hover:hover){
+    .wishlist-item:hover,.journal-entry:hover{
+      transform:translateY(-2px);
+      box-shadow:0 8px 20px rgba(0,0,0,0.45)!important;
+    }
+  }
+
+  /* ── Vibe cards ── */
+  .vibe-card{
+    transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1),box-shadow 0.22s ease;
+  }
+  .vibe-card.active{
+    box-shadow:0 0 0 1.5px rgba(201,168,76,0.5),0 6px 18px rgba(201,168,76,0.12)!important;
+  }
+  @media(hover:hover){
+    .vibe-card:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 8px 24px rgba(0,0,0,0.45)!important;}
+  }
+
+  /* END STARTUP POLISH */
+
   </style>
 
   <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Table for Two — couple date planning app with AI suggestions, booking, reminders and calendar</h2>
