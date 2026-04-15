@@ -1639,7 +1639,9 @@
     @media(hover:hover){.wh-card:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(0,0,0,0.6);border-color:rgba(201,168,76,0.28)}}
     .wh-card-top{height:130px;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
     .wh-card-top::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 50%,rgba(14,13,11,0.8) 100%)}
-    .wh-card-top-inner{font-size:52px;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.6));z-index:1}
+    .wh-card-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transition:transform 0.4s ease}
+    .wh-card:hover .wh-card-img{transform:scale(1.06)}
+    .wh-card-top-inner{font-size:52px;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.6));z-index:1;position:absolute;display:none;align-items:center;justify-content:center;inset:0}
     .wh-gradient-concert{background:linear-gradient(135deg,#1a0a2e 0%,#2d1b4e 50%,#180d28 100%)}
     .wh-gradient-dining{background:linear-gradient(135deg,#1c0e06 0%,#301805 50%,#1a0c04 100%)}
     .wh-gradient-experience{background:linear-gradient(135deg,#071510 0%,#0d2218 50%,#071410 100%)}
@@ -3462,54 +3464,70 @@
     const WHATS_HOT_DATA=[
       // CONCERTS
       {id:'wh1',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎸',trending:'🔥 Trending',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=80',
        name:'Khruangbin – Rondeaux Tour',venue:'Roundhouse, Camden',date:'Sat 3 May',
        price:'From £45',match:94,booked:312,tags:['Soulful','Intimate atmosphere','Live music']},
       {id:'wh2',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎻',trending:'Rising',trendCls:'rising',
+       img:'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=600&q=80',
        name:'LSO: Ravel & Debussy',venue:'Barbican Centre',date:'Fri 9 May',
        price:'From £28',match:89,booked:204,tags:['Classical','Cultural','Elegant']},
       {id:'wh3',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎹',trending:'New this week',trendCls:'new',
+       img:'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=600&q=80',
        name:'Hania Rani – Piano Portraits',venue:"King's Place, King's Cross",date:'Thu 1 May',
        price:'From £35',match:91,booked:178,tags:['Piano','Atmospheric','Intimate']},
       {id:'wh4',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎷',trending:'🔥 Trending',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&q=80',
        name:"Ronnie Scott's Late Night Jazz",venue:'Frith Street, Soho',date:'Every Fri & Sat',
        price:'From £30',match:88,booked:267,tags:['Jazz','Late night','Iconic venue']},
       // DINING
       {id:'wh5',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥗',trending:'🔥 Trending',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80',
        name:'Ottolenghi ROVI – Spring Menu',venue:'Wells Street, Fitzrovia',date:'Open now',
        price:'£70–85pp',match:96,booked:341,tags:['Mediterranean','Vegetarian','Seasonal']},
       {id:'wh6',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍜',trending:'🔥 Trending',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&q=80',
        name:'Kiln – Northern Thai Fire',venue:'Brewer Street, Soho',date:'Open now',
        price:'£45pp',match:93,booked:227,tags:['Thai','Vibrant','Counter dining']},
       {id:'wh7',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥢',trending:'Rising',trendCls:'rising',
+       img:'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=600&q=80',
        name:'Bossa – Brazilian Izakaya',venue:'Hoxton Square, Shoreditch',date:'Open now',
        price:'£55pp',match:92,booked:196,tags:['Japanese-Brazilian','Cocktails','Intimate']},
       {id:'wh8',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍛',trending:'🔥 Trending',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80',
        name:'Gymkhana – Tasting Menu',venue:'Albemarle Street, Mayfair',date:'Open now',
        price:'£115pp',match:90,booked:289,tags:['Indian fine dining','Refined','Cultural']},
       {id:'wh9',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍱',trending:'New this week',trendCls:'new',
+       img:'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=600&q=80',
        name:'Matsunoki – Omakase Counter',venue:'Marylebone High Street',date:'Open now',
        price:'£95pp',match:95,booked:142,tags:['Japanese','Omakase','Intimate']},
       // EXPERIENCES
       {id:'wh10',cat:'experience',gradient:'wh-gradient-experience',emoji:'🎬',trending:'🔥 Trending',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80',
        name:'Secret Cinema: La Dolce Vita',venue:'Tobacco Dock, Wapping',date:'Every Fri & Sat',
        price:'£49pp',match:95,booked:389,tags:['Italian','Cinematic','Romantic']},
       {id:'wh11',cat:'experience',gradient:'wh-gradient-experience',emoji:'🌿',trending:'Ending soon',trendCls:'ending',
+       img:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&q=80',
        name:'Kew Gardens – Orchid Festival',venue:'Royal Botanic Gardens, Kew',date:'Until 4 May',
        price:'£22pp',match:90,booked:267,tags:['Outdoor','Romantic','Garden']},
       {id:'wh12',cat:'experience',gradient:'wh-gradient-experience',emoji:'🫙',trending:'Rising',trendCls:'rising',
+       img:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80',
        name:'Pottery Date at Turning Earth',venue:'London Fields, Hackney',date:'Saturdays',
        price:'£65pp',match:88,booked:156,tags:['Creative','Intimate','Hands-on']},
       {id:'wh13',cat:'experience',gradient:'wh-gradient-experience',emoji:'🎨',trending:'New this week',trendCls:'new',
+       img:'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&q=80',
        name:'Life Drawing with Wine',venue:'Bermondsey Street, SE1',date:'Wed & Fri evenings',
        price:'£40pp',match:86,booked:118,tags:['Creative','Relaxed','Cultural']},
       // ACTIVITIES
       {id:'wh14',cat:'activity',gradient:'wh-gradient-activity',emoji:'🍸',trending:'🔥 Trending',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=80',
        name:'Cocktail Masterclass – Negroni Ed.',venue:'Cahoots, Kingly Court, Soho',date:'Thursdays',
        price:'£55pp',match:93,booked:219,tags:['Fun','Intimate','Drinks']},
       {id:'wh15',cat:'activity',gradient:'wh-gradient-activity',emoji:'🍜',trending:'Hot',trendCls:'hot',
+       img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&q=80',
        name:'Japanese Ramen Workshop',venue:'Notting Hill Kitchen',date:'Saturdays',
        price:'£70pp',match:97,booked:188,tags:['Japanese','Cooking','Intimate']},
       {id:'wh16',cat:'activity',gradient:'wh-gradient-activity',emoji:'🧘',trending:'Rising',trendCls:'rising',
+       img:'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80',
        name:'Sunrise Yoga at Sky Garden',venue:'20 Fenchurch Street, City',date:'Sun 4 May, 7am',
        price:'£28pp',match:84,booked:143,tags:['Outdoor','Wellness','Active']},
     ];
@@ -3533,6 +3551,7 @@
       feed.innerHTML=items.map(item=>`
         <div class="wh-card">
           <div class="wh-card-top ${item.gradient}">
+            <img class="wh-card-img" src="${item.img}" alt="${item.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="wh-card-top-inner">${item.emoji}</div>
             <div class="wh-trending-pill ${item.trendCls}">${item.trending}</div>
             <div class="wh-match-pill">
