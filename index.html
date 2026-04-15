@@ -235,7 +235,7 @@
   .mnb-inner{display:flex;justify-content:space-around}
   .mnb-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 2px 10px;cursor:pointer;font-size:9.5px;letter-spacing:0.2px;color:var(--ink-muted);min-height:56px;transition:color 0.15s;border-top:2px solid transparent;-webkit-tap-highlight-color:transparent}
   .mnb-item.active{color:var(--rose-dark);border-top-color:var(--rose)}
-  .mnb-icon{font-size:19px;line-height:1.2}
+  .mnb-icon{width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto}
 
   @media(max-width:820px){
     .sidebar{width:200px}
@@ -1145,8 +1145,10 @@
     opacity:0;
   }
   .mnb-item.active::before{transform:translateX(-50%) scale(1);opacity:1}
-  .mnb-icon{transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),color 0.18s!important;display:block}
+  .mnb-icon{transition:transform 0.25s cubic-bezier(0.34,1.56,0.64,1),color 0.18s!important;display:flex;align-items:center;justify-content:center}
+  .mnb-icon svg{transition:stroke-width 0.2s ease}
   .mnb-item.active .mnb-icon{transform:scale(1.22)!important}
+  .mnb-item.active .mnb-icon svg{stroke-width:2.3}
 
   /* — Page entry (section-switch feel) — */
   @keyframes sectionFadeUp{
@@ -2619,24 +2621,53 @@
   <nav class="mobile-nav-bar" aria-label="Main navigation">
     <div class="mnb-inner">
       <div class="mnb-item active" id="mnb-discover" onclick="mobileGo('discover',this)">
-        <div class="mnb-icon">✦</div>
+        <div class="mnb-icon">
+          <!-- Flame — Tinder-style hollow -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C8.5 6.5 7 10 7 13a5 5 0 0 0 10 0c0-2.5-1.5-5-3-6.5-.5 2-1.5 3.5-2 4.5C12 9 12 5.5 12 2z"/>
+          </svg>
+        </div>
         <div>Discover</div>
       </div>
       <div class="mnb-item" id="mnb-restaurants" onclick="mobileGo('restaurants',this)">
-        <div class="mnb-icon">◈</div>
-        <div>Dining</div>
+        <div class="mnb-icon">
+          <!-- Fork + knife — Eat -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 2v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/>
+            <line x1="7" y1="9" x2="7" y2="22"/>
+            <line x1="21" y1="2" x2="21" y2="22"/>
+            <path d="M21 7a3 3 0 0 0-3-3V2"/>
+          </svg>
+        </div>
+        <div>Eat</div>
       </div>
       <div class="mnb-item" id="mnb-experiences" onclick="mobileGo('experiences',this)">
-        <div class="mnb-icon">◎</div>
-        <div>Experiences</div>
+        <div class="mnb-icon">
+          <!-- Star — Do -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </div>
+        <div>Do</div>
       </div>
       <div class="mnb-item" id="mnb-planner" onclick="mobileGo('planner',this)">
-        <div class="mnb-icon">◫</div>
-        <div>Planner</div>
+        <div class="mnb-icon">
+          <!-- Zap / lightning — What's Hot -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+          </svg>
+        </div>
+        <div>What's Hot</div>
       </div>
       <div class="mnb-item" id="mnb-more" onclick="mobileGo('bookings',this)">
-        <div class="mnb-icon">◉</div>
-        <div>My Dates</div>
+        <div class="mnb-icon">
+          <!-- Compass — Hub -->
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+        </div>
+        <div>Hub</div>
       </div>
     </div>
   </nav>
