@@ -1959,33 +1959,28 @@
 
       <main class="main">
         <!-- Mobile-only header -->
-        <div class="mobile-header">
-          <div style="display:flex;align-items:center;gap:8px">
-            <!-- T4T monogram logo — inline SVG -->
-            <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
-              <defs>
-                <linearGradient id="t4t-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
-                  <stop offset="0%" stop-color="#D4B86A"/>
-                  <stop offset="50%" stop-color="#C9A84C"/>
-                  <stop offset="100%" stop-color="#8B6914"/>
-                </linearGradient>
-              </defs>
-              <!-- Table top bar -->
-              <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-grad)"/>
-              <!-- Left T leg -->
-              <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
-              <!-- Right T leg -->
-              <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
-              <!-- 4 crossbar -->
-              <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-grad)"/>
-              <!-- 4 vertical -->
-              <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-grad)"/>
-            </svg>
-            <div>
-              <div class="mobile-logo" style="font-size:16px!important">Table for Two</div>
-              <div class="mobile-page-title" id="mobile-page-title">Discover</div>
-            </div>
+        <div class="mobile-header" style="justify-content:space-between;align-items:center">
+          <!-- Left: brand text -->
+          <div>
+            <div class="mobile-logo" style="font-size:16px!important">Table for Two</div>
+            <div class="mobile-page-title" id="mobile-page-title">Discover</div>
           </div>
+          <!-- Center: T4T monogram logo -->
+          <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+            <defs>
+              <linearGradient id="t4t-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#D4B86A"/>
+                <stop offset="50%" stop-color="#C9A84C"/>
+                <stop offset="100%" stop-color="#8B6914"/>
+              </linearGradient>
+            </defs>
+            <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-grad)"/>
+            <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
+            <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
+            <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-grad)"/>
+            <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-grad)"/>
+          </svg>
+          <!-- Right: couple pill -->
           <div class="couple-pill" style="padding:5px 10px" onclick="mobileGo('profiles',document.getElementById('mnb-more'))">
             <div class="couple-avatars">
               <div class="avatar avatar-a">JM</div>
