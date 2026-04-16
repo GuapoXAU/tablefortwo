@@ -4383,15 +4383,47 @@
           html+='<div style="padding:12px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border-radius:var(--r-md);border-left:3px solid var(--rose);margin-bottom:1rem"><div style="font-size:11px;font-weight:600;color:var(--rose-dark);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">'+rec.icon+' Our recommendation</div><div style="font-size:13px;color:var(--ink-soft);line-height:1.55">'+rec.text+'</div></div>';
           html+='<div style="display:flex;flex-direction:column;gap:10px">';
 
+          // Generate next departures for bus/tube based on current time
+          function _nextDepartures(type){
+            const now=new Date();
+            const deps=[];
+            // First departure 1-6 min from now, then every 3-8 min
+            let offset=1+Math.floor(Math.random()*5);
+            for(let i=0;i<3;i++){
+              const dep=new Date(now.getTime()+offset*60000);
+              const h=dep.getHours();const m=dep.getMinutes();
+              deps.push({time:String(h).padStart(2,'0')+':'+String(m).padStart(2,'0'),mins:offset});
+              offset+=type==='bus'?(4+Math.floor(Math.random()*6)):(3+Math.floor(Math.random()*5));
+            }
+            return deps;
+          }
+
           opts.forEach((o,i)=>{
             const highlight=o.badge==='Best overall'||o.badge==='Best value';
             const isFree=o.cost===0;
+            // Build next departures HTML for bus/tube
+            let depsHtml='';
+            if(o.type==='bus'||o.type==='tube'){
+              const deps=_nextDepartures(o.type);
+              const label=o.type==='bus'?'Next buses':'Next trains';
+              depsHtml='<div style="display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap">'
+                +'<span style="font-size:10px;color:var(--ink-muted);font-weight:500">'+label+':</span>'
+                +deps.map((d,j)=>{
+                  const isNext=j===0;
+                  return '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px;font-size:11px;font-weight:'+(isNext?'700':'500')+';'
+                    +(isNext?'background:rgba(74,222,128,0.12);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)':'background:rgba(255,255,255,0.06);color:var(--ink-muted);border:0.5px solid rgba(255,255,255,0.08)')
+                    +'">'+(isNext?'<span style="width:5px;height:5px;border-radius:50%;background:#4ADE80;flex-shrink:0;animation:dotPulse 1.2s ease-in-out infinite"></span>':'')
+                    +d.time+(isNext?' · '+d.mins+' min':'')+'</span>';
+                }).join('')
+                +'</div>';
+            }
             html+='<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:'+(highlight?'1.5px solid var(--rose)':'0.5px solid var(--bdr)')+';border-radius:var(--r-md);background:'+(highlight?'var(--rose-light)':'var(--bg2)')+';">';
             html+='<div style="font-size:26px;width:36px;text-align:center;flex-shrink:0">'+o.icon+'</div>';
             html+='<div style="flex:1;min-width:0">';
             html+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--ink)">'+o.mode+'</span>'+(o.badge?'<span class="badge badge-rose" style="font-size:10px">'+o.badge+'</span>':'')+'</div>';
             html+='<div style="display:flex;gap:14px;align-items:baseline;margin-bottom:4px"><span style="font-size:12px;color:var(--ink-soft)">⏱ ~'+o.time+' min</span><span style="font-size:14px;font-weight:600;color:'+(highlight?'var(--rose-dark)':'var(--ink)')+'">'+o.costStr+'</span></div>';
             html+='<div style="font-size:11px;color:var(--ink-muted);line-height:1.45">'+o.desc+'</div>';
+            html+=depsHtml;
             html+='</div>';
             if(o.type==='walk'){
               html+='<button class="btn btn-sm" onclick="openMaps(\''+encodeURIComponent(fromVal)+'\',\''+encodeURIComponent(toVal)+'\')">Map →</button>';
@@ -4422,8 +4454,187 @@
         const t=document.getElementById('cab-to').value;
         const d=document.getElementById('cab-date').value||new Date().toISOString().slice(0,10);
         const time=document.getElementById('cab-time').value;
-        bookings.push({id:Date.now(),type:'cab',name:f+' → '+t,date:d,meta:o.mode+(time?' · '+time:'')+' · 2 passengers',amount:o.costStr,icon:'🚗'});
-        updateStats();renderBookings();toast('✦ '+o.mode+' booked — '+f+' to '+t);
+        const baseCost=o.cost||14;
+        // Generate Uber vs Bolt pricing
+        const uberStd=baseCost;
+        const uberComfort=Math.round(baseCost*1.45);
+        const boltStd=Math.max(baseCost-2,Math.round(baseCost*0.88));
+        const boltXL=Math.round(baseCost*1.35);
+        const etaMins=Math.round(3+Math.random()*5);
+        const area=document.getElementById('transport-results');
+        // Step 1: Loading
+        area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Finding rides near you…</div></div></div>`;
+        setTimeout(()=>{
+          // Step 2: Comparing
+          area.innerHTML=`<div class="card"><div class="loading-overlay">
+            <div style="display:flex;gap:16px;align-items:center;margin-bottom:8px">
+              <div style="font-size:18px;font-weight:800;color:#fff;letter-spacing:-0.3px">Uber</div>
+              <span style="font-size:13px;color:var(--ink-muted)">vs</span>
+              <div style="font-size:18px;font-weight:800;color:#34D186;letter-spacing:-0.3px">Bolt</div>
+            </div>
+            <div class="bf-pulse-dots"><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div></div>
+            <div class="loading-text" style="margin-top:8px">Comparing prices for ${f} → ${t}…</div>
+          </div></div>`;
+          setTimeout(()=>{
+            // Step 3: Results with price comparison
+            const driver=_bfDrivers[Math.floor(Math.random()*_bfDrivers.length)];
+            area.innerHTML=`
+              <div class="card" style="margin-bottom:1rem">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">Choose your ride</div>
+                    <div class="card-sub">${f} → ${t} · ~${o.time} min · ${etaMins} min pickup</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <!-- Uber options -->
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                    <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px">Uber</span>
+                    <span style="font-size:10px;color:var(--ink-muted)">· ${etaMins} min away</span>
+                  </div>
+                  <div class="bf-transport-opt" onclick="confirmTransportRide('Uber','UberX','${f}','${t}','${d}','${time}',${uberStd},${o.time},'🚗')" style="margin-bottom:6px">
+                    <span style="font-size:22px">🚗</span>
+                    <div style="flex:1">
+                      <div style="font-size:13px;font-weight:600;color:var(--ink)">UberX</div>
+                      <div style="font-size:11px;color:var(--ink-muted)">Standard · 4 seats · ${o.time} min</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:15px;font-weight:700;color:var(--ink)">£${uberStd}</div>
+                    </div>
+                  </div>
+                  <div class="bf-transport-opt" onclick="confirmTransportRide('Uber','Uber Comfort','${f}','${t}','${d}','${time}',${uberComfort},${o.time},'🚘')" style="margin-bottom:16px">
+                    <span style="font-size:22px">🚘</span>
+                    <div style="flex:1">
+                      <div style="font-size:13px;font-weight:600;color:var(--ink)">Uber Comfort</div>
+                      <div style="font-size:11px;color:var(--ink-muted)">Premium · Extra legroom · ${o.time} min</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:15px;font-weight:700;color:var(--ink)">£${uberComfort}</div>
+                    </div>
+                  </div>
+                  <!-- Bolt options -->
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                    <span style="font-size:16px;font-weight:800;color:#34D186;letter-spacing:-0.3px">Bolt</span>
+                    <span style="font-size:10px;color:var(--ink-muted)">· ${etaMins+1} min away</span>
+                    ${boltStd<uberStd?'<span class="badge" style="background:rgba(74,222,128,0.12);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3);font-size:9px">Cheapest</span>':''}
+                  </div>
+                  <div class="bf-transport-opt${boltStd<uberStd?' highlight':''}" onclick="confirmTransportRide('Bolt','Bolt Standard','${f}','${t}','${d}','${time}',${boltStd},${o.time},'🚗')" style="margin-bottom:6px">
+                    <span style="font-size:22px">🚗</span>
+                    <div style="flex:1">
+                      <div style="font-size:13px;font-weight:600;color:var(--ink)">Bolt Standard</div>
+                      <div style="font-size:11px;color:var(--ink-muted)">Standard · 4 seats · ${o.time} min</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:15px;font-weight:700;color:${boltStd<uberStd?'#4ADE80':'var(--ink)'}">£${boltStd}</div>
+                      ${boltStd<uberStd?'<div style="font-size:10px;color:#4ADE80;font-weight:500">Save £'+(uberStd-boltStd)+'</div>':''}
+                    </div>
+                  </div>
+                  <div class="bf-transport-opt" onclick="confirmTransportRide('Bolt','Bolt XL','${f}','${t}','${d}','${time}',${boltXL},${o.time},'🚐')">
+                    <span style="font-size:22px">🚐</span>
+                    <div style="flex:1">
+                      <div style="font-size:13px;font-weight:600;color:var(--ink)">Bolt XL</div>
+                      <div style="font-size:11px;color:var(--ink-muted)">Spacious · 6 seats · ${o.time} min</div>
+                    </div>
+                    <div style="text-align:right">
+                      <div style="font-size:15px;font-weight:700;color:var(--ink)">£${boltXL}</div>
+                    </div>
+                  </div>
+                  <button class="btn" style="width:100%;justify-content:center;padding:10px;font-size:12px;margin-top:12px" onclick="findTransportOptions()">← Back to all options</button>
+                </div>
+              </div>`;
+          },1200);
+        },1000);
+      }
+
+      function confirmTransportRide(provider,tier,from,to,date,time,cost,mins,icon){
+        const area=document.getElementById('transport-results');
+        const driver=_bfDrivers[Math.floor(Math.random()*_bfDrivers.length)];
+        // Loading: booking
+        area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Booking your ${provider} ${tier}…</div></div></div>`;
+        setTimeout(()=>{
+          // Connecting to driver
+          area.innerHTML=`<div class="card"><div class="loading-overlay">
+            <div style="font-size:40px;margin-bottom:8px;animation:confirmPop 0.4s cubic-bezier(0.34,1.56,0.64,1)">🚕</div>
+            <div style="display:flex;flex-direction:column;gap:8px;text-align:left;width:100%;max-width:300px">
+              <div class="bf-gen-line" style="animation-delay:0s"><div class="bf-gen-dot"></div><div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9)">Driver found</div></div>
+              <div class="bf-gen-line" style="animation-delay:0.3s"><div class="bf-gen-dot" style="animation-delay:0.3s"></div><div style="font-size:13px;color:rgba(255,255,255,0.6)">${driver.name} · ${driver.car}</div></div>
+              <div class="bf-gen-line" style="animation-delay:0.6s"><div class="bf-gen-dot" style="animation-delay:0.6s"></div><div style="font-size:13px;color:rgba(255,255,255,0.6)">Confirming pickup…</div></div>
+            </div>
+            <div class="bf-pulse-dots" style="margin-top:16px"><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div></div>
+          </div></div>`;
+          setTimeout(()=>{
+            // Confirmed
+            bookings.push({id:Date.now(),type:'cab',name:from+' → '+to,date,meta:provider+' '+tier+(time?' · '+time:'')+' · '+driver.name+' · '+driver.car,amount:'£'+cost,icon:'🚗'});
+            updateStats();renderBookings();_saveState();
+            const provColor=provider==='Bolt'?'#34D186':'#fff';
+            area.innerHTML=`
+              <div class="card" style="margin-bottom:1rem">
+                <div class="card-body" style="padding:20px">
+                  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+                    <div class="bf-confirm-success-ring" style="width:48px;height:48px;font-size:20px;margin:0;flex-shrink:0">✓</div>
+                    <div>
+                      <div style="font-size:18px;font-weight:700;color:var(--ink)">Ride booked!</div>
+                      <div style="font-size:12px;color:var(--ink-muted);margin-top:2px"><span style="font-weight:700;color:${provColor}">${provider}</span> ${tier}</div>
+                    </div>
+                  </div>
+                  <!-- Driver card -->
+                  <div style="border-radius:14px;overflow:hidden;border:0.5px solid rgba(255,255,255,0.09);margin-bottom:14px">
+                    <div class="bf-map">
+                      <svg width="100%" height="100%" style="position:absolute;inset:0;opacity:0.18" preserveAspectRatio="none">
+                        <line x1="0" y1="40%" x2="100%" y2="40%" stroke="#8B6914" stroke-width="0.8"/>
+                        <line x1="0" y1="70%" x2="100%" y2="70%" stroke="#8B6914" stroke-width="0.8"/>
+                        <line x1="25%" y1="0" x2="25%" y2="100%" stroke="#8B6914" stroke-width="0.8"/>
+                        <line x1="60%" y1="0" x2="60%" y2="100%" stroke="#8B6914" stroke-width="0.8"/>
+                        <path d="M 28% 80% Q 50% 50% 62% 22%" stroke="#C9A84C" stroke-width="2" fill="none" stroke-dasharray="5,3" opacity="0.8"/>
+                      </svg>
+                      <div style="position:absolute;bottom:22px;left:26%;transform:translateX(-50%)"><div style="width:10px;height:10px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 4px rgba(74,222,128,0.2)"></div></div>
+                      <div style="position:absolute;top:14px;left:60%;transform:translateX(-50%)"><div style="width:10px;height:10px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px rgba(201,168,76,0.2)"></div></div>
+                      <div style="position:absolute;bottom:30px;left:32%"><div class="bf-map-car">🚕</div></div>
+                      <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);border-radius:20px;padding:5px 11px;display:flex;align-items:center;gap:6px">
+                        <div style="width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:dotPulse 1s ease-in-out infinite"></div>
+                        <span style="font-size:12px;font-weight:700;color:#fff">${driver.eta} min away</span>
+                      </div>
+                      <div style="position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);border-radius:20px;padding:5px 11px"><span style="font-size:12px;font-weight:700;color:#fff">£${cost}</span></div>
+                    </div>
+                    <div style="background:var(--card);padding:14px 16px;display:flex;align-items:center;gap:12px;border-top:0.5px solid rgba(255,255,255,0.06)">
+                      <div class="bf-driver-avatar" style="background:${driver.color};width:44px;height:44px;font-size:14px;flex-shrink:0">${driver.initials}</div>
+                      <div style="flex:1">
+                        <div style="font-size:14px;font-weight:700;color:#fff">${driver.name}</div>
+                        <div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+                          <span style="font-size:12px;color:#FCD34D;font-weight:600">★ ${driver.rating}</span>
+                          <span style="font-size:11px;color:var(--subtle)">· ${driver.trips} trips</span>
+                        </div>
+                      </div>
+                      <div style="text-align:right;flex-shrink:0">
+                        <div style="font-family:monospace;font-size:12px;font-weight:700;letter-spacing:2px;color:#fff;background:rgba(255,255,255,0.08);border:0.5px solid rgba(255,255,255,0.14);border-radius:7px;padding:4px 8px">${driver.reg}</div>
+                        <div style="font-size:10px;color:var(--subtle);margin-top:3px">${driver.car}</div>
+                      </div>
+                    </div>
+                    <div style="background:rgba(255,255,255,0.03);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-top:0.5px solid rgba(255,255,255,0.05)">
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <div style="width:8px;height:8px;border-radius:50%;background:#4ADE80"></div>
+                        <span style="font-size:12px;color:var(--ink)">${from}</span>
+                      </div>
+                      <span style="font-size:11px;color:var(--ink-muted)">~${mins} min</span>
+                      <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font-size:12px;color:var(--ink)">${to}</span>
+                        <div style="width:8px;height:8px;border-radius:50%;background:var(--primary)"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+                    <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">💳 Pay in app</span>
+                    <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation (5 min)</span>
+                  </div>
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button class="btn btn-sm" onclick="go('planner',document.querySelector('[onclick*=planner]'))">📅 Add to planner</button>
+                    <button class="btn btn-sm" onclick="findTransportOptions()">← Back</button>
+                  </div>
+                </div>
+              </div>`;
+            toast('✦ '+provider+' '+tier+' booked · '+driver.name+' is on the way');
+          },2000);
+        },1400);
       }
 
       function bookReturnCab(from,to,cost){
