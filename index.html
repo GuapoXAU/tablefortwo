@@ -2319,27 +2319,25 @@
               <div class="tab" onclick="switchTab(this,'rest-featured')">Curated for you</div>
             </div>
             <div id="rest-find">
-              <div class="card">
+              <div class="card" id="rest-form-card">
                 <div class="card-head"><div class="card-title">Reserve a table</div></div>
                 <div class="card-body">
                   <div class="g2">
                     <div class="form-group"><label class="form-label">Restaurant or cuisine</label><input type="text" class="form-input" placeholder="Name, cuisine or area" id="rest-q"></div>
-                    <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-input" placeholder="Neighbourhood or city" value="London"></div>
+                    <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-input" placeholder="Neighbourhood or city" value="London" id="rest-loc"></div>
                   </div>
                   <div class="g3">
                     <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="rest-date"></div>
-                    <div class="form-group"><label class="form-label">Time</label><select class="form-input"><option>19:00</option><option>19:30</option><option>20:00</option><option>20:30</option><option>21:00</option></select></div>
-                    <div class="form-group"><label class="form-label">Covers</label><select class="form-input"><option>2</option><option>3</option><option>4</option></select></div>
+                    <div class="form-group"><label class="form-label">Time</label><select class="form-input" id="rest-time"><option>19:00</option><option>19:30</option><option>20:00</option><option>20:30</option><option>21:00</option></select></div>
+                    <div class="form-group"><label class="form-label">Covers</label><select class="form-input" id="rest-covers"><option>2</option><option>3</option><option>4</option></select></div>
                   </div>
                   <div class="form-group"><label class="form-label">Dietary — we've noted Sophie is vegetarian</label>
                     <input type="text" class="form-input" value="Vegetarian options required" readonly style="color:var(--ink-muted)">
                   </div>
-                  <div style="display:flex;gap:10px;margin-top:4px">
-                    <button class="btn btn-rose" onclick="bookRest()">Reserve table</button>
-                    <button class="btn btn-sm" onclick="go('planner',document.querySelector('[onclick*=planner]'))">+ Add to date planner</button>
-                  </div>
+                  <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;font-size:14px;border-radius:10px;margin-top:4px" onclick="checkRestAvailability()">Check availability ✦</button>
                 </div>
               </div>
+              <div id="rest-results"></div>
             </div>
             <div id="rest-featured" style="display:none">
               <div class="g3">
@@ -2603,6 +2601,17 @@
                 <button class="btn btn-sm" onclick="setFilter('cab',this)">Transport</button>
               </div></div>
               <div class="card-body" id="bookings-list"></div>
+            </div>
+            <!-- Saved wishlist on Hub -->
+            <div class="card" style="margin-top:1.25rem">
+              <div class="card-head">
+                <div>
+                  <div class="card-title">💫 Your Wishlist</div>
+                  <div class="card-sub">Saved restaurants & activities to revisit later</div>
+                </div>
+                <button class="btn btn-sm" onclick="go('wishlist',document.querySelector('[onclick*=wishlist]'))">View all →</button>
+              </div>
+              <div class="card-body" id="hub-wishlist"></div>
             </div>
           </div>
 
@@ -2934,7 +2943,7 @@
         }
         const mt=document.getElementById('mobile-page-title');if(mt)mt.textContent=id==='discover'?'Discover':(TITLES[id]||id);
         if(id==='planner')renderCal();
-        if(id==='bookings'||id==='discover'){renderBookings();updateStats();}
+        if(id==='bookings'||id==='discover'){renderBookings();updateStats();renderHubWishlist();}
         if(id==='planner')renderReminders();
         if(id==='journal')renderJournal();
         if(id==='wishlist')renderWishlist();
@@ -4020,12 +4029,149 @@
         updateStats();renderBookings();toast('✦ Added to your dates — '+name);
       }
 
-      function bookRest(){
-        const q=document.getElementById('rest-q').value||'Restaurant';
-        const d=document.getElementById('rest-date').value||new Date().toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type:'restaurant',name:q,date:d,meta:'2 covers',amount:'£80',icon:'🍽️'});
-        updateStats();toast('✦ Table reserved at '+q);
+      // ── Restaurant availability check flow ──
+      const _REST_DB=[
+        {name:'Dishoom',area:'Covent Garden',cuisine:'Indian',img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=320&fit=crop&q=80',price:'avg. £33pp',rating:'4.8',reviews:'2,340',veg:true,vibes:['Intimate','Buzzy']},
+        {name:'Sketch',area:'Mayfair',cuisine:'Modern European',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',rating:'4.7',reviews:'1,890',veg:true,vibes:['Unique','Elegant']},
+        {name:'Ottolenghi',area:'Islington',cuisine:'Mediterranean',img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',rating:'4.6',reviews:'1,420',veg:true,vibes:['Casual','Fresh']},
+        {name:'Padella',area:'Borough',cuisine:'Italian',img:'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',rating:'4.7',reviews:'3,100',veg:true,vibes:['Romantic','Intimate']},
+        {name:'Kiln',area:'Soho',cuisine:'Thai',img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',rating:'4.8',reviews:'1,670',veg:false,vibes:['Vibrant','Counter dining']},
+        {name:'Brat',area:'Shoreditch',cuisine:'Modern British',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',rating:'4.9',reviews:'980',veg:false,vibes:['Intimate','Fire-cooked']},
+        {name:'Gymkhana',area:'Mayfair',cuisine:'Indian',img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',rating:'4.8',reviews:'1,240',veg:true,vibes:['Refined','Cultural']},
+        {name:'The Ivy',area:'Covent Garden',cuisine:'British',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',rating:'4.5',reviews:'4,200',veg:true,vibes:['Classic','Elegant']},
+        {name:'Hakkasan',area:'Mayfair',cuisine:'Chinese',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',rating:'4.7',reviews:'2,100',veg:true,vibes:['Moody','Romantic']},
+        {name:'Bob Bob Ricard',area:'Soho',cuisine:'Anglo-Russian',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',rating:'4.6',reviews:'1,560',veg:true,vibes:['Glamorous','Fun']},
+      ];
+
+      function checkRestAvailability(){
+        const q=(document.getElementById('rest-q').value||'').trim();
+        const loc=(document.getElementById('rest-loc').value||'London').trim();
+        const date=document.getElementById('rest-date').value||new Date().toISOString().slice(0,10);
+        const time=document.getElementById('rest-time').value;
+        const covers=document.getElementById('rest-covers').value;
+        if(!q){toast('Please enter a restaurant name or cuisine');return;}
+        const area=document.getElementById('rest-results');
+        const qLow=q.toLowerCase();
+
+        // Show loading
+        area.innerHTML=`<div class="card" style="margin-top:1rem"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Checking availability for "${q}"…</div></div></div>`;
+
+        setTimeout(()=>{
+          // Match restaurants from DB
+          let matches=_REST_DB.filter(r=>
+            r.name.toLowerCase().includes(qLow)||
+            r.cuisine.toLowerCase().includes(qLow)||
+            r.area.toLowerCase().includes(qLow)
+          );
+          // If no match, pick 3 random as suggestions
+          if(!matches.length){
+            const shuffled=[..._REST_DB].sort(()=>Math.random()-0.5);
+            matches=shuffled.slice(0,3);
+          }
+          matches=matches.slice(0,3);
+
+          // Generate fake availability per result
+          const dateObj=new Date(date+'T12:00:00');
+          const dateStr=dateObj.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+          const ref='T4T-'+Math.random().toString(36).slice(2,6).toUpperCase();
+
+          area.innerHTML=`
+            <div style="margin-top:1rem">
+              <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtle);margin-bottom:12px">
+                ${matches.some(r=>r.name.toLowerCase().includes(qLow))?'Results for "'+q+'"':'We couldn\'t find "'+q+'" — here are some suggestions'}
+              </div>
+              ${matches.map((r,i)=>{
+                const avail=Math.random()>0.2;
+                const altTime=avail?time:(parseInt(time)>=20?'19:30':'20:30');
+                const slots=[time];
+                if(!avail)slots[0]=altTime;
+                const halfHourBefore=parseInt(slots[0])-0.5>=18?(parseInt(slots[0].split(':')[0])-0)+':'+(parseInt(slots[0].split(':')[1]||0)===0?'30':'00'):'';
+                const halfHourAfter=parseInt(slots[0].split(':')[0])+(parseInt(slots[0].split(':')[1]||0)===30?1:0)+':'+(parseInt(slots[0].split(':')[1]||0)===0?'30':'00');
+
+                return `<div class="card" style="margin-bottom:12px;overflow:hidden">
+                  <div style="display:flex;gap:0">
+                    <div style="width:110px;flex-shrink:0;overflow:hidden;position:relative">
+                      <img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;min-height:180px" onerror="this.parentElement.innerHTML='<div style=\\'height:180px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2)\\'>🍽️</div>'">
+                    </div>
+                    <div style="flex:1;padding:14px 16px">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                        <div style="font-size:15px;font-weight:700;color:var(--ink)">${r.name}</div>
+                        <div style="display:flex;align-items:center;gap:3px;font-size:11px;color:#FCD34D;font-weight:600">★ ${r.rating}</div>
+                      </div>
+                      <div style="font-size:11px;color:var(--ink-muted);margin-bottom:6px">${r.area} · ${r.cuisine} · ${r.reviews} reviews</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
+                        ${r.vibes.map(v=>'<span class="badge badge-rose" style="font-size:10px">'+v+'</span>').join('')}
+                        ${r.veg?'<span class="badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.25);font-size:10px">✓ Veg-friendly</span>':''}
+                      </div>
+                      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px">${r.price}</div>
+                      <div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--bdr)">
+                        ${avail?`
+                          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
+                            <div style="width:8px;height:8px;border-radius:50%;background:#4ADE80"></div>
+                            <span style="font-size:12px;font-weight:600;color:#4ADE80">Available</span>
+                            <span style="font-size:11px;color:var(--ink-muted)">${dateStr} · ${time} · ${covers} covers</span>
+                          </div>
+                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area}','${date}','${time}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve this table ✦</button>
+                        `:`
+                          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+                            <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div>
+                            <span style="font-size:12px;font-weight:600;color:#F59E0B">Busy at ${time}</span>
+                            <span style="font-size:11px;color:var(--ink-muted)">${dateStr}</span>
+                          </div>
+                          <div style="font-size:11px;color:var(--ink-muted);margin-bottom:8px">Nearest available: <strong style="color:var(--ink)">${altTime}</strong></div>
+                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area}','${date}','${altTime}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve at ${altTime} ✦</button>
+                        `}
+                      </div>
+                    </div>
+                  </div>
+                </div>`;
+              }).join('')}
+              <button class="btn" style="width:100%;justify-content:center;padding:10px;font-size:12px;margin-top:4px" onclick="document.getElementById('rest-results').innerHTML='';document.getElementById('rest-q').focus()">← Search again</button>
+            </div>`;
+        },1400);
       }
+
+      function confirmRestBooking(name,area,date,time,covers,price,ref){
+        const results=document.getElementById('rest-results');
+        // Show confirming state
+        results.innerHTML=`<div class="card" style="margin-top:1rem"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Securing your table at ${name}…</div></div></div>`;
+        setTimeout(()=>{
+          const dateObj=new Date(date+'T12:00:00');
+          const dateStr=dateObj.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+          bookings.push({id:Date.now(),type:'restaurant',name:name+', '+area,date,meta:time+' · '+covers+' covers',amount:price,icon:'🍽️'});
+          updateStats();renderBookings();_saveState();
+          results.innerHTML=`
+            <div class="card" style="margin-top:1rem">
+              <div class="card-body" style="text-align:center;padding:24px 20px">
+                <div class="bf-confirm-success-ring">✓</div>
+                <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Table reserved!</div>
+                <div style="font-size:13px;color:var(--ink-muted);margin-bottom:16px">Confirmation sent to your email</div>
+                <div class="bf-ref-badge" style="margin-bottom:16px">${ref}</div>
+                <div style="background:var(--bg2);border:0.5px solid var(--bdr);border-radius:14px;padding:14px;text-align:left;margin-bottom:16px">
+                  <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">🍽️ ${name}</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Date</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${dateStr}</div></div>
+                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Time</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${time}</div></div>
+                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Covers</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${covers} guests</div></div>
+                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Est. total</div><div style="font-size:12px;font-weight:600;color:var(--rose-dark)">${price}</div></div>
+                  </div>
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+                    <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">💳 Pay at venue</span>
+                    <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+                  <button class="btn btn-rose btn-sm" onclick="go('cabs',document.querySelector('[onclick*=cabs]'))">Book transport →</button>
+                  <button class="btn btn-sm" onclick="go('planner',document.querySelector('[onclick*=planner]'))">📅 Add to planner</button>
+                  <button class="btn btn-sm" onclick="document.getElementById('rest-results').innerHTML='';document.getElementById('rest-q').value=''">Search again</button>
+                </div>
+              </div>
+            </div>`;
+          toast('✦ Table reserved at '+name);
+        },1800);
+      }
+
+      function bookRest(){checkRestAvailability();}
       function bookHotel(){
         const d=document.getElementById('hotel-dest').value||'Hotel';
         const ci=document.getElementById('hotel-in').value||new Date().toISOString().slice(0,10);
@@ -5000,6 +5146,25 @@
         document.querySelectorAll('#page-wishlist .btn').forEach(b=>b.classList.remove('btn-rose'));
         if(btn)btn.classList.add('btn-rose');
         renderWishlist();
+      }
+      function renderHubWishlist(){
+        const el=document.getElementById('hub-wishlist');
+        if(!el)return;
+        const todo=_wishlist.filter(w=>!w.done);
+        if(!todo.length){
+          el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink-muted)"><div style="font-size:28px;margin-bottom:8px">💫</div><div style="font-size:12px">No saved ideas yet — swipe right on Discover or tap save on What\'s Hot</div></div>';
+          return;
+        }
+        el.innerHTML=todo.slice(0,5).map(w=>`<div class="wish-card" style="margin-bottom:6px">
+          <div class="wish-check${w.done?' checked':''}" onclick="toggleWishDone(${w.id});renderHubWishlist()">${w.done?'✓':''}</div>
+          <div style="flex:1">
+            <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px">${w.name}</div>
+            ${w.price?'<div style="font-size:11px;color:var(--ink-muted)">'+w.price+'</div>':''}
+            ${w.why?'<div style="font-size:11px;color:var(--ink-muted);margin-top:3px;font-style:italic">✦ '+w.why+'</div>':''}
+          </div>
+          <button class="btn btn-sm btn-rose" style="flex-shrink:0;font-size:10px;padding:5px 10px" onclick="quickBook('${w.name.replace(/'/g,"\\'")}','experience','${(w.price||'').replace(/'/g,"\\'")}')">Book ✦</button>
+        </div>`).join('')
+        +(todo.length>5?'<div style="text-align:center;margin-top:8px"><span style="font-size:12px;color:var(--rose);cursor:pointer" onclick="go(\'wishlist\',document.querySelector(\'[onclick*=wishlist]\'))">+'+(todo.length-5)+' more →</span></div>':'');
       }
       function renderWishlist(){
         const el=document.getElementById('wishlist-items');
