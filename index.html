@@ -2034,11 +2034,7 @@
                   <div style="display:flex;gap:8px;flex-wrap:wrap" id="date-occasion">
                     <div class="occasion-chip active" onclick="selectOccasion(this,'first_date')"><span class="occasion-icon">✨</span><span>First date</span></div>
                     <div class="occasion-chip" onclick="selectOccasion(this,'partner')"><span class="occasion-icon">♥</span><span>My partner</span></div>
-                    <div class="occasion-chip" onclick="selectOccasion(this,'valentines')"><span class="occasion-icon">💝</span><span>Valentine's</span></div>
-                    <div class="occasion-chip" onclick="selectOccasion(this,'anniversary')"><span class="occasion-icon">💍</span><span>Anniversary</span></div>
-                    <div class="occasion-chip" onclick="selectOccasion(this,'birthday')"><span class="occasion-icon">🎂</span><span>Birthday</span></div>
-                    <div class="occasion-chip" onclick="selectOccasion(this,'proposal')"><span class="occasion-icon">💎</span><span>Proposal</span></div>
-                    <div class="occasion-chip" onclick="selectOccasion(this,'celebration')"><span class="occasion-icon">🥂</span><span>Celebration</span></div>
+                    <div class="occasion-chip" id="special-occasion-trigger" onclick="openSpecialOccasionPicker(this)"><span class="occasion-icon">◈</span><span id="special-chip-label">Special occasion</span></div>
                     <div class="occasion-chip" onclick="selectOccasion(this,'just_because')"><span class="occasion-icon">♡</span><span>Just because</span></div>
                   </div>
                 </div>
@@ -2767,6 +2763,24 @@
 
       <div class="toast" id="toast"></div>
 
+      <!-- ── Special occasion picker overlay ── -->
+      <div id="special-occasion-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeSpecialOccasionPicker()">
+        <div class="mood-sheet" style="padding-bottom:36px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div style="font-size:16px;font-weight:700;color:var(--ink)">What's the occasion?</div>
+            <button class="btn btn-sm" onclick="closeSpecialOccasionPicker()">✕</button>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div class="bf-transport-opt" onclick="pickSpecialOccasion('valentines','💝','Valentine\'s')"><span style="font-size:22px">💝</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Valentine's</div><div style="font-size:11px;color:var(--ink-muted)">The most romantic night of the year</div></div></div>
+            <div class="bf-transport-opt" onclick="pickSpecialOccasion('anniversary','💍','Anniversary')"><span style="font-size:22px">💍</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Anniversary</div><div style="font-size:11px;color:var(--ink-muted)">Celebrate how far you've come</div></div></div>
+            <div class="bf-transport-opt" onclick="pickSpecialOccasion('birthday','🎂','Birthday')"><span style="font-size:22px">🎂</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Birthday</div><div style="font-size:11px;color:var(--ink-muted)">Make their day unforgettable</div></div></div>
+            <div class="bf-transport-opt" onclick="pickSpecialOccasion('proposal','💎','Proposal')"><span style="font-size:22px">💎</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Proposal</div><div style="font-size:11px;color:var(--ink-muted)">The most important evening of all</div></div></div>
+            <div class="bf-transport-opt" onclick="pickSpecialOccasion('celebration','🥂','Celebration')"><span style="font-size:22px">🥂</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Celebration</div><div style="font-size:11px;color:var(--ink-muted)">Promotion, milestone, or just winning at life</div></div></div>
+            <div class="bf-transport-opt" onclick="pickSpecialOccasion('milestone','✦','Milestone')"><span style="font-size:22px">✦</span><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Milestone</div><div style="font-size:11px;color:var(--ink-muted)">Mark a moment that matters</div></div></div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── Mood check-in overlay ── -->
       <div id="mood-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeMoodOverlay()">
         <div class="mood-sheet">
@@ -3342,6 +3356,31 @@
       }
 
       function selectOccasionClassic(el,val){selectOccasion(el,val);}
+
+      function openSpecialOccasionPicker(chipEl){
+        // Highlight the special occasion chip
+        chipEl.closest('[id^=date-occasion]').querySelectorAll('.occasion-chip').forEach(c=>c.classList.remove('active'));
+        chipEl.classList.add('active');
+        const ov=document.getElementById('special-occasion-overlay');
+        if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
+      }
+      function closeSpecialOccasionPicker(){
+        const ov=document.getElementById('special-occasion-overlay');
+        if(ov){ov.style.display='none';document.body.style.overflow='';}
+      }
+      function pickSpecialOccasion(val,emoji,label){
+        _occasion=val;
+        // Update the chip label to show what was picked
+        const chipLabel=document.getElementById('special-chip-label');
+        if(chipLabel)chipLabel.textContent=label;
+        const trigger=document.getElementById('special-occasion-trigger');
+        if(trigger){
+          const iconSpan=trigger.querySelector('.occasion-icon');
+          if(iconSpan)iconSpan.textContent=emoji;
+        }
+        closeSpecialOccasionPicker();
+        toast('✦ '+label+' selected — we\'ll tailor your suggestions');
+      }
 
       let _vibeType='romantic';
       let _vibeTag='Candlelit';
