@@ -1,5 +1,8 @@
 
       <script>if(location.search.includes('app')||location.hash==='#app')document.documentElement.classList.add('skip-lp');</script>
+      <!-- Google Places API — replace YOUR_API_KEY with your real key from https://console.cloud.google.com -->
+      <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places" async defer></script>
+      <div id="gmap" style="display:none"></div>
       <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
       <style>
       @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -4030,6 +4033,7 @@
       }
 
       // ── Restaurant availability check flow ──
+      // Fallback data — used when Google Places API key is missing or fails
       const _REST_DB=[
         {name:'Dishoom',area:'Covent Garden',cuisine:'Indian',img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=320&fit=crop&q=80',price:'avg. £33pp',rating:'4.8',reviews:'2,340',veg:true,vibes:['Intimate','Buzzy']},
         {name:'Sketch',area:'Mayfair',cuisine:'Modern European',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',rating:'4.7',reviews:'1,890',veg:true,vibes:['Unique','Elegant']},
@@ -4043,6 +4047,61 @@
         {name:'Bob Bob Ricard',area:'Soho',cuisine:'Anglo-Russian',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',rating:'4.6',reviews:'1,560',veg:true,vibes:['Glamorous','Fun']},
       ];
 
+      // Google Places price level → readable label
+      const _GOOG_PRICE=['Free','Under £15pp','avg. £25pp','avg. £50pp','avg. £80pp'];
+
+      // Convert a Google Places result into the format our cards expect
+      function _googleToCard(place){
+        const photos=place.photos||[];
+        const imgUrl=photos.length?photos[0].getUrl({maxWidth:400,maxHeight:300}):'';
+        const types=(place.types||[]);
+        const cuisine=types.includes('indian_restaurant')?'Indian'
+          :types.includes('italian_restaurant')?'Italian'
+          :types.includes('chinese_restaurant')?'Chinese'
+          :types.includes('japanese_restaurant')?'Japanese'
+          :types.includes('thai_restaurant')?'Thai'
+          :types.includes('french_restaurant')?'French'
+          :types.includes('mexican_restaurant')?'Mexican'
+          :'Restaurant';
+        const area=(place.vicinity||place.formatted_address||'').split(',').slice(-2,-1)[0]?.trim()||'London';
+        return{
+          name:place.name,
+          area:area,
+          cuisine:cuisine,
+          img:imgUrl,
+          price:_GOOG_PRICE[place.price_level]||'avg. £30pp',
+          rating:place.rating?place.rating.toFixed(1):'—',
+          reviews:place.user_ratings_total?place.user_ratings_total.toLocaleString():'—',
+          veg:false,
+          vibes:[],
+          _source:'google'
+        };
+      }
+
+      // Try Google Places API, fall back to hardcoded DB
+      function _searchPlaces(query,loc,callback){
+        // Check if Google Maps API is loaded and has a real key
+        if(typeof google==='undefined'||!google.maps||!google.maps.places){
+          callback(null);return;
+        }
+        try{
+          const mapEl=document.getElementById('gmap');
+          const service=new google.maps.places.PlacesService(mapEl);
+          service.textSearch({
+            query:query+' restaurant '+loc,
+            type:'restaurant'
+          },(results,status)=>{
+            if(status===google.maps.places.PlacesServiceStatus.OK&&results&&results.length){
+              callback(results.slice(0,5).map(_googleToCard));
+            } else {
+              callback(null);
+            }
+          });
+        }catch(e){
+          callback(null);
+        }
+      }
+
       function checkRestAvailability(){
         const q=(document.getElementById('rest-q').value||'').trim();
         const loc=(document.getElementById('rest-loc').value||'London').trim();
@@ -4054,54 +4113,63 @@
         const qLow=q.toLowerCase();
 
         // Show loading
-        area.innerHTML=`<div class="card" style="margin-top:1rem"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Checking availability for "${q}"…</div></div></div>`;
+        area.innerHTML=`<div class="card" style="margin-top:1rem"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Searching restaurants for "${q}"…</div></div></div>`;
 
-        setTimeout(()=>{
-          // Match restaurants from DB
-          let matches=_REST_DB.filter(r=>
-            r.name.toLowerCase().includes(qLow)||
-            r.cuisine.toLowerCase().includes(qLow)||
-            r.area.toLowerCase().includes(qLow)
-          );
-          // If no match, pick 3 random as suggestions
-          if(!matches.length){
-            const shuffled=[..._REST_DB].sort(()=>Math.random()-0.5);
-            matches=shuffled.slice(0,3);
+        // Try Google Places first, fall back to hardcoded DB
+        _searchPlaces(q,loc,(googleResults)=>{
+          let matches;
+          let isGoogle=false;
+
+          if(googleResults&&googleResults.length){
+            matches=googleResults.slice(0,3);
+            isGoogle=true;
+          } else {
+            // Fallback to hardcoded data
+            matches=_REST_DB.filter(r=>
+              r.name.toLowerCase().includes(qLow)||
+              r.cuisine.toLowerCase().includes(qLow)||
+              r.area.toLowerCase().includes(qLow)
+            );
+            if(!matches.length){
+              const shuffled=[..._REST_DB].sort(()=>Math.random()-0.5);
+              matches=shuffled.slice(0,3);
+            }
+            matches=matches.slice(0,3);
           }
-          matches=matches.slice(0,3);
 
-          // Generate fake availability per result
           const dateObj=new Date(date+'T12:00:00');
           const dateStr=dateObj.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
           const ref='T4T-'+Math.random().toString(36).slice(2,6).toUpperCase();
+          const sourceLabel=isGoogle
+            ?'<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px"><span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtle)">Live results for "'+q+'"</span><span class="badge badge-green" style="font-size:9px">Google Places</span></div>'
+            :'<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtle);margin-bottom:12px">'+(matches.some(r=>r.name.toLowerCase().includes(qLow))?'Results for "'+q+'"':'We couldn\'t find "'+q+'" — here are some suggestions')+'</div>';
 
           area.innerHTML=`
             <div style="margin-top:1rem">
-              <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtle);margin-bottom:12px">
-                ${matches.some(r=>r.name.toLowerCase().includes(qLow))?'Results for "'+q+'"':'We couldn\'t find "'+q+'" — here are some suggestions'}
-              </div>
+              ${sourceLabel}
               ${matches.map((r,i)=>{
                 const avail=Math.random()>0.2;
                 const altTime=avail?time:(parseInt(time)>=20?'19:30':'20:30');
-                const slots=[time];
-                if(!avail)slots[0]=altTime;
-                const halfHourBefore=parseInt(slots[0])-0.5>=18?(parseInt(slots[0].split(':')[0])-0)+':'+(parseInt(slots[0].split(':')[1]||0)===0?'30':'00'):'';
-                const halfHourAfter=parseInt(slots[0].split(':')[0])+(parseInt(slots[0].split(':')[1]||0)===30?1:0)+':'+(parseInt(slots[0].split(':')[1]||0)===0?'30':'00');
+                const hasImg=r.img&&r.img.length>0;
+                const imgHtml=hasImg
+                  ?`<img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;min-height:180px" onerror="this.parentElement.innerHTML='<div style=\\'height:180px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2)\\'>🍽️</div>'">`
+                  :'<div style="height:180px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2)">🍽️</div>';
 
                 return `<div class="card" style="margin-bottom:12px;overflow:hidden">
                   <div style="display:flex;gap:0">
                     <div style="width:110px;flex-shrink:0;overflow:hidden;position:relative">
-                      <img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;min-height:180px" onerror="this.parentElement.innerHTML='<div style=\\'height:180px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2)\\'>🍽️</div>'">
+                      ${imgHtml}
                     </div>
                     <div style="flex:1;padding:14px 16px">
                       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
                         <div style="font-size:15px;font-weight:700;color:var(--ink)">${r.name}</div>
                         <div style="display:flex;align-items:center;gap:3px;font-size:11px;color:#FCD34D;font-weight:600">★ ${r.rating}</div>
                       </div>
-                      <div style="font-size:11px;color:var(--ink-muted);margin-bottom:6px">${r.area} · ${r.cuisine} · ${r.reviews} reviews</div>
+                      <div style="font-size:11px;color:var(--ink-muted);margin-bottom:6px">${r.area} · ${r.cuisine}${r.reviews&&r.reviews!=='—'?' · '+r.reviews+' reviews':''}</div>
                       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
-                        ${r.vibes.map(v=>'<span class="badge badge-rose" style="font-size:10px">'+v+'</span>').join('')}
+                        ${(r.vibes||[]).map(v=>'<span class="badge badge-rose" style="font-size:10px">'+v+'</span>').join('')}
                         ${r.veg?'<span class="badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.25);font-size:10px">✓ Veg-friendly</span>':''}
+                        ${r._source==='google'?'<span class="badge badge-muted" style="font-size:9px">Live data</span>':''}
                       </div>
                       <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px">${r.price}</div>
                       <div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--bdr)">
@@ -4111,7 +4179,7 @@
                             <span style="font-size:12px;font-weight:600;color:#4ADE80">Available</span>
                             <span style="font-size:11px;color:var(--ink-muted)">${dateStr} · ${time} · ${covers} covers</span>
                           </div>
-                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area}','${date}','${time}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve this table ✦</button>
+                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area.replace(/'/g,"\\'")}','${date}','${time}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve this table ✦</button>
                         `:`
                           <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
                             <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div>
@@ -4119,7 +4187,7 @@
                             <span style="font-size:11px;color:var(--ink-muted)">${dateStr}</span>
                           </div>
                           <div style="font-size:11px;color:var(--ink-muted);margin-bottom:8px">Nearest available: <strong style="color:var(--ink)">${altTime}</strong></div>
-                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area}','${date}','${altTime}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve at ${altTime} ✦</button>
+                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area.replace(/'/g,"\\'")}','${date}','${altTime}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve at ${altTime} ✦</button>
                         `}
                       </div>
                     </div>
@@ -4128,7 +4196,7 @@
               }).join('')}
               <button class="btn" style="width:100%;justify-content:center;padding:10px;font-size:12px;margin-top:4px" onclick="document.getElementById('rest-results').innerHTML='';document.getElementById('rest-q').focus()">← Search again</button>
             </div>`;
-        },1400);
+        });
       }
 
       function confirmRestBooking(name,area,date,time,covers,price,ref){
