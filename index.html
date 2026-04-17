@@ -4340,7 +4340,8 @@
                     <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Est. total</div><div style="font-size:12px;font-weight:600;color:var(--rose-dark)">${price}</div></div>
                   </div>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-                    <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">💳 Pay at venue</span>
+                    <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3)">💳 Deposit taken</span>
+                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">🍽 Pay rest at venue</span>
                     <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation</span>
                   </div>
                 </div>
@@ -5852,8 +5853,8 @@
       function _showFakePush(title,body,delay){
         setTimeout(()=>{
           const el=document.createElement('div');
-          el.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;max-width:340px;width:calc(100% - 32px);background:#fff;border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);animation:slideDownNotif 0.4s cubic-bezier(.22,.68,0,1.2);cursor:pointer';
-          el.innerHTML=`<div style="width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#8B3A4A,#C4687A);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">♥</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:#1a1a1a;margin-bottom:1px">${title}</div><div style="font-size:11px;color:#555;line-height:1.4">${body}</div></div><div style="font-size:10px;color:#aaa;flex-shrink:0;white-space:nowrap">now</div>`;
+          el.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;max-width:340px;width:calc(100% - 32px);background:#0E0D0B;border:0.5px solid rgba(201,168,76,0.2);border-radius:16px;padding:10px 12px;display:flex;gap:10px;align-items:center;box-shadow:0 8px 32px rgba(0,0,0,0.6),0 0 0 0.5px rgba(201,168,76,0.1);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);animation:slideDownNotif 0.4s cubic-bezier(.22,.68,0,1.2);cursor:pointer';
+          el.innerHTML=`<div style="width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#8B6914,#C9A84C);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;color:#fff">♥</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:700;color:#fff;margin-bottom:1px">${title}</div><div style="font-size:11px;color:rgba(154,139,106,0.8);line-height:1.4">${body}</div></div><div style="font-size:10px;color:rgba(201,168,76,0.5);flex-shrink:0;white-space:nowrap">now</div>`;
           el.onclick=()=>el.remove();
           document.body.appendChild(el);
           setTimeout(()=>{el.style.opacity='0';el.style.transform='translateX(-50%) translateY(-12px)';el.style.transition='all 0.4s ease';setTimeout(()=>el.remove(),400);},4500);
@@ -5993,16 +5994,13 @@
       function closeBfAndNotify(){
         if(!_bfData.name){closeBf();return;}
         const v=_bfInfo(_bfData.name,_bfData.type);
-        // Calculate total amount for payment
-        const amt=_bfData.amount||'£0';
         closeBf();
-        showPayment(amt,function(){
-          _showFakePush('Table for Two ♥','Your booking at '+_bfData.name+' on '+v.date+' at '+v.time+' is confirmed 🎉',600);
-          if(_bfData.transportBooked&&_bfData.driver){
-            _showFakePush('Your ride',''+_bfData.driver.name+' will collect you — '+_bfData.driver.car+' · '+_bfData.driver.reg,4000);
-          }
-          setTimeout(()=>_showFakePush('Table for Two','We\'ll remind you when it\'s time to leave ♥ Have an amazing evening',8000),0);
-        });
+        // Payment already taken as deposit in step 1 — just show confirmations
+        _showFakePush('Table for Two ♥','Your booking at '+_bfData.name+' on '+v.date+' at '+v.time+' is confirmed 🎉',600);
+        if(_bfData.transportBooked&&_bfData.driver){
+          _showFakePush('Your ride',''+_bfData.driver.name+' will collect you — '+_bfData.driver.car+' · '+_bfData.driver.reg,4000);
+        }
+        setTimeout(()=>_showFakePush('Table for Two','We\'ll remind you when it\'s time to leave ♥ Have an amazing evening',8000),0);
       }
       function _bfDots(cur){
         return[1,2,3,4].map(i=>`<div class="bf-dot${i===cur?' active':i<cur?' done':''}"></div>`).join('');
@@ -6123,11 +6121,12 @@
                   <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Est. total</div><div style="font-size:13px;font-weight:600;color:var(--rose-dark)">${amount}</div></div>
                 </div>
                 <div style="display:flex;gap:7px;flex-wrap:wrap">
-                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">💳 Pay at venue</span>
+                  <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3)">💳 Deposit taken</span>
+                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">🍽 Pay rest at venue</span>
                   <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation</span>
                 </div>
               </div>
-              <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600" onclick="_bfData.step=2;_bfData.subState='idle';_renderBfStep()">Sort your ride →</button>`;
+              <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600" onclick="bfPayDeposit()">Pay deposit & continue →</button>`;
           }
 
         // ── Step 2: Ride booking ──
@@ -6326,7 +6325,7 @@
                   <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">Ref: ${hRef}</span>
                 </div>
               </div>
-              <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;background:var(--plum);border-color:var(--plum)" onclick="_bfData.step=4;_bfData.subState='idle';_renderBfStep()">Almost there →</button>`;
+              <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;background:var(--plum);border-color:var(--plum)" onclick="bfPayHotelDeposit()">Pay hotel deposit & continue →</button>`;
           }
 
         // ── Step 4: Timeline + Notifications ──
@@ -6400,6 +6399,31 @@
         }
       }
 
+      function bfPayDeposit(){
+        // Calculate deposit (roughly 20% of the amount, minimum £5)
+        const raw=parseFloat((_bfData.amount||'').replace(/[^0-9.]/g,''))||30;
+        const deposit='£'+Math.max(5,Math.round(raw*0.2));
+        closeBf();
+        showPayment(deposit+' deposit',function(){
+          // Re-open booking flow at step 2
+          const ov=document.getElementById('bf-overlay');
+          if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
+          _bfData.step=2;_bfData.subState='idle';_renderBfStep();
+          toast('✦ '+deposit+' deposit paid — table secured');
+        });
+      }
+      function bfPayHotelDeposit(){
+        const v=_bfInfo(_bfData.name,_bfData.type);
+        const raw=parseFloat((v.hotelPrice||'').replace(/[^0-9.]/g,''))||150;
+        const deposit='£'+Math.max(20,Math.round(raw*0.25));
+        closeBf();
+        showPayment(deposit+' hotel deposit',function(){
+          const ov=document.getElementById('bf-overlay');
+          if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
+          _bfData.step=4;_bfData.subState='idle';_renderBfStep();
+          toast('✦ '+deposit+' hotel deposit paid');
+        });
+      }
       function bfConfirm(){
         _bfData.subState='checking';_renderBfStep();
         setTimeout(()=>{_bfData.subState='securing';_renderBfStep();},2000);
