@@ -1982,7 +1982,7 @@
             <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-grad)"/>
           </svg>
           <!-- Right: couple pill -->
-          <div class="couple-pill" style="padding:5px 10px" onclick="mobileGo('profiles',document.getElementById('mnb-more'))">
+          <div class="couple-pill" style="padding:5px 10px" onclick="toggleProfiles()">
             <div class="couple-avatars">
               <div class="avatar avatar-a">JM</div>
               <div class="avatar avatar-b">SP</div>
@@ -3050,6 +3050,23 @@
         go(id,null);
         document.querySelectorAll('.mnb-item').forEach(n=>n.classList.remove('active'));
         if(el)el.classList.add('active');
+      }
+
+      let _lastPageBeforeProfiles='discover';
+      function toggleProfiles(){
+        const currentPage=document.querySelector('.page.active');
+        const isOnProfiles=currentPage&&currentPage.id==='page-profiles';
+        if(isOnProfiles){
+          go(_lastPageBeforeProfiles,null);
+          // Re-activate the correct bottom nav item
+          const mnbMap={discover:'mnb-discover',restaurants:'mnb-restaurants',experiences:'mnb-experiences','whats-hot':'mnb-planner',bookings:'mnb-more'};
+          const mnbId=mnbMap[_lastPageBeforeProfiles];
+          document.querySelectorAll('.mnb-item').forEach(n=>n.classList.remove('active'));
+          if(mnbId){const el=document.getElementById(mnbId);if(el)el.classList.add('active');}
+        } else {
+          _lastPageBeforeProfiles=currentPage?currentPage.id.replace('page-',''):'discover';
+          go('profiles',null);
+        }
       }
 
       function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
