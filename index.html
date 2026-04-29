@@ -2633,6 +2633,20 @@
             </div>
             <!-- Post-date prompts -->
             <div id="post-date-prompts" style="margin-bottom:1.25rem"></div>
+            <!-- Saved wishlist on Hub — shown first -->
+            <div class="card" style="margin-bottom:1.25rem">
+              <div class="card-head">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <div>
+                    <div class="card-title">Your Wishlist</div>
+                    <div class="card-sub">Saved restaurants & activities to revisit later</div>
+                  </div>
+                </div>
+                <button class="btn btn-sm" onclick="go('wishlist',document.querySelector('[onclick*=wishlist]'))">View all →</button>
+              </div>
+              <div class="card-body" id="hub-wishlist"></div>
+            </div>
             <div class="card">
               <div class="card-head"><div class="card-title">Your dates</div><div style="display:flex;gap:6px" id="filter-btns">
                 <button class="btn btn-sm btn-rose" onclick="setFilter('all',this)">All</button>
@@ -2642,17 +2656,6 @@
                 <button class="btn btn-sm" onclick="setFilter('cab',this)">Transport</button>
               </div></div>
               <div class="card-body" id="bookings-list"></div>
-            </div>
-            <!-- Saved wishlist on Hub -->
-            <div class="card" style="margin-top:1.25rem">
-              <div class="card-head">
-                <div>
-                  <div class="card-title">💫 Your Wishlist</div>
-                  <div class="card-sub">Saved restaurants & activities to revisit later</div>
-                </div>
-                <button class="btn btn-sm" onclick="go('wishlist',document.querySelector('[onclick*=wishlist]'))">View all →</button>
-              </div>
-              <div class="card-body" id="hub-wishlist"></div>
             </div>
           </div>
 
@@ -2769,7 +2772,7 @@
             </div>
             <div>What's Hot</div>
           </div>
-          <div class="mnb-item" id="mnb-more" onclick="mobileGo('bookings',this)">
+          <div class="mnb-item" id="mnb-more" onclick="mobileGo('bookings',this)" style="position:relative">
             <div class="mnb-icon">
               <!-- Compass — Hub -->
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -2777,6 +2780,7 @@
                 <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
               </svg>
             </div>
+            <div id="hub-wish-badge" style="display:none;position:absolute;top:2px;right:calc(50% - 20px);min-width:16px;height:16px;border-radius:8px;background:var(--primary);color:#0d0900;font-size:9px;font-weight:800;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 2px 6px rgba(201,168,76,0.5);animation:confirmPop 0.35s cubic-bezier(0.34,1.56,0.64,1)"></div>
             <div>Hub</div>
           </div>
         </div>
@@ -2871,7 +2875,7 @@
               <div class="mood-btn-desc">Cosy, quiet<br>no effort needed</div>
             </div>
             <div class="mood-btn selected" id="mood-moderate" onclick="selectMood('moderate')">
-              <div class="mood-btn-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="12" y1="12" x2="12" y2="4"/><path d="M7 8l-3 4"/><path d="M17 8l3 4"/><circle cx="5" cy="14" r="2"/><circle cx="19" cy="14" r="2"/></svg></div>
+              <div class="mood-btn-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7"/><path d="M12 2a7 7 0 0 0-7 7"/><line x1="4" y1="17" x2="20" y2="17"/><line x1="4" y1="21" x2="20" y2="21"/></svg></div>
               <div class="mood-btn-label">Just right</div>
               <div class="mood-btn-desc">Happy with<br>anything</div>
             </div>
@@ -3057,7 +3061,7 @@
         }
         const mt=document.getElementById('mobile-page-title');if(mt)mt.textContent=id==='discover'?'Discover':(TITLES[id]||id);
         if(id==='planner')renderCal();
-        if(id==='bookings'||id==='discover'){renderBookings();updateStats();renderHubWishlist();}
+        if(id==='bookings'||id==='discover'){renderBookings();updateStats();renderHubWishlist();_clearWishBadge();}
         if(id==='planner')renderReminders();
         if(id==='journal')renderJournal();
         if(id==='wishlist')renderWishlist();
@@ -3261,6 +3265,7 @@
       let _paidLast=null; // 'jamie'|'sophie'|null
       let _jeStarVal=0;
       let _wishFilter='all';
+      let _wishBadgeCount=0;
       let _wishlist=[
         {id:1,name:'Roof terrace dinner at Sushisamba',emoji:'🍣',price:'££££',type:'foodie',why:'Always wanted to see the view from up there',addedDate:'2025-12-10',done:false},
         {id:2,name:'Sunrise hike at Box Hill',emoji:'🌄',price:'Free',type:'outdoor',why:'We keep saying we\'ll do an early morning adventure',addedDate:'2025-12-22',done:false},
@@ -5541,9 +5546,20 @@
       // ════════════════════════════════════════════════
       // ── WISHLIST ──
       // ════════════════════════════════════════════════
+      function _updateWishBadge(){
+        const b=document.getElementById('hub-wish-badge');
+        if(!b)return;
+        if(_wishBadgeCount>0){
+          b.textContent='+'+_wishBadgeCount;
+          b.style.display='flex';
+          b.style.animation='none';b.offsetHeight;b.style.animation='confirmPop 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+        }else{b.style.display='none';}
+      }
+      function _clearWishBadge(){_wishBadgeCount=0;_updateWishBadge();}
       function saveToWishlist(name,emoji,price,type,why){
         if(_wishlist.find(w=>w.name===name)){toast('💫 Already on your wishlist!');return;}
         _wishlist.push({id:Date.now(),name,emoji,price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
+        _wishBadgeCount++;_updateWishBadge();
         toast('💫 Saved to your wishlist — find it under Wishlist');
       }
       function openAddWish(){
@@ -5567,6 +5583,7 @@
         const why=document.getElementById('wi-why').value.trim();
         if(_wishlist.find(w=>w.name===name)){toast('Already on your wishlist!');closeWishOverlay();return;}
         _wishlist.push({id:Date.now(),name,emoji:'✦',price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
+        _wishBadgeCount++;_updateWishBadge();
         closeWishOverlay();
         renderWishlist();
         toast('💫 Saved to your wishlist!');
