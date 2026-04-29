@@ -2697,7 +2697,7 @@
           <div class="page page-anim" id="page-wishlist">
             <div class="section-head" style="margin-bottom:1.25rem">
               <div>
-                <div class="section-title">💫 Date Wishlist</div>
+                <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Date Wishlist</div>
                 <div style="font-size:12px;color:var(--ink-muted);margin-top:3px">Ideas you want to try someday — tick them off as you go</div>
               </div>
               <button class="btn btn-sm btn-rose" onclick="openAddWish()">+ Save idea</button>
@@ -2710,7 +2710,7 @@
             </div>
             <div id="wishlist-items">
               <div style="text-align:center;padding:48px 20px;color:var(--ink-muted)">
-                <div style="font-size:40px;margin-bottom:12px">💫</div>
+                <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
                 <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">Your wishlist is empty</div>
                 <div style="font-size:12px;margin-bottom:20px">Save ideas from Discover, or add your own — tick them off when you've been</div>
                 <button class="btn btn-rose btn-sm" onclick="go('discover',document.querySelector('[onclick*=discover]'))">Browse ideas ✦</button>
@@ -2718,7 +2718,7 @@
             </div>
             <!-- Recurring schedule card -->
             <div class="card" style="margin-top:1.5rem">
-              <div class="card-head"><div><div class="card-title">📅 Regular date night</div><div class="card-sub">Set a recurring schedule — we'll remind you before each one</div></div></div>
+              <div class="card-head"><div><div class="card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Regular date night</div><div class="card-sub">Set a recurring schedule — we'll remind you before each one</div></div></div>
               <div class="card-body">
                 <div class="form-group" style="max-width:260px;margin-bottom:10px">
                   <label class="form-label">How often?</label>
@@ -4172,7 +4172,7 @@
                   <div class="swipe-btn swipe-btn-x" title="Not for this occasion" onclick="swipeCard(${idx},'skip')">✕</div>
                   <span style="font-size:9px;font-weight:500;letter-spacing:0.5px;color:rgba(255,255,255,0.3);text-transform:uppercase">Not today</span>
                 </div>
-                <div class="swipe-btn swipe-btn-book" title="Book now" style="width:auto;min-width:130px;padding:0 22px;border-radius:32px;flex-direction:column;gap:2px;height:58px" onclick="swipeCard(${idx},'book','${idea.name.replace(/'/g,"\\'")}','${idea.price}')">
+                <div class="swipe-btn swipe-btn-book" title="Book now" style="width:auto;min-width:130px;padding:0 22px;border-radius:32px;flex-direction:column;gap:2px;height:58px" onclick="swipeCard(${idx},'book','${idea.name.replace(/'/g,"\\'")}','${idea.price}','','${idea.type}')">
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
                   <span style="font-size:9.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;opacity:0.92">Book now</span>
                 </div>
@@ -4213,7 +4213,7 @@
       }
 
       function swipeCard(idx,action,name,priceOrEmoji,price,type,why){
-        if(action==='book') quickBook(name,'experience',priceOrEmoji);
+        if(action==='book') quickBook(name,type||'experience',priceOrEmoji);
         if(action==='save') saveToWishlist(name,priceOrEmoji,price,type,why);
 
         // Animate active card out
@@ -4296,10 +4296,11 @@
         if(bothLove) toast(`♥ You both love ${ideaName}! Tap "Book it together" to lock it in.`);
       }
 
+      const _BOOKING_ICONS={restaurant:'🍽️',hotel:'🏨',airbnb:'🏡',cab:'🚗',concert:'🎤',theatre:'🎭',wellness:'🧖',rooftop:'🌇',latenight:'🌙',dining:'🍽️',activity:'🎯',experience:'🎬'};
       function quickBook(name,type,amount){
         const today=new Date();
         const date=new Date(today.getFullYear(),today.getMonth()+1,15).toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type,name,date,meta:'Just booked',amount,icon:type==='restaurant'?'🍽️':type==='hotel'?'🏨':type==='airbnb'?'🏡':type==='cab'?'🚗':'🎬'});
+        bookings.push({id:Date.now(),type,name,date,meta:'Just booked',amount,icon:_BOOKING_ICONS[type]||'🎬'});
         updateStats();renderBookings();toast('✦ Added to your dates — '+name);
       }
 
@@ -6085,6 +6086,26 @@
         }catch(e){return '';}
       }
 
+      // ── Type-aware booking language ──
+      const _BF_LANG={
+        restaurant:{step1:'Find a table',confirmed:'Table reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking tables for',securing:'Locking in your table at',party:'2 guests',partyLabel:'Party',depositIcon:'🍽',depositLabel:'Pay rest at venue',icon:'🍽️',remCat:'Dinner reservation'},
+        concert:{step1:'Get tickets',confirmed:'Tickets confirmed!',slotsLabel:'Available dates · 2 tickets',searching:'Checking ticket availability for',securing:'Reserving your tickets for',party:'2 tickets',partyLabel:'Tickets',depositIcon:'🎟',depositLabel:'Collect at door',icon:'🎤',remCat:'Experience / activity'},
+        theatre:{step1:'Book seats',confirmed:'Seats reserved!',slotsLabel:'Available performances · 2 seats',searching:'Checking seat availability for',securing:'Reserving your seats at',party:'2 seats',partyLabel:'Seats',depositIcon:'🎭',depositLabel:'Collect at box office',icon:'🎭',remCat:'Experience / activity'},
+        wellness:{step1:'Book a session',confirmed:'Session booked!',slotsLabel:'Available slots · 2 guests',searching:'Checking availability for',securing:'Reserving your session at',party:'2 guests',partyLabel:'Guests',depositIcon:'🧖',depositLabel:'Pay rest on arrival',icon:'🧖',remCat:'Experience / activity'},
+        rooftop:{step1:'Reserve a spot',confirmed:'Spot reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 guests',partyLabel:'Party',depositIcon:'🥂',depositLabel:'Pay rest at venue',icon:'🌇',remCat:'Dinner reservation'},
+        latenight:{step1:'Reserve a table',confirmed:'Reservation confirmed!',slotsLabel:'Available times · Party of 2',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 guests',partyLabel:'Party',depositIcon:'🍸',depositLabel:'Pay at venue',icon:'🌙',remCat:'Experience / activity'},
+        activity:{step1:'Book a slot',confirmed:'Slot confirmed!',slotsLabel:'Available times · 2 people',searching:'Checking availability for',securing:'Reserving your slot at',party:'2 people',partyLabel:'People',depositIcon:'🎯',depositLabel:'Pay rest on arrival',icon:'🎯',remCat:'Experience / activity'},
+        experience:{step1:'Reserve a spot',confirmed:'Booking confirmed!',slotsLabel:'Available times · 2 people',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 people',partyLabel:'People',depositIcon:'✨',depositLabel:'Pay rest on arrival',icon:'🎬',remCat:'Experience / activity'},
+        dining:{step1:'Find a table',confirmed:'Table reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking tables for',securing:'Locking in your table at',party:'2 guests',partyLabel:'Party',depositIcon:'🍽',depositLabel:'Pay rest at venue',icon:'🍽️',remCat:'Dinner reservation'},
+      };
+      function _bfLang(type){
+        if(_BF_LANG[type])return _BF_LANG[type];
+        // Map Discover idea types to booking language
+        if(type==='foodie')return _BF_LANG.restaurant;
+        if(type==='romantic'||type==='cultural'||type==='fun'||type==='outdoor')return _BF_LANG.experience;
+        return _BF_LANG.experience;
+      }
+
       function showBookingFlow(name,type,amount){
         const v=_bfInfo(name,type);
         _bfData={name,type,amount,step:1,subState:'checking',
@@ -6216,6 +6237,7 @@
         const el=document.getElementById('bf-content');if(!el)return;
         const{name,type,amount,step,subState,transportBooked,hotelBooked,driver,bookingRef}=_bfData;
         const v=_bfInfo(name,type);
+        const lang=_bfLang(type);
 
         // ── Step 1: Venue booking ──
         if(step===1){
@@ -6253,11 +6275,11 @@
                 <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
               </div>
               <div class="bf-step-dots">${_bfDots(1)}</div>
-              <div style="font-size:19px;font-weight:700;color:var(--color-text-primary);margin-bottom:2px">Find a table</div>
+              <div style="font-size:19px;font-weight:700;color:var(--color-text-primary);margin-bottom:2px">${lang.step1}</div>
               <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px">${v.emoji} ${name} · ${v.area}</div>
               <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:8px">Select a date</div>
               <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:16px">${_bfDatePills}</div>
-              <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:8px">Available times · Party of 2</div>
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:8px">${lang.slotsLabel}</div>
               <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">${_bfTimeSlots}</div>
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
                 <div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-tertiary)"><span style="width:8px;height:8px;border-radius:2px;background:rgba(201,168,76,0.45);display:inline-block"></span>Best</div>
@@ -6271,15 +6293,15 @@
             el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div></div><div class="bf-step-dots">${_bfDots(1)}</div>`
               +_bfLoading(v.emoji,[
                 'Looking for availability at '+name+'…',
-                'Checking tables for '+(_bfData.selectedDate||v.date)+' · '+(_bfData.selectedTime||v.time),
-                'Confirming party of 2…',
+                lang.searching+' '+(_bfData.selectedDate||v.date)+' · '+(_bfData.selectedTime||v.time),
+                'Confirming '+lang.party+'…',
               ]);
 
           }else if(subState==='securing'){
             el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div></div><div class="bf-step-dots">${_bfDots(1)}</div>`
               +_bfLoading('📋',[
                 'Generating your booking…',
-                'Locking in your table at '+name,
+                lang.securing+' '+name,
                 'Sending confirmation to your email…',
               ]);
 
@@ -6294,7 +6316,7 @@
               <div class="bf-step-dots">${_bfDots(1)}</div>
               <div style="text-align:center;padding:10px 0 16px">
                 <div class="bf-confirm-success-ring">✓</div>
-                <div style="font-size:19px;font-weight:700;color:var(--color-text-primary);margin-bottom:4px">Table reserved!</div>
+                <div style="font-size:19px;font-weight:700;color:var(--color-text-primary);margin-bottom:4px">${lang.confirmed}</div>
                 <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:14px">Confirmation sent to your email</div>
                 <div class="bf-ref-badge">${bookingRef}</div>
               </div>
@@ -6306,12 +6328,12 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
                   <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Date</div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary)">${selDate}</div></div>
                   <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Time</div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary)">${selTime}</div></div>
-                  <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Party</div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary)">2 guests</div></div>
+                  <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">${lang.partyLabel}</div><div style="font-size:13px;font-weight:600;color:var(--color-text-primary)">${lang.party}</div></div>
                   <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Est. total</div><div style="font-size:13px;font-weight:600;color:var(--rose-dark)">${amount}</div></div>
                 </div>
                 <div style="display:flex;gap:7px;flex-wrap:wrap">
                   <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3)">💳 Deposit taken</span>
-                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">🍽 Pay rest at venue</span>
+                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">${lang.depositIcon} ${lang.depositLabel}</span>
                   <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation</span>
                 </div>
               </div>
@@ -6648,7 +6670,7 @@
         const dateStr=d.toISOString().slice(0,10);
         let timeStr='19:30';
         try{const t=v.time.replace(' PM','').replace(' AM','');const[h,m]=t.split(':');let hr=parseInt(h);if(v.time.includes('PM')&&hr<12)hr+=12;timeStr=String(hr).padStart(2,'0')+':'+(m||'00');}catch(e){}
-        const cat=_bfData.type==='restaurant'?'Dinner reservation':'Experience / activity';
+        const cat=_bfLang(_bfData.type).remCat;
         reminders.push({id:Date.now(),title:_bfData.name,date:dateStr,time:timeStr,cat,color:catColors[cat]||'#C4687A'});
         if(_bfData.transportBooked){
           reminders.push({id:Date.now()+1,title:'Cab to '+v.area+' · '+_bfData.driver.name,date:dateStr,time:String(parseInt(timeStr.split(':')[0])-1).padStart(2,'0')+':'+timeStr.split(':')[1],cat:'Cab pickup',color:'#3A6A8A'});
