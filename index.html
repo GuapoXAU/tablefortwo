@@ -1682,6 +1682,10 @@
       .wh-gradient-dining{background:linear-gradient(135deg,#1c0e06 0%,#301805 50%,#1a0c04 100%)}
       .wh-gradient-experience{background:linear-gradient(135deg,#071510 0%,#0d2218 50%,#071410 100%)}
       .wh-gradient-activity{background:linear-gradient(135deg,#08101a 0%,#121e33 50%,#090e18 100%)}
+      .wh-gradient-rooftop{background:linear-gradient(135deg,#0f0c06 0%,#1a1408 50%,#0d0a04 100%)}
+      .wh-gradient-theatre{background:linear-gradient(135deg,#1a0a2e 0%,#2d1b4e 50%,#180d28 100%)}
+      .wh-gradient-wellness{background:linear-gradient(135deg,#061210 0%,#0c2420 50%,#071510 100%)}
+      .wh-gradient-latenight{background:linear-gradient(135deg,#0a0614 0%,#160e28 50%,#0a0614 100%)}
       .wh-trending-pill{position:absolute;top:12px;left:12px;padding:4px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.6px;backdrop-filter:blur(10px);z-index:2}
       .wh-trending-pill.hot{background:rgba(255,80,40,0.22);color:#FF7060;border:0.5px solid rgba(255,80,40,0.38)}
       .wh-trending-pill.rising{background:rgba(201,168,76,0.18);color:#C9A84C;border:0.5px solid rgba(201,168,76,0.38)}
@@ -2599,15 +2603,19 @@
           <!-- WHAT'S HOT -->
           <div class="page page-anim" id="page-whats-hot">
             <div class="wh-section-head">
-              <div class="wh-section-title">🔥 What's Hot</div>
+              <div class="wh-section-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:6px"><path d="M12 2C8.5 6.5 7 10 7 13a5 5 0 0 0 10 0c0-3-1.5-6.5-5-11z"/><path d="M12 18c-1.1 0-2-.9-2-2 0-1.5 1-3 2-4.5 1 1.5 2 3 2 4.5 0 1.1-.9 2-2 2z"/></svg>What's Hot</div>
               <div class="wh-section-sub">Trending this week in London · Matched to Jamie &amp; Sophie's tastes</div>
             </div>
             <div class="wh-filters" id="wh-chips">
               <div class="wh-chip on" onclick="whFilter('all',this)">All</div>
-              <div class="wh-chip" onclick="whFilter('concert',this)">🎵 Concerts</div>
-              <div class="wh-chip" onclick="whFilter('dining',this)">🍽 Dining</div>
-              <div class="wh-chip" onclick="whFilter('experience',this)">✨ Experiences</div>
-              <div class="wh-chip" onclick="whFilter('activity',this)">🎯 Activities</div>
+              <div class="wh-chip" onclick="whFilter('concert',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> Concerts</div>
+              <div class="wh-chip" onclick="whFilter('dining',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="9" x2="7" y2="22"/><path d="M21 2v8a3 3 0 0 1-3 3h0"/><line x1="21" y1="13" x2="21" y2="22"/></svg> Dining</div>
+              <div class="wh-chip" onclick="whFilter('experience',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Experiences</div>
+              <div class="wh-chip" onclick="whFilter('activity',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Activities</div>
+              <div class="wh-chip" onclick="whFilter('rooftop',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg> Rooftops</div>
+              <div class="wh-chip" onclick="whFilter('theatre',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10s3-3 10-3 10 3 10 3"/><path d="M2 14s3 3 10 3 10-3 10-3"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/></svg> Theatre</div>
+              <div class="wh-chip" onclick="whFilter('wellness',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.5 6.5 7 10 7 13a5 5 0 0 0 10 0c0-3-1.5-6.5-5-11z"/></svg> Wellness</div>
+              <div class="wh-chip" onclick="whFilter('latenight',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Late Night</div>
             </div>
             <div id="wh-feed"></div>
           </div>
@@ -3635,11 +3643,11 @@
       const WHATS_HOT_DATA=[
         // CONCERTS
         {id:'wh1',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎸',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&q=80',
         name:'Khruangbin – Rondeaux Tour',venue:'Roundhouse, Camden',date:'Sat 3 May',
         price:'From £45',match:94,booked:312,tags:['Soulful','Intimate atmosphere','Live music']},
         {id:'wh2',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎻',trending:'Rising',trendCls:'rising',
-        img:'https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&q=80',
         name:'LSO: Ravel & Debussy',venue:'Barbican Centre',date:'Fri 9 May',
         price:'From £28',match:89,booked:204,tags:['Classical','Cultural','Elegant']},
         {id:'wh3',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎹',trending:'New this week',trendCls:'new',
@@ -3647,37 +3655,61 @@
         name:'Hania Rani – Piano Portraits',venue:"King's Place, King's Cross",date:'Thu 1 May',
         price:'From £35',match:91,booked:178,tags:['Piano','Atmospheric','Intimate']},
         {id:'wh4',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎷',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=600&q=80',
         name:"Ronnie Scott's Late Night Jazz",venue:'Frith Street, Soho',date:'Every Fri & Sat',
         price:'From £30',match:88,booked:267,tags:['Jazz','Late night','Iconic venue']},
+        {id:'wh40',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎤',trending:'Ending soon',trendCls:'ending',
+        img:'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&q=80',
+        name:'Jorja Smith – Falling or Flying',venue:'O2 Academy Brixton',date:'Fri 16 May',
+        price:'From £55',match:90,booked:428,tags:['R&B','Soulful','High energy']},
+        {id:'wh41',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎵',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&q=80',
+        name:'Nils Frahm – All Encores',venue:'Royal Albert Hall',date:'Sat 24 May',
+        price:'From £40',match:93,booked:356,tags:['Electronic','Ambient','Immersive']},
         // DINING
         {id:'wh5',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥗',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80',
         name:'Ottolenghi ROVI – Spring Menu',venue:'Wells Street, Fitzrovia',date:'Open now',
         price:'£70–85pp',match:96,booked:341,tags:['Mediterranean','Vegetarian','Seasonal']},
         {id:'wh6',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍜',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80',
         name:'Kiln – Northern Thai Fire',venue:'Brewer Street, Soho',date:'Open now',
         price:'£45pp',match:93,booked:227,tags:['Thai','Vibrant','Counter dining']},
         {id:'wh7',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥢',trending:'Rising',trendCls:'rising',
-        img:'https://images.unsplash.com/photo-1549007994-cb92caebd54b?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=600&q=80',
         name:'Bossa – Brazilian Izakaya',venue:'Hoxton Square, Shoreditch',date:'Open now',
         price:'£55pp',match:92,booked:196,tags:['Japanese-Brazilian','Cocktails','Intimate']},
         {id:'wh8',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍛',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&q=80',
         name:'Gymkhana – Tasting Menu',venue:'Albemarle Street, Mayfair',date:'Open now',
         price:'£115pp',match:90,booked:289,tags:['Indian fine dining','Refined','Cultural']},
         {id:'wh9',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍱',trending:'New this week',trendCls:'new',
-        img:'https://images.unsplash.com/photo-1611143669185-af224c5e3252?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&q=80',
         name:'Matsunoki – Omakase Counter',venue:'Marylebone High Street',date:'Open now',
         price:'£95pp',match:95,booked:142,tags:['Japanese','Omakase','Intimate']},
+        {id:'wh42',cat:'dining',gradient:'wh-gradient-dining',emoji:'🦪',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=600&q=80',
+        name:'The Oystermen – Seafood Bar',venue:'Covent Garden',date:'Open now',
+        price:'£60pp',match:88,booked:183,tags:['Seafood','Champagne','Intimate']},
+        {id:'wh43',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍝',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&q=80',
+        name:'Padella – Fresh Pasta Counter',venue:'Borough Market, SE1',date:'Open now',
+        price:'£25pp',match:91,booked:412,tags:['Italian','Handmade pasta','Queue-worthy']},
+        {id:'wh44',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥩',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1558030006-450675393462?w=600&q=80',
+        name:'Brat – Open Fire Cooking',venue:'Shoreditch High Street',date:'Open now',
+        price:'£85pp',match:94,booked:276,tags:['Michelin','Fire-cooked','Intimate']},
+        {id:'wh45',cat:'dining',gradient:'wh-gradient-dining',emoji:'🫕',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&q=80',
+        name:'Bob Bob Ricard – Press for Champagne',venue:'Soho',date:'Open now',
+        price:'£90pp',match:93,booked:305,tags:['Glamorous','Champagne button','Iconic']},
         // EXPERIENCES
         {id:'wh10',cat:'experience',gradient:'wh-gradient-experience',emoji:'🎬',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&q=80',
         name:'Secret Cinema: La Dolce Vita',venue:'Tobacco Dock, Wapping',date:'Every Fri & Sat',
         price:'£49pp',match:95,booked:389,tags:['Italian','Cinematic','Romantic']},
         {id:'wh11',cat:'experience',gradient:'wh-gradient-experience',emoji:'🌿',trending:'Ending soon',trendCls:'ending',
-        img:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&q=80',
         name:'Kew Gardens – Orchid Festival',venue:'Royal Botanic Gardens, Kew',date:'Until 4 May',
         price:'£22pp',match:90,booked:267,tags:['Outdoor','Romantic','Garden']},
         {id:'wh12',cat:'experience',gradient:'wh-gradient-experience',emoji:'🫙',trending:'Rising',trendCls:'rising',
@@ -3688,9 +3720,17 @@
         img:'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&q=80',
         name:'Life Drawing with Wine',venue:'Bermondsey Street, SE1',date:'Wed & Fri evenings',
         price:'£40pp',match:86,booked:118,tags:['Creative','Relaxed','Cultural']},
+        {id:'wh46',cat:'experience',gradient:'wh-gradient-experience',emoji:'🎭',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&q=80',
+        name:'Punchdrunk: The Burnt City',venue:'Woolwich Works, SE18',date:'Thu–Sat evenings',
+        price:'£58pp',match:96,booked:347,tags:['Immersive','Theatre','Atmospheric']},
+        {id:'wh47',cat:'experience',gradient:'wh-gradient-experience',emoji:'🔮',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80',
+        name:'Frameless – Immersive Art',venue:'Marble Arch',date:'Open daily',
+        price:'£32pp',match:89,booked:224,tags:['Art','Immersive','Photography']},
         // ACTIVITIES
         {id:'wh14',cat:'activity',gradient:'wh-gradient-activity',emoji:'🍸',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80',
         name:'Cocktail Masterclass – Negroni Ed.',venue:'Cahoots, Kingly Court, Soho',date:'Thursdays',
         price:'£55pp',match:93,booked:219,tags:['Fun','Intimate','Drinks']},
         {id:'wh15',cat:'activity',gradient:'wh-gradient-activity',emoji:'🍜',trending:'Hot',trendCls:'hot',
@@ -3701,6 +3741,78 @@
         img:'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80',
         name:'Sunrise Yoga at Sky Garden',venue:'20 Fenchurch Street, City',date:'Sun 4 May, 7am',
         price:'£28pp',match:84,booked:143,tags:['Outdoor','Wellness','Active']},
+        {id:'wh48',cat:'activity',gradient:'wh-gradient-activity',emoji:'🏎️',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
+        name:'F1 Arcade – Racing Simulators',venue:'One New Change, City',date:'Open daily',
+        price:'£35pp',match:85,booked:198,tags:['Competitive','Fun','High-tech']},
+        {id:'wh49',cat:'activity',gradient:'wh-gradient-activity',emoji:'🎳',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&q=80',
+        name:'All Star Lanes – Boutique Bowling',venue:'Holborn',date:'Open daily',
+        price:'£38pp',match:82,booked:167,tags:['Retro','Cocktails','Playful']},
+        // ROOFTOPS
+        {id:'wh50',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🌇',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=80',
+        name:'Sushisamba – 38th Floor',venue:'Heron Tower, Liverpool Street',date:'Open now',
+        price:'£95pp',match:92,booked:284,tags:['Japanese-Brazilian','Skyline views','Prestige']},
+        {id:'wh51',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🥂',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=600&q=80',
+        name:'Aqua Shard – Sunset Cocktails',venue:'31st Floor, The Shard',date:'Open now',
+        price:'£75pp',match:90,booked:336,tags:['Panoramic','Cocktails','Romantic']},
+        {id:'wh52',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🍹',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1560624052-449f5ddf0c31?w=600&q=80',
+        name:'Roof East – Open Air Cinema',venue:'Stratford Multi-Storey',date:'Fri & Sat',
+        price:'£22pp',match:86,booked:195,tags:['Outdoor cinema','Casual','Summer vibes']},
+        {id:'wh53',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🌃',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1470219556762-1fd5b25f1bcc?w=600&q=80',
+        name:'Madison – St Paul\'s Terrace',venue:'One New Change, City',date:'Open now',
+        price:'£55pp',match:88,booked:251,tags:['St Paul\'s view','Elegant','After-work']},
+        // THEATRE
+        {id:'wh54',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'🎭',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&q=80',
+        name:'Cabaret at the Kit Kat Club',venue:'Playhouse Theatre, West End',date:'Mon–Sat',
+        price:'From £35',match:95,booked:478,tags:['Immersive','Iconic','Intimate']},
+        {id:'wh55',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'🩰',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80',
+        name:'Romeo & Juliet – Royal Ballet',venue:'Royal Opera House, Covent Garden',date:'Until 10 May',
+        price:'From £28',match:91,booked:312,tags:['Ballet','World-class','Romantic']},
+        {id:'wh56',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'✨',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=600&q=80',
+        name:'Stranger Things: The First Shadow',venue:'Phoenix Theatre, West End',date:'Mon–Sat',
+        price:'From £25',match:87,booked:389,tags:['Sci-fi','Immersive','Production']},
+        {id:'wh57',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'🎪',trending:'Ending soon',trendCls:'ending',
+        img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&q=80',
+        name:'The Book of Mormon',venue:'Gielgud Theatre, West End',date:'Mon–Sat',
+        price:'From £30',match:84,booked:356,tags:['Musical','Comedy','Award-winning']},
+        // WELLNESS
+        {id:'wh58',cat:'wellness',gradient:'wh-gradient-wellness',emoji:'🧖',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80',
+        name:'AIRE Ancient Baths – Couples',venue:'Porchester Road, Bayswater',date:'Open daily',
+        price:'£95pp',match:94,booked:276,tags:['Candlelit','Thermal','Romantic']},
+        {id:'wh59',cat:'wellness',gradient:'wh-gradient-wellness',emoji:'🧊',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1540555700478-4be289fbec6d?w=600&q=80',
+        name:'Monk London – Ice Bath & Sauna',venue:'Fulham',date:'Open daily',
+        price:'£45pp',match:82,booked:189,tags:['Cold plunge','Contrast therapy','Trending']},
+        {id:'wh60',cat:'wellness',gradient:'wh-gradient-wellness',emoji:'💆',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=600&q=80',
+        name:'Cowshed Spa – Couples Retreat',venue:'Shoreditch House',date:'Open daily',
+        price:'£120pp',match:91,booked:134,tags:['Spa','Members club','Luxury']},
+        // LATE NIGHT
+        {id:'wh61',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🌙',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=600&q=80',
+        name:'Experimental Cocktail Club',venue:'Chinatown, Soho',date:'Wed–Sun, 6pm–2am',
+        price:'£50pp',match:91,booked:267,tags:['Speakeasy','Inventive cocktails','Moody']},
+        {id:'wh62',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🎵',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1571204829887-3b8d69e4094d?w=600&q=80',
+        name:'Nightjar – Jazz & Cocktails',venue:'Shoreditch',date:'Tue–Sat, 6pm–1am',
+        price:'£55pp',match:93,booked:198,tags:['Prohibition','Live jazz','Hidden bar']},
+        {id:'wh63',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🍷',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80',
+        name:'Swift – Upstairs & Downstairs',venue:'Soho',date:'Mon–Sat, 3pm–1am',
+        price:'£40pp',match:88,booked:224,tags:['Whisky','Art deco','Intimate']},
+        {id:'wh64',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🎶',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80',
+        name:'The Blues Kitchen – Live Music',venue:'Camden, Shoreditch, Brixton',date:'Every night',
+        price:'Free–£15',match:86,booked:312,tags:['Blues','Southern food','Dancing']},
       ];
 
       let _whCat='all';
@@ -3716,7 +3828,7 @@
         const feed=document.getElementById('wh-feed');
         if(!feed)return;
         const items=_whCat==='all'?WHATS_HOT_DATA:WHATS_HOT_DATA.filter(i=>i.cat===_whCat);
-        const catLabels={concert:'Concert',dining:'Dining',experience:'Experience',activity:'Activity'};
+        const catLabels={concert:'Concert',dining:'Dining',experience:'Experience',activity:'Activity',rooftop:'Rooftop',theatre:'Theatre',wellness:'Wellness',latenight:'Late Night'};
         const pinSVG=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
         const peopleSVG=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
         feed.innerHTML=items.map(item=>`
