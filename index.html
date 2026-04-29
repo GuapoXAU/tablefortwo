@@ -152,7 +152,7 @@
       .occasion-chip{display:flex;align-items:center;gap:6px;padding:8px 16px;border:1.5px solid var(--bdr2);border-radius:50px;cursor:pointer;font-size:12px;font-weight:500;color:var(--ink-soft);background:var(--bg2);transition:all 0.15s;-webkit-tap-highlight-color:transparent}
       .occasion-chip:hover{border-color:var(--rose-mid);background:var(--rose-light);color:var(--rose-dark)}
       .occasion-chip.active{border-color:var(--rose);background:var(--rose-light);color:var(--rose-dark)}
-      .occasion-icon{font-size:14px}
+      .occasion-icon{font-size:14px;display:inline-flex;align-items:center;justify-content:center}
 
       .guided-step{margin-bottom:22px}
       .guided-step-label{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink-muted);margin-bottom:10px;display:flex;align-items:center;gap:8px}
@@ -2033,10 +2033,10 @@
                 <div style="margin-bottom:16px">
                   <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Who's the date for?</div>
                   <div style="display:flex;gap:8px;flex-wrap:wrap" id="date-occasion">
-                    <div class="occasion-chip active" onclick="selectOccasion(this,'first_date')"><span class="occasion-icon">✨</span><span>First date</span></div>
-                    <div class="occasion-chip" onclick="selectOccasion(this,'partner')"><span class="occasion-icon">♥</span><span>My partner</span></div>
-                    <div class="occasion-chip" id="special-occasion-trigger" onclick="openSpecialOccasionPicker(this)"><span class="occasion-icon">◈</span><span id="special-chip-label">Special occasion</span></div>
-                    <div class="occasion-chip" onclick="selectOccasion(this,'just_because')"><span class="occasion-icon">♡</span><span>Just because</span></div>
+                    <div class="occasion-chip active" onclick="selectOccasion(this,'first_date')"><span class="occasion-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><span>First date</span></div>
+                    <div class="occasion-chip" onclick="selectOccasion(this,'partner')"><span class="occasion-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg></span><span>My partner</span></div>
+                    <div class="occasion-chip" id="special-occasion-trigger" onclick="openSpecialOccasionPicker(this)"><span class="occasion-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l2 3"/><path d="M16 2l-2 3"/><path d="M12 5c-3 0-7 2-7 6v1h14v-1c0-4-4-6-7-6z"/><path d="M5 12v2c0 4 3 7 7 7s7-3 7-7v-2"/></svg></span><span id="special-chip-label">Special occasion</span></div>
+                    <div class="occasion-chip" onclick="selectOccasion(this,'just_because')"><span class="occasion-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="M4.93 4.93l1.41 1.41"/><path d="M17.66 17.66l1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="M4.93 19.07l1.41-1.41"/><path d="M17.66 6.34l1.41-1.41"/></svg></span><span>Just because</span></div>
                   </div>
                 </div>
 
@@ -3449,7 +3449,7 @@
         const trigger=document.getElementById('special-occasion-trigger');
         if(trigger){
           const iconSpan=trigger.querySelector('.occasion-icon');
-          if(iconSpan)iconSpan.textContent=emoji;
+          if(iconSpan)iconSpan.innerHTML=emoji;
         }
         closeSpecialOccasionPicker();
         toast('✦ '+label+' selected — we\'ll tailor your suggestions');
