@@ -1708,6 +1708,23 @@
 
       /* END STARTUP POLISH */
 
+      /* ── Onboarding walkthrough ── */
+      .ob-overlay{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.6);transition:opacity 0.25s}
+      .ob-highlight{position:relative;z-index:9999!important;border-radius:14px;box-shadow:0 0 0 4px rgba(201,168,76,0.6),0 0 0 9999px rgba(0,0,0,0.55)!important;pointer-events:auto!important}
+      .ob-tooltip{position:fixed;z-index:10000;background:var(--card);border:1px solid rgba(201,168,76,0.35);border-radius:16px;padding:18px 20px;max-width:300px;width:calc(100% - 40px);box-shadow:0 12px 40px rgba(0,0,0,0.6),0 0 0 0.5px rgba(201,168,76,0.2);animation:obPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1)}
+      @keyframes obPopIn{from{opacity:0;transform:translateY(10px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+      .ob-tooltip-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+      .ob-tooltip-body{font-size:12px;color:var(--subtle);line-height:1.55;margin-bottom:14px}
+      .ob-tooltip-step{font-size:10px;color:rgba(201,168,76,0.6);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+      .ob-tooltip-btns{display:flex;gap:8px;align-items:center}
+      .ob-next{padding:10px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#b8922d,#C9A84C);color:#0d0900;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:transform 0.15s}
+      .ob-next:active{transform:scale(0.96)}
+      .ob-skip{background:none;border:none;color:rgba(255,255,255,0.35);font-size:11px;cursor:pointer;font-family:inherit;padding:6px 8px}
+      .ob-skip:hover{color:rgba(255,255,255,0.6)}
+      .ob-dots{display:flex;gap:5px;margin-left:auto}
+      .ob-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.15)}
+      .ob-dot.active{background:var(--primary);width:16px;border-radius:3px}
+
       </style>
 </head>
 <body>
@@ -6508,6 +6525,142 @@
         _origUpdateStats();
         updatePaidLastUI();
         updateMilestoneStats();
+      };
+
+      // ════════════════════════════════════════════════
+      // ── ONBOARDING WALKTHROUGH ──
+      // ════════════════════════════════════════════════
+      const _OB_STEPS=[
+        {
+          target:()=>document.querySelector('.couple-pill'),
+          title:'Your couple profile',
+          body:'Tap here to set your preferences — cuisines, vibes, dietary needs and budget. The AI uses both your tastes to personalise every suggestion.',
+          pos:'below'
+        },
+        {
+          target:()=>document.getElementById('discover-filter-collapsed'),
+          title:'Set the vibe',
+          body:'Tap this bar to open the filter panel. Pick who the date is for, the vibe, your budget and when — then hit Curate to generate ideas.',
+          pos:'below'
+        },
+        {
+          target:()=>document.querySelector('.swipe-btn-x'),
+          title:'Not for you? Skip it',
+          body:'Tap the X to pass on this idea. It gets swiped away and the next suggestion slides in — no pressure, keep browsing.',
+          pos:'above'
+        },
+        {
+          target:()=>document.querySelector('.swipe-btn-heart'),
+          title:'Save for later',
+          body:'Tap the heart to save this idea to your Wishlist. You can come back to it anytime — great for dates you want to try but aren\'t ready to book yet.',
+          pos:'above'
+        },
+        {
+          target:()=>document.querySelector('.swipe-btn-book'),
+          title:'Book it now',
+          body:'Ready to go? Tap Book Now and we\'ll walk you through reserving the table, sorting transport and even finding a hotel — all in one flow.',
+          pos:'above'
+        }
+      ];
+      let _obStep=0;
+      let _obOverlay=null;
+      let _obTooltip=null;
+
+      function _obShouldShow(){
+        try{return !localStorage.getItem('t4t_ob_done');}catch(e){return true;}
+      }
+      function _obMarkDone(){
+        try{localStorage.setItem('t4t_ob_done','1');}catch(e){}
+      }
+
+      function startOnboarding(){
+        if(!_obShouldShow())return;
+        // Wait for swipe cards to render
+        const check=setInterval(()=>{
+          if(document.querySelector('.swipe-btn-book')){
+            clearInterval(check);
+            _obStep=0;
+            _obOverlay=document.createElement('div');
+            _obOverlay.className='ob-overlay';
+            _obOverlay.onclick=()=>{};
+            document.body.appendChild(_obOverlay);
+            _obTooltip=document.createElement('div');
+            _obTooltip.className='ob-tooltip';
+            document.body.appendChild(_obTooltip);
+            _obShow();
+          }
+        },300);
+      }
+
+      function _obShow(){
+        if(_obStep>=_OB_STEPS.length){_obEnd();return;}
+        const step=_OB_STEPS[_obStep];
+        const el=step.target();
+        if(!el){_obStep++;_obShow();return;}
+        // Remove previous highlight
+        document.querySelectorAll('.ob-highlight').forEach(e=>e.classList.remove('ob-highlight'));
+        // Add highlight to target
+        el.classList.add('ob-highlight');
+        // Scroll into view
+        el.scrollIntoView({behavior:'smooth',block:'center'});
+        // Build dots
+        const dots=_OB_STEPS.map((_,i)=>`<div class="ob-dot${i===_obStep?' active':''}"></div>`).join('');
+        // Build tooltip content
+        _obTooltip.innerHTML=`
+          <div class="ob-tooltip-step">Step ${_obStep+1} of ${_OB_STEPS.length}</div>
+          <div class="ob-tooltip-title">${step.title}</div>
+          <div class="ob-tooltip-body">${step.body}</div>
+          <div class="ob-tooltip-btns">
+            <button class="ob-next" onclick="_obNext()">${_obStep===_OB_STEPS.length-1?'Got it, let\'s go!':'Next'}</button>
+            <button class="ob-skip" onclick="_obEnd()">Skip tour</button>
+            <div class="ob-dots">${dots}</div>
+          </div>`;
+        // Position tooltip
+        setTimeout(()=>{
+          const rect=el.getBoundingClientRect();
+          const ttH=_obTooltip.offsetHeight;
+          const ttW=_obTooltip.offsetWidth;
+          let top,left;
+          left=Math.max(20,Math.min(window.innerWidth-ttW-20,rect.left+(rect.width/2)-(ttW/2)));
+          if(step.pos==='above'){
+            top=rect.top-ttH-14;
+            if(top<10) top=rect.bottom+14;
+          } else {
+            top=rect.bottom+14;
+            if(top+ttH>window.innerHeight-10) top=rect.top-ttH-14;
+          }
+          _obTooltip.style.top=Math.max(10,top)+'px';
+          _obTooltip.style.left=left+'px';
+          // Re-trigger animation
+          _obTooltip.style.animation='none';
+          void _obTooltip.offsetWidth;
+          _obTooltip.style.animation='obPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1)';
+        },100);
+      }
+
+      function _obNext(){
+        _obStep++;
+        _obShow();
+      }
+
+      function _obEnd(){
+        _obMarkDone();
+        document.querySelectorAll('.ob-highlight').forEach(e=>e.classList.remove('ob-highlight'));
+        if(_obOverlay){_obOverlay.remove();_obOverlay=null;}
+        if(_obTooltip){_obTooltip.remove();_obTooltip=null;}
+      }
+
+      // Trigger onboarding after entering app from waitlist
+      const _origEnterApp=enterApp;
+      enterApp=function(){
+        _origEnterApp();
+        // Wait for landing to fade, then start onboarding on discover page
+        if(_obShouldShow()){
+          setTimeout(()=>{
+            go('discover',null);
+            setTimeout(startOnboarding,800);
+          },500);
+        }
       };
 
     </script>
