@@ -894,8 +894,8 @@
         backdrop-filter:blur(20px);
         -webkit-backdrop-filter:blur(20px);
       }
-      .mobile-logo{color:#fff!important;font-weight:700}
-      .mobile-page-title{color:rgba(255,255,255,0.38)!important}
+      .mobile-logo{color:#C9A84C!important;font-weight:700!important;font-size:17px!important}
+      .mobile-page-title{color:rgba(255,255,255,0.45)!important;font-size:12px!important}
 
       /* — Mobile bottom nav — */
       .mobile-nav-bar{
@@ -1073,8 +1073,11 @@
         flex-shrink:0;
         position:relative;
         z-index:30;
-        padding-top:calc(env(safe-area-inset-top,0px) + 12px)!important;
-        padding-bottom:12px!important;
+        padding:calc(env(safe-area-inset-top,0px) + 12px) 16px 12px 16px!important;
+        background:rgba(8,8,8,0.96)!important;
+        border-bottom:0.5px solid rgba(201,168,76,0.12)!important;
+        backdrop-filter:blur(20px)!important;
+        -webkit-backdrop-filter:blur(20px)!important;
       }
       .mobile-nav-bar{
         display:block!important;
@@ -1803,10 +1806,13 @@
 
       /* — Mobile logo gradient: rose-to-gold — */
       .mobile-logo{
+        color:#C9A84C!important;
         background:linear-gradient(125deg,#C4687A 0%,#C9A84C 60%,#8B6914 100%)!important;
         -webkit-background-clip:text!important;
         -webkit-text-fill-color:transparent!important;
         background-clip:text!important;
+        font-size:17px!important;
+        font-weight:700!important;
       }
 
       /* — Swipe heart button hover: rose — */
@@ -2115,23 +2121,23 @@
         <div class="mobile-header" style="justify-content:space-between;align-items:center">
           <!-- Left: brand text -->
           <div>
-            <div class="mobile-logo" style="font-size:16px!important">Table for Two</div>
+            <div class="mobile-logo">Table for Two</div>
             <div class="mobile-page-title" id="mobile-page-title">Discover</div>
           </div>
           <!-- Center: T4T monogram logo -->
           <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
             <defs>
-              <linearGradient id="t4t-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+              <linearGradient id="t4t-grad-hdr" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
                 <stop offset="0%" stop-color="#D4B86A"/>
                 <stop offset="50%" stop-color="#C9A84C"/>
                 <stop offset="100%" stop-color="#8B6914"/>
               </linearGradient>
             </defs>
-            <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-grad)"/>
-            <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
-            <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
-            <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-grad)"/>
-            <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-grad)"/>
+            <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-grad-hdr)"/>
+            <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad-hdr)"/>
+            <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad-hdr)"/>
+            <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-grad-hdr)"/>
+            <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-grad-hdr)"/>
           </svg>
           <!-- Right: couple pill -->
           <div class="couple-pill" style="padding:5px 10px" onclick="toggleProfiles()">
