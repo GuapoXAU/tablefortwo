@@ -5614,16 +5614,16 @@
         lp.style.opacity = '0';
         lp.style.transition = 'opacity 0.35s';
         setTimeout(()=>{
-          lp.style.display='none';
-          lp.style.visibility='hidden';
-          // Force header repaint on iOS Safari — without this the header
-          // content can remain invisible after the landing overlay is removed
-          const hdr=document.querySelector('.mobile-header');
-          if(hdr){
-            hdr.style.display='none';
-            void hdr.offsetHeight;
-            hdr.style.display='flex';
-          }
+          // Fully remove the landing page from the DOM so it can't
+          // interfere with compositing layers on iOS Safari
+          lp.remove();
+          // Force the browser to recalculate the entire layout tree —
+          // this ensures the header content actually paints on mobile Safari
+          // which sometimes skips painting elements that were behind a
+          // fixed z-index overlay during initial render
+          document.body.style.display='none';
+          void document.body.offsetHeight;
+          document.body.style.display='';
         }, 350);
       }
 
