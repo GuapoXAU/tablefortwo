@@ -410,7 +410,7 @@
       .lp-submit{width:100%;padding:16px;background:linear-gradient(135deg,#8B3A4A,#C4687A);color:#fff;font-size:17px;font-weight:600;border:none;border-radius:12px;cursor:pointer;font-family:inherit;margin-top:6px;letter-spacing:0.2px;-webkit-tap-highlight-color:transparent}
       .lp-submit:active{opacity:0.9}
 
-      .lp-success{display:none;text-align:center;padding:32px 0 8px}
+      .lp-success{display:none;text-align:center;padding:32px 24px 8px}
       .lp-success-icon{font-size:44px;margin-bottom:12px}
       .lp-success-title{font-size:22px;font-weight:700;color:#1a1a1a;margin-bottom:8px;font-family:var(--font-serif,serif)}
       .lp-success-desc{font-size:16px;color:#777;line-height:1.6;margin-bottom:24px}
@@ -5551,8 +5551,25 @@
         .then(function(response){
           if(response.ok){
             document.getElementById('lp-form-wrap').style.display = 'none';
-            document.getElementById('lp-success').style.display = 'block';
-            document.getElementById('lp-success').scrollIntoView({behavior:'smooth'});
+            const _suc=document.getElementById('lp-success');
+            _suc.style.display='flex';
+            _suc.style.flexDirection='column';
+            _suc.style.alignItems='center';
+            _suc.style.justifyContent='center';
+            _suc.style.minHeight='70vh';
+            // Hide everything else on the landing page so the success
+            // message is front and center — not buried at the bottom
+            const hero=document.querySelector('.lp-hero');
+            if(hero)hero.style.display='none';
+            // Hide all sections except the waitlist section (which contains the success)
+            document.querySelectorAll('.lp-body > .lp-section, .lp-body > .lp-divider, .lp-body > .lp-survey, .lp-body > .lp-woulduse, .lp-body > .lp-features, .lp-body > img').forEach(el=>{
+              if(!el.id||el.id!=='lp-waitlist')el.style.display='none';
+            });
+            // Also hide the footer
+            const footer=document.querySelector('.lp-footer');
+            if(footer)footer.style.display='none';
+            // Scroll to top so the success message is centered
+            window.scrollTo({top:0,behavior:'smooth'});
           } else {
             return response.json().then(function(data){
               const msg = data.errors ? data.errors.map(e=>e.message).join(', ') : 'Something went wrong. Please try again.';
@@ -5611,19 +5628,14 @@
         _lpDemoClicked = true;
         _lpSendSession('clicked_demo');
         const lp = document.getElementById('landing');
+        if(!lp)return;
         lp.style.opacity = '0';
         lp.style.transition = 'opacity 0.35s';
         setTimeout(()=>{
-          // Fully remove the landing page from the DOM so it can't
-          // interfere with compositing layers on iOS Safari
-          lp.remove();
-          // Force the browser to recalculate the entire layout tree —
-          // this ensures the header content actually paints on mobile Safari
-          // which sometimes skips painting elements that were behind a
-          // fixed z-index overlay during initial render
-          document.body.style.display='none';
-          void document.body.offsetHeight;
-          document.body.style.display='';
+          lp.style.display='none';
+          lp.style.visibility='hidden';
+          lp.style.pointerEvents='none';
+          lp.style.zIndex='-1';
         }, 350);
       }
 
