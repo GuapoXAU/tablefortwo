@@ -1712,6 +1712,121 @@
 
       /* END STARTUP POLISH */
 
+      /* ═══════════════════════════════════════════
+        ROSE ACCENT BLEED — bring landing-page warmth
+        into the dark theme: #C4687A rose · #8B3A4A deep
+      ═══════════════════════════════════════════ */
+
+      /* — Book Now swipe button: rose gradient instead of pure gold — */
+      .swipe-btn-book{
+        background:linear-gradient(135deg,#8B3A4A 0%,#C4687A 100%)!important;
+        box-shadow:0 6px 20px rgba(196,104,122,0.4)!important;
+      }
+      .swipe-btn-book:hover{
+        box-shadow:0 10px 32px rgba(196,104,122,0.55)!important;
+      }
+
+      /* — Couple pill: rose border + tint — */
+      .couple-pill{
+        background:rgba(196,104,122,0.08)!important;
+        border:0.5px solid rgba(196,104,122,0.22)!important;
+      }
+      .couple-pill:hover{
+        background:rgba(196,104,122,0.14)!important;
+        border-color:rgba(196,104,122,0.4)!important;
+        box-shadow:0 0 14px rgba(196,104,122,0.12)!important;
+      }
+      .avatar-a{background:#C4687A!important;color:#fff!important}
+
+      /* — Primary CTA buttons (.btn-rose): rose-gold blend — */
+      .btn-rose,.btn-primary{
+        background:linear-gradient(135deg,#8B3A4A 0%,#C4687A 45%,#D4887A 100%)!important;
+        color:#fff!important;
+        box-shadow:0 4px 18px rgba(196,104,122,0.32),0 1px 0 rgba(255,255,255,0.12) inset!important;
+      }
+      @media(hover:hover){
+        .btn-rose:hover,.btn-primary:hover{
+          box-shadow:0 6px 24px rgba(196,104,122,0.45),0 1px 0 rgba(255,255,255,0.15) inset!important;
+        }
+      }
+
+      /* — Active bottom nav dot: rose — */
+      .mnb-item::before{background:#C4687A!important}
+      .mnb-item.active{color:#C4687A!important}
+      .mnb-item.active .mnb-icon svg{stroke:#C4687A}
+
+      /* — Section link & tab active: rose — */
+      .section-link{color:#C4687A!important}
+      .tab.active{color:#fff!important;border-bottom-color:#C4687A!important}
+
+      /* — Swipe card top badge: rose — */
+      .swipe-card-top-badge{background:rgba(196,104,122,0.88)!important}
+
+      /* — Match bar: rose-to-gold gradient — */
+      .swipe-card-match-bar,.match-bar{
+        background:linear-gradient(90deg,#C4687A,#C9A84C)!important;
+      }
+
+      /* — Occasion chip active: rose hint — */
+      .occasion-chip.active{
+        border-color:rgba(196,104,122,0.45)!important;
+        background:rgba(196,104,122,0.12)!important;
+        color:#E8A0B0!important;
+      }
+
+      /* — Vibe card active: rose ring — */
+      .vibe-card.active{
+        border-color:rgba(196,104,122,0.4)!important;
+        background:rgba(196,104,122,0.08)!important;
+        box-shadow:0 0 0 3px rgba(196,104,122,0.1)!important;
+      }
+      .vibe-card.active::after{color:#C4687A!important}
+
+      /* — Top pick card glow: rose — */
+      @keyframes topPickGlowRose{
+        0%,100%{box-shadow:0 0 0 3px rgba(196,104,122,0.1)}
+        50%     {box-shadow:0 0 0 6px rgba(196,104,122,0.2)}
+      }
+      .idea-card.top-pick{animation:topPickGlowRose 2.4s ease-in-out infinite!important}
+
+      /* — Booking flow step dots: rose — */
+      .bf-dot.active{background:#C4687A!important}
+      .bf-dot.done{background:rgba(196,104,122,0.4)!important}
+
+      /* — Hub wishlist badge: rose — */
+      #hub-wish-badge{background:#C4687A!important}
+
+      /* — Card top shimmer: rose tint blended with gold — */
+      .card::after{
+        background:linear-gradient(90deg,transparent 0%,rgba(196,104,122,0.25) 30%,rgba(201,168,76,0.3) 70%,transparent 100%)!important;
+      }
+
+      /* — Mobile logo gradient: rose-to-gold — */
+      .mobile-logo{
+        background:linear-gradient(125deg,#C4687A 0%,#C9A84C 60%,#8B6914 100%)!important;
+      }
+
+      /* — Swipe heart button hover: rose — */
+      .swipe-btn-heart:hover{
+        background:rgba(196,104,122,0.12)!important;
+        border-color:rgba(196,104,122,0.4)!important;
+        color:#C4687A!important;
+      }
+
+      /* — What's Hot save button: rose on save — */
+      .wh-chip.on{
+        background:rgba(196,104,122,0.14)!important;
+        border-color:rgba(196,104,122,0.4)!important;
+        color:#E8A0B0!important;
+      }
+
+      /* — Toast border: subtle rose — */
+      #toast{
+        border:0.5px solid rgba(196,104,122,0.18)!important;
+      }
+
+      /* END ROSE ACCENT BLEED */
+
       /* ── Onboarding walkthrough ── */
       .ob-overlay{position:fixed;inset:0;z-index:9998;background:rgba(0,0,0,0.6);transition:opacity 0.25s}
       .ob-highlight{position:relative;z-index:9999!important;border-radius:14px;box-shadow:0 0 0 4px rgba(201,168,76,0.6),0 0 0 9999px rgba(0,0,0,0.55)!important;pointer-events:auto!important}
