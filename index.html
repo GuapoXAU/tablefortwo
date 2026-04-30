@@ -3031,7 +3031,7 @@
                 </div>
               </div>
               <div class="bf-transport-opt" onclick="simulatePayment('card')" style="cursor:pointer">
-                <div style="width:40px;height:40px;border-radius:10px;background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px">💳</div>
+                <div style="width:40px;height:40px;border-radius:10px;background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div>
                 <div style="flex:1">
                   <div style="font-size:14px;font-weight:700;color:var(--ink)">Debit / Credit card</div>
                   <div style="font-size:11px;color:var(--ink-muted)">Visa, Mastercard, Amex</div>
@@ -3219,9 +3219,9 @@
       const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Tube, bus or cab — we\'ll tell you what makes sense',planner:'Calendar, reminders & .ics export','whats-hot':'Trending this week · Matched to your tastes',bookings:'Every date, all in one place',journal:'Your private scrapbook of memories',wishlist:'Ideas you want to try someday'};
 
       let bookings=[
-        {id:1,type:'restaurant',name:'Brat, Shoreditch',date:'2026-05-02',meta:'8:00 PM · 2 covers · Michelin-starred Basque grill',amount:'£160',icon:'🔥'},
-        {id:2,type:'experience',name:'Ronnie Scott\'s jazz night',date:'2026-06-14',meta:'8:30 PM · 2 tickets · Live jazz',amount:'£140',icon:'🎷'},
-        {id:3,type:'hotel',name:'The Ned, City of London',date:'2026-07-04',meta:'1 night · Deluxe room',amount:'£380',icon:'🏛️'},
+        {id:1,type:'restaurant',name:'Brat, Shoreditch',date:'2026-05-02',meta:'8:00 PM · 2 covers · Michelin-starred Basque grill',amount:'£160'},
+        {id:2,type:'experience',name:'Ronnie Scott\'s jazz night',date:'2026-06-14',meta:'8:30 PM · 2 tickets · Live jazz',amount:'£140'},
+        {id:3,type:'hotel',name:'The Ned, City of London',date:'2026-07-04',meta:'1 night · Deluxe room',amount:'£380'},
       ];
       let reminders=[
         {id:1,title:'Brat dinner reservation',date:'2026-05-02',time:'19:45',cat:'Dinner reservation',color:'#C9A84C'},
@@ -4486,11 +4486,52 @@
         if(bothLove) toast(`♥ You both love ${ideaName}! Tap "Book it together" to lock it in.`);
       }
 
-      const _BOOKING_ICONS={restaurant:'🍽️',hotel:'🏨',airbnb:'🏡',cab:'🚗',concert:'🎤',theatre:'🎭',wellness:'🧖',rooftop:'🌇',latenight:'🌙',dining:'🍽️',activity:'🎯',experience:'🎬'};
+      /* ── SVG outline icons for prestige booking flow ── */
+      const _SVG={
+        restaurant:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+        hotel:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/><path d="M9 14h6"/><path d="M9 18h6"/><path d="M9 10h.01"/></svg>',
+        airbnb:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg>',
+        cab:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><path d="M9 17h6"/><circle cx="17" cy="17" r="2"/></svg>',
+        concert:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+        theatre:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10s3-3 9-3 9 3 9 3"/><path d="M2 10s3 3 9 3 9-3 9-3"/><path d="M2 10v4c0 4.4 4 8 9 8s9-3.6 9-8v-4"/><circle cx="8" cy="13" r="1"/><circle cx="16" cy="13" r="1"/><path d="M10 17c.7.5 1.3.8 2 .8s1.3-.3 2-.8"/></svg>',
+        wellness:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.5-3 9-7.5 9-12a9 9 0 1 0-18 0c0 4.5 3.5 9 9 12Z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',
+        rooftop:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>',
+        latenight:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+        dining:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>',
+        activity:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>',
+        experience:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>',
+        cinema:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="2.2"/><path d="M7 2v20"/><path d="M17 2v20"/><path d="M2 12h20"/><path d="M2 7h5"/><path d="M2 17h5"/><path d="M17 7h5"/><path d="M17 17h5"/></svg>',
+        garden:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V8"/><path d="M5 12s2.5-5 7-5 7 5 7 5"/><path d="M7 5c0 2.8 2.2 5 5 5s5-2.2 5-5c0-2.8-2.2-5-5-5S7 2.2 7 5Z"/></svg>',
+        gallery:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>',
+        wine:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M12 11v11"/><path d="M20 3H4l.8 5.2A6.2 6.2 0 0 0 11 14h2a6.2 6.2 0 0 0 6.2-5.8L20 3Z"/></svg>',
+        boat:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.5 0 2.5 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/><path d="M19.4 15H4.6L2 20h20l-2.6-5Z"/><path d="M12 3v8.5"/><path d="m8 7 4-4 4 4"/></svg>',
+        pottery:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 22h8"/><path d="M7 10h10"/><path d="M16 10c0 6-4 12-4 12s-4-6-4-12"/><path d="M7 10c0-4.4 2.2-8 5-8s5 3.6 5 8"/></svg>',
+        cooking:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-3"/><path d="M12 19H4a2 2 0 0 1-2-2v-2h20v2a2 2 0 0 1-2 2h-2.5"/><path d="M8 11V7c0-1.1.9-2 2-2h4c1.1 0 2 .9 2 2v4"/></svg>',
+        picnic:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8c.7-1 1-2.2 1-3.5A5.5 5.5 0 0 0 12.5 0 5.5 5.5 0 0 0 7 4.5c0 1.3.3 2.5 1 3.5"/><path d="M4 14h16"/><path d="M6 14l-2 8h16l-2-8"/><path d="M12 14V8"/></svg>',
+        ticket:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2Z"/><path d="M13 5v2"/><path d="M13 17v2"/><path d="M13 11v2"/></svg>',
+        bell:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+        moon:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>',
+        pin:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+        clipboard:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>',
+        card:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>',
+        breakfast:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11h1a3 3 0 0 1 0 6h-1"/><path d="M3 11h14v6a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><path d="M6 6c.7-1 1-2 1-3"/><path d="M10 6c.7-1 1-2 1-3"/><path d="M14 6c.7-1 1-2 1-3"/></svg>',
+        concierge:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 0-4 4v2h8V6a4 4 0 0 0-4-4Z"/><path d="M20 8H4"/><path d="M3 12h18v2a8 8 0 0 1-8 8h-2a8 8 0 0 1-8-8v-2Z"/></svg>',
+      };
+      /* Helper: get an SVG icon string at a given size (default 20). Falls back to ✦ */
+      function _svgIcon(key,size){
+        const s=size||20;
+        const svg=_SVG[key];
+        if(!svg)return'✦';
+        return svg.replace(/width="\d+"/,'width="'+s+'"').replace(/height="\d+"/,'height="'+s+'"');
+      }
+      /* Icon sized for the large loading spinner (52px context) */
+      function _svgIconLg(key){return _svgIcon(key,36);}
+
+      const _BOOKING_ICONS={restaurant:_SVG.restaurant,hotel:_SVG.hotel,airbnb:_SVG.airbnb,cab:_SVG.cab,concert:_SVG.concert,theatre:_SVG.theatre,wellness:_SVG.wellness,rooftop:_SVG.rooftop,latenight:_SVG.latenight,dining:_SVG.dining,activity:_SVG.activity,experience:_SVG.experience};
       function quickBook(name,type,amount){
         const today=new Date();
         const date=new Date(today.getFullYear(),today.getMonth()+1,15).toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type,name,date,meta:'Just booked',amount,icon:_BOOKING_ICONS[type]||'🎬'});
+        bookings.push({id:Date.now(),type,name,date,meta:'Just booked',amount,icon:_BOOKING_ICONS[type]||_SVG.experience});
         updateStats();renderBookings();toast('✦ Added to your dates — '+name);
       }
 
@@ -4632,8 +4673,8 @@
                 const altTime=avail?time:(parseInt(time)>=20?'19:30':'20:30');
                 const hasImg=r.img&&r.img.length>0;
                 const imgHtml=hasImg
-                  ?`<img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;min-height:180px" onerror="this.parentElement.innerHTML='<div style=\\'height:180px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2)\\'>🍽️</div>'">`
-                  :'<div style="height:180px;display:flex;align-items:center;justify-content:center;font-size:32px;background:var(--bg2)">🍽️</div>';
+                  ?`<img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;min-height:180px" onerror="this.parentElement.innerHTML='<div style=\\'height:180px;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--primary)\\'>${_svgIcon('restaurant',32).replace(/'/g,"\\'")}</div>'">`
+                  :'<div style="height:180px;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--primary)">'+_svgIcon('restaurant',32)+'</div>';
 
                 return `<div class="card" style="margin-bottom:12px;overflow:hidden">
                   <div style="display:flex;gap:0">
@@ -4686,7 +4727,7 @@
         setTimeout(()=>{
           const dateObj=new Date(date+'T12:00:00');
           const dateStr=dateObj.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-          bookings.push({id:Date.now(),type:'restaurant',name:name+', '+area,date,meta:time+' · '+covers+' covers',amount:price,icon:'🍽️'});
+          bookings.push({id:Date.now(),type:'restaurant',name:name+', '+area,date,meta:time+' · '+covers+' covers',amount:price,icon:_SVG.restaurant});
           updateStats();renderBookings();_saveState();
           results.innerHTML=`
             <div class="card" style="margin-top:1rem">
@@ -4696,7 +4737,7 @@
                 <div style="font-size:13px;color:var(--ink-muted);margin-bottom:16px">Confirmation sent to your email</div>
                 <div class="bf-ref-badge" style="margin-bottom:16px">${ref}</div>
                 <div style="background:var(--bg2);border:0.5px solid var(--bdr);border-radius:14px;padding:14px;text-align:left;margin-bottom:16px">
-                  <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px">🍽️ ${name}</div>
+                  <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="color:var(--primary)">${_svgIcon('restaurant',16)}</span> ${name}</div>
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
                     <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Date</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${dateStr}</div></div>
                     <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Time</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${time}</div></div>
@@ -4704,8 +4745,8 @@
                     <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Est. total</div><div style="font-size:12px;font-weight:600;color:var(--rose-dark)">${price}</div></div>
                   </div>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-                    <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3)">💳 Deposit taken</span>
-                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">🍽 Pay rest at venue</span>
+                    <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon('card',12)} Deposit taken</span>
+                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon('restaurant',12)} Pay rest at venue</span>
                     <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation</span>
                   </div>
                 </div>
@@ -4724,7 +4765,7 @@
       function bookHotel(){
         const d=document.getElementById('hotel-dest').value||'Hotel';
         const ci=document.getElementById('hotel-in').value||new Date().toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type:'hotel',name:d,date:ci,meta:'1 night',amount:'£180',icon:'🏨'});
+        bookings.push({id:Date.now(),type:'hotel',name:d,date:ci,meta:'1 night',amount:'£180',icon:_SVG.hotel});
         updateStats();toast('✦ Room reserved at '+d);
       }
       function switchStayTab(tab){
@@ -4745,14 +4786,14 @@
         const q=encodeURIComponent(dest);
         const url=`https://www.airbnb.co.uk/s/${q}/homes?checkin=${ci}&checkout=${co}&adults=2`;
         window.open(url,'_blank');
-        bookings.push({id:Date.now(),type:'airbnb',name:dest+(note?' — '+note:''),date:ci,meta:type,amount:'',icon:'🏡'});
+        bookings.push({id:Date.now(),type:'airbnb',name:dest+(note?' — '+note:''),date:ci,meta:type,amount:'',icon:_SVG.airbnb});
         updateStats();renderBookings();toast('✦ Airbnb search opened for '+dest);
       }
       function bookCab(){
         const f=document.getElementById('cab-from').value||'Home';
         const t=document.getElementById('cab-to').value||'Venue';
         const d=document.getElementById('cab-date').value||new Date().toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type:'cab',name:f+' → '+t,date:d,meta:'2 passengers',amount:'£45',icon:'🚗'});
+        bookings.push({id:Date.now(),type:'cab',name:f+' → '+t,date:d,meta:'2 passengers',amount:'£45',icon:_SVG.cab});
         updateStats();toast('✦ Cab booked');
       }
 
@@ -4861,14 +4902,14 @@
 
           // Walking — only suggest if BOTH areas were recognised (otherwise distance is unreliable)
           if(km<2.8&&!anyUnknown){
-            opts.push({mode:'Walking',icon:'🚶',time:Math.round(km*13),cost:0,costStr:'Free',
+            opts.push({mode:'Walking',icon:_SVG.activity,time:Math.round(km*13),cost:0,costStr:'Free',
               desc:'A romantic stroll together — no waiting, no cost, and you arrive relaxed',
               badge:km<1.5?'Most romantic':'',type:'walk'});
           }
 
           // Bus
           const busTime=Math.round(kmRoad*5)+8;
-          opts.push({mode:'Bus (TfL)',icon:'🚌',time:busTime,cost:3.50,costStr:'£3.50',
+          opts.push({mode:'Bus (TfL)',icon:_SVG.cab,time:busTime,cost:3.50,costStr:'£3.50',
             desc:'£1.75 each · Pay with contactless · No planning needed',
             badge:'',type:'bus'});
 
@@ -4877,7 +4918,7 @@
           const tubeTotal=tubePP*2;
           const tubeTime=Math.round(km*2.8)+12;
           const isOuter=(fZ>2||tZ>2);
-          opts.push({mode:isOuter?'Train / Overground':'Tube',icon:isOuter?'🚂':'🚇',time:tubeTime,
+          opts.push({mode:isOuter?'Train / Overground':'Tube',icon:_SVG.cab,time:tubeTime,
             cost:tubeTotal,costStr:'£'+tubeTotal.toFixed(2),
             desc:'£'+tubePP.toFixed(2)+' each · Pay with contactless · Zone '+fZ+'→'+tZ+(isOuter?' · Check National Rail for fast trains':''),
             badge:'',type:'tube'});
@@ -4885,14 +4926,14 @@
           // Standard cab
           const cabTime=Math.round(kmRoad*3.5)+7;
           const cabCost=Math.max(12,Math.round(kmRoad*2.2+5));
-          opts.push({mode:'Cab — Standard',icon:'🚗',time:cabTime,cost:cabCost,costStr:'£'+cabCost,
+          opts.push({mode:'Cab — Standard',icon:_SVG.cab,time:cabTime,cost:cabCost,costStr:'£'+cabCost,
             desc:'Door to door · No connections · Pre-book for peace of mind',
             badge:'',type:'cab_standard'});
 
           // Executive cab (longer journeys)
           if(km>3){
             const execCost=Math.round(cabCost*1.85);
-            opts.push({mode:'Cab — Executive',icon:'🚘',time:cabTime,cost:execCost,costStr:'£'+execCost,
+            opts.push({mode:'Cab — Executive',icon:_SVG.cab,time:cabTime,cost:execCost,costStr:'£'+execCost,
               desc:'Premium saloon · Extra legroom · Start the date the moment you get in',
               badge:'',type:'cab_exec'});
           }
@@ -4913,13 +4954,13 @@
           const tubeOpt=opts.find(o=>o.type==='tube');
           const cabOpt=opts.find(o=>o.type==='cab_standard');
           if(walkOpt&&km<1.5){
-            rec={icon:'🚶',text:'Only '+Math.round(km*10)/10+'km — a short stroll together is honestly the nicest way to arrive. Save the cab for later in the evening.'};
+            rec={icon:_SVG.activity,text:'Only '+Math.round(km*10)/10+'km — a short stroll together is honestly the nicest way to arrive. Save the cab for later in the evening.'};
           } else if(km<5&&tubeOpt){
-            rec={icon:'🚇',text:'The '+(isOuter?'train':'Tube')+' is the smartest move here — '+tubeTime+' minutes, '+tubeOpt.costStr+' for two, and no parking stress. Perfect way to arrive fresh.'};
+            rec={icon:_SVG.cab,text:'The '+(isOuter?'train':'Tube')+' is the smartest move here — '+tubeTime+' minutes, '+tubeOpt.costStr+' for two, and no parking stress. Perfect way to arrive fresh.'};
           } else if(km<10){
-            rec={icon:'🚇',text:'A cab is worth it for this distance — '+cabTime+' minutes door to door for £'+cabCost+'. You could Tube it for '+tubeOpt.costStr+' if budget matters, but the cab keeps the evening smooth.'};
+            rec={icon:_SVG.cab,text:'A cab is worth it for this distance — '+cabTime+' minutes door to door for £'+cabCost+'. You could Tube it for '+tubeOpt.costStr+' if budget matters, but the cab keeps the evening smooth.'};
           } else {
-            rec={icon:'🚗',text:'For a '+Math.round(km)+'km journey, a pre-booked cab makes the most sense — reliable, direct, and you arrive together. Check train options if there\'s a fast direct service.'};
+            rec={icon:_SVG.cab,text:'For a '+Math.round(km)+'km journey, a pre-booked cab makes the most sense — reliable, direct, and you arrive together. Check train options if there\'s a fast direct service.'};
           }
 
           _transportOpts=opts;
@@ -4929,7 +4970,7 @@
             const unknown=(unknownFrom?'"'+fromVal+'"':'')+(unknownFrom&&unknownTo?' and ':'')+( unknownTo?'"'+toVal+'"':'');
             html+='<div style="padding:11px 14px;background:#FEF9EC;border:0.5px solid #F59E0B;border-radius:var(--r-md);margin-bottom:1rem;font-size:12px;color:#92400E;line-height:1.5">⚠ We didn\'t recognise '+unknown+' in our area database, so distance and time estimates may be off. Use the TfL or Google Maps links below for accurate journey times.</div>';
           }
-          html+='<div style="padding:12px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border-radius:var(--r-md);border-left:3px solid var(--rose);margin-bottom:1rem"><div style="font-size:11px;font-weight:600;color:var(--rose-dark);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">'+rec.icon+' Our recommendation</div><div style="font-size:13px;color:var(--ink-soft);line-height:1.55">'+rec.text+'</div></div>';
+          html+='<div style="padding:12px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border-radius:var(--r-md);border-left:3px solid var(--rose);margin-bottom:1rem"><div style="font-size:11px;font-weight:600;color:var(--rose-dark);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:6px"><span style="color:var(--rose-dark)">'+rec.icon+'</span> Our recommendation</div><div style="font-size:13px;color:var(--ink-soft);line-height:1.55">'+rec.text+'</div></div>';
           html+='<div style="display:flex;flex-direction:column;gap:10px">';
 
           // Generate next departures for bus/tube based on current time
@@ -4967,7 +5008,7 @@
                 +'</div>';
             }
             html+='<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:'+(highlight?'1.5px solid var(--rose)':'0.5px solid var(--bdr)')+';border-radius:var(--r-md);background:'+(highlight?'var(--rose-light)':'var(--bg2)')+';">';
-            html+='<div style="font-size:26px;width:36px;text-align:center;flex-shrink:0">'+o.icon+'</div>';
+            html+='<div style="width:36px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)">'+o.icon+'</div>';
             html+='<div style="flex:1;min-width:0">';
             html+='<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px"><span style="font-size:13px;font-weight:600;color:var(--ink)">'+o.mode+'</span>'+(o.badge?'<span class="badge badge-rose" style="font-size:10px">'+o.badge+'</span>':'')+'</div>';
             html+='<div style="display:flex;gap:14px;align-items:baseline;margin-bottom:4px"><span style="font-size:12px;color:var(--ink-soft)">⏱ ~'+o.time+' min</span><span style="font-size:14px;font-weight:600;color:'+(highlight?'var(--rose-dark)':'var(--ink)')+'">'+o.costStr+'</span></div>';
@@ -5041,8 +5082,8 @@
                     <span style="font-size:16px;font-weight:800;color:#fff;letter-spacing:-0.3px">Uber</span>
                     <span style="font-size:10px;color:var(--ink-muted)">· ${etaMins} min away</span>
                   </div>
-                  <div class="bf-transport-opt" onclick="confirmTransportRide('Uber','UberX','${f}','${t}','${d}','${time}',${uberStd},${o.time},'🚗')" style="margin-bottom:6px">
-                    <span style="font-size:22px">🚗</span>
+                  <div class="bf-transport-opt" onclick="confirmTransportRide('Uber','UberX','${f}','${t}','${d}','${time}',${uberStd},${o.time})" style="margin-bottom:6px">
+                    <span style="color:var(--primary)">${_svgIcon('cab',22)}</span>
                     <div style="flex:1">
                       <div style="font-size:13px;font-weight:600;color:var(--ink)">UberX</div>
                       <div style="font-size:11px;color:var(--ink-muted)">Standard · 4 seats · ${o.time} min</div>
@@ -5051,8 +5092,8 @@
                       <div style="font-size:15px;font-weight:700;color:var(--ink)">£${uberStd}</div>
                     </div>
                   </div>
-                  <div class="bf-transport-opt" onclick="confirmTransportRide('Uber','Uber Comfort','${f}','${t}','${d}','${time}',${uberComfort},${o.time},'🚘')" style="margin-bottom:16px">
-                    <span style="font-size:22px">🚘</span>
+                  <div class="bf-transport-opt" onclick="confirmTransportRide('Uber','Uber Comfort','${f}','${t}','${d}','${time}',${uberComfort},${o.time})" style="margin-bottom:16px">
+                    <span style="color:var(--primary)">${_svgIcon('cab',22)}</span>
                     <div style="flex:1">
                       <div style="font-size:13px;font-weight:600;color:var(--ink)">Uber Comfort</div>
                       <div style="font-size:11px;color:var(--ink-muted)">Premium · Extra legroom · ${o.time} min</div>
@@ -5067,8 +5108,8 @@
                     <span style="font-size:10px;color:var(--ink-muted)">· ${etaMins+1} min away</span>
                     ${boltStd<uberStd?'<span class="badge" style="background:rgba(74,222,128,0.12);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3);font-size:9px">Cheapest</span>':''}
                   </div>
-                  <div class="bf-transport-opt${boltStd<uberStd?' highlight':''}" onclick="confirmTransportRide('Bolt','Bolt Standard','${f}','${t}','${d}','${time}',${boltStd},${o.time},'🚗')" style="margin-bottom:6px">
-                    <span style="font-size:22px">🚗</span>
+                  <div class="bf-transport-opt${boltStd<uberStd?' highlight':''}" onclick="confirmTransportRide('Bolt','Bolt Standard','${f}','${t}','${d}','${time}',${boltStd},${o.time})" style="margin-bottom:6px">
+                    <span style="color:var(--primary)">${_svgIcon('cab',22)}</span>
                     <div style="flex:1">
                       <div style="font-size:13px;font-weight:600;color:var(--ink)">Bolt Standard</div>
                       <div style="font-size:11px;color:var(--ink-muted)">Standard · 4 seats · ${o.time} min</div>
@@ -5078,8 +5119,8 @@
                       ${boltStd<uberStd?'<div style="font-size:10px;color:#4ADE80;font-weight:500">Save £'+(uberStd-boltStd)+'</div>':''}
                     </div>
                   </div>
-                  <div class="bf-transport-opt" onclick="confirmTransportRide('Bolt','Bolt XL','${f}','${t}','${d}','${time}',${boltXL},${o.time},'🚐')">
-                    <span style="font-size:22px">🚐</span>
+                  <div class="bf-transport-opt" onclick="confirmTransportRide('Bolt','Bolt XL','${f}','${t}','${d}','${time}',${boltXL},${o.time})">
+                    <span style="color:var(--primary)">${_svgIcon('cab',22)}</span>
                     <div style="flex:1">
                       <div style="font-size:13px;font-weight:600;color:var(--ink)">Bolt XL</div>
                       <div style="font-size:11px;color:var(--ink-muted)">Spacious · 6 seats · ${o.time} min</div>
@@ -5095,7 +5136,7 @@
         },1000);
       }
 
-      function confirmTransportRide(provider,tier,from,to,date,time,cost,mins,icon){
+      function confirmTransportRide(provider,tier,from,to,date,time,cost,mins){
         const area=document.getElementById('transport-results');
         const driver=_bfDrivers[Math.floor(Math.random()*_bfDrivers.length)];
         // Loading: booking
@@ -5103,7 +5144,7 @@
         setTimeout(()=>{
           // Connecting to driver
           area.innerHTML=`<div class="card"><div class="loading-overlay">
-            <div style="font-size:40px;margin-bottom:8px;animation:confirmPop 0.4s cubic-bezier(0.34,1.56,0.64,1)">🚕</div>
+            <div style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.25);margin:0 auto 8px;color:var(--primary);animation:confirmPop 0.4s cubic-bezier(0.34,1.56,0.64,1)">${_svgIcon('cab',32)}</div>
             <div style="display:flex;flex-direction:column;gap:8px;text-align:left;width:100%;max-width:300px">
               <div class="bf-gen-line" style="animation-delay:0s"><div class="bf-gen-dot"></div><div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9)">Driver found</div></div>
               <div class="bf-gen-line" style="animation-delay:0.3s"><div class="bf-gen-dot" style="animation-delay:0.3s"></div><div style="font-size:13px;color:rgba(255,255,255,0.6)">${driver.name} · ${driver.car}</div></div>
@@ -5113,7 +5154,7 @@
           </div></div>`;
           setTimeout(()=>{
             // Confirmed
-            bookings.push({id:Date.now(),type:'cab',name:from+' → '+to,date,meta:provider+' '+tier+(time?' · '+time:'')+' · '+driver.name+' · '+driver.car,amount:'£'+cost,icon:'🚗'});
+            bookings.push({id:Date.now(),type:'cab',name:from+' → '+to,date,meta:provider+' '+tier+(time?' · '+time:'')+' · '+driver.name+' · '+driver.car,amount:'£'+cost,icon:_SVG.cab});
             updateStats();renderBookings();_saveState();
             const provColor=provider==='Bolt'?'#34D186':'#fff';
             area.innerHTML=`
@@ -5138,7 +5179,7 @@
                       </svg>
                       <div style="position:absolute;bottom:22px;left:26%;transform:translateX(-50%)"><div style="width:10px;height:10px;border-radius:50%;background:#4ADE80;box-shadow:0 0 0 4px rgba(74,222,128,0.2)"></div></div>
                       <div style="position:absolute;top:14px;left:60%;transform:translateX(-50%)"><div style="width:10px;height:10px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 4px rgba(201,168,76,0.2)"></div></div>
-                      <div style="position:absolute;bottom:30px;left:32%"><div class="bf-map-car">🚕</div></div>
+                      <div style="position:absolute;bottom:30px;left:32%"><div class="bf-map-car" style="color:var(--primary)">${_svgIcon('cab',18)}</div></div>
                       <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);border-radius:20px;padding:5px 11px;display:flex;align-items:center;gap:6px">
                         <div style="width:6px;height:6px;border-radius:50%;background:#4ADE80;animation:dotPulse 1s ease-in-out infinite"></div>
                         <span style="font-size:12px;font-weight:700;color:#fff">${driver.eta} min away</span>
@@ -5172,7 +5213,7 @@
                     </div>
                   </div>
                   <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-                    <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">💳 Pay in app</span>
+                    <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon('card',12)} Pay in app</span>
                     <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation (5 min)</span>
                   </div>
                   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -5188,7 +5229,7 @@
 
       function bookReturnCab(from,to,cost){
         const d=document.getElementById('cab-date').value||new Date().toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type:'cab',name:from+' → '+to,date:d,meta:'Cab — Standard · Return · 2 passengers',amount:'£'+cost,icon:'🚗'});
+        bookings.push({id:Date.now(),type:'cab',name:from+' → '+to,date:d,meta:'Cab — Standard · Return · 2 passengers',amount:'£'+cost,icon:_SVG.cab});
         updateStats();renderBookings();toast('✦ Return cab booked');
       }
 
@@ -5230,7 +5271,7 @@
             ratingHtml=`<div style="margin-top:5px;display:flex;align-items:center;gap:5px"><span class="star-row">${stars}</span><span style="font-size:11px;color:var(--ink-muted)">${b.rating}/5</span></div>`;
           }
           return `<div class="booking-row">
-            <div class="booking-icon">${b.icon||'✦'}</div>
+            <div class="booking-icon" style="color:var(--primary)">${b.icon||_BOOKING_ICONS[b.type]||_SVG.experience||'✦'}</div>
             <div style="flex:1">
               <div class="booking-name">${b.name}</div>
               <div class="booking-meta">${b.meta} · ${fmtDate(b.date)}</div>
@@ -6243,12 +6284,12 @@
 
       let _bfData={};
       const _bfVenueData={
-        'Dishoom, London':               {emoji:'🫕',area:'Covent Garden',  time:'7:30 PM',date:'Sat 19 Apr',tip:'Covent Garden is busy on weekends — a cab is much easier than parking',cabEst:'£12–15',cabMins:18,modeEmoji:'🚕',recommended:true,  hotel:'The Hoxton, Covent Garden',    hotelDesc:'A 5-min walk from Dishoom — industrial-chic rooms in the heart of it all',hotelPrice:'from £165'},
-        'Sketch, Mayfair':               {emoji:'🎨',area:'Mayfair',        time:'8:00 PM',date:'Sat 19 Apr',tip:'Bond St. tube is a 5-min walk — Elizabeth line, quick and easy',        cabEst:'£16–20',cabMins:22,modeEmoji:'🚇',recommended:false, hotel:'The Connaught',                 hotelDesc:'A 3-min stroll — one of London\'s most iconic luxury hotels',             hotelPrice:'from £420'},
-        'Ottolenghi, Islington':         {emoji:'🥗',area:'Islington',      time:'7:00 PM',date:'Sat 19 Apr',tip:'Angel tube is right there — Northern line from the City is a breeze',   cabEst:'£11–13',cabMins:15,modeEmoji:'🚕',recommended:true,  hotel:'The Zetter Townhouse',          hotelDesc:'Islington\'s most romantic boutique hotel — just around the corner',      hotelPrice:'from £220'},
-        'Secret Cinema: Baz Luhrmann Night':{emoji:'🎬',area:'Secret venue',time:'7:45 PM',date:'Sat 19 Apr',tip:'Location revealed 48 hrs before — a cab gives you the flexibility you\'ll want',cabEst:'£14–18',cabMins:20,modeEmoji:'🚕',recommended:true,hotel:'Ace Hotel, Shoreditch',         hotelDesc:'Cool and central — great base whatever the secret location turns out to be',hotelPrice:'from £160'},
-        'Kew Gardens evening stroll':    {emoji:'🌿',area:'Richmond',       time:'6:30 PM',date:'Sat 19 Apr',tip:'District line to Richmond is easy — about 35 min from central London',  cabEst:'£22–28',cabMins:40,modeEmoji:'🚇',recommended:false, hotel:'The Petersham',                 hotelDesc:'Richmond\'s grandest hotel — overlooking the Thames, 5 min from Kew',     hotelPrice:'from £280'},
-        'Saatchi Gallery + cocktails':   {emoji:'🖼️',area:'Chelsea',        time:'6:00 PM',date:'Sat 19 Apr',tip:'Chelsea is awkward by tube — a cab via Sloane Square is nicest',        cabEst:'£13–16',cabMins:17,modeEmoji:'🚕',recommended:true,  hotel:'The Levin Hotel',               hotelDesc:'Chelsea boutique hotel — steps from King\'s Road and Sloane Square',      hotelPrice:'from £195'}
+        'Dishoom, London':               {iconKey:'restaurant',area:'Covent Garden',  time:'7:30 PM',date:'Sat 19 Apr',tip:'Covent Garden is busy on weekends — a cab is much easier than parking',cabEst:'£12–15',cabMins:18,recommended:true,  hotel:'The Hoxton, Covent Garden',    hotelDesc:'A 5-min walk from Dishoom — industrial-chic rooms in the heart of it all',hotelPrice:'from £165'},
+        'Sketch, Mayfair':               {iconKey:'restaurant',area:'Mayfair',        time:'8:00 PM',date:'Sat 19 Apr',tip:'Bond St. tube is a 5-min walk — Elizabeth line, quick and easy',        cabEst:'£16–20',cabMins:22,recommended:false, hotel:'The Connaught',                 hotelDesc:'A 3-min stroll — one of London\'s most iconic luxury hotels',             hotelPrice:'from £420'},
+        'Ottolenghi, Islington':         {iconKey:'restaurant',area:'Islington',      time:'7:00 PM',date:'Sat 19 Apr',tip:'Angel tube is right there — Northern line from the City is a breeze',   cabEst:'£11–13',cabMins:15,recommended:true,  hotel:'The Zetter Townhouse',          hotelDesc:'Islington\'s most romantic boutique hotel — just around the corner',      hotelPrice:'from £220'},
+        'Secret Cinema: Baz Luhrmann Night':{iconKey:'cinema',area:'Secret venue',time:'7:45 PM',date:'Sat 19 Apr',tip:'Location revealed 48 hrs before — a cab gives you the flexibility you\'ll want',cabEst:'£14–18',cabMins:20,recommended:true,hotel:'Ace Hotel, Shoreditch',         hotelDesc:'Cool and central — great base whatever the secret location turns out to be',hotelPrice:'from £160'},
+        'Kew Gardens evening stroll':    {iconKey:'garden',area:'Richmond',       time:'6:30 PM',date:'Sat 19 Apr',tip:'District line to Richmond is easy — about 35 min from central London',  cabEst:'£22–28',cabMins:40,recommended:false, hotel:'The Petersham',                 hotelDesc:'Richmond\'s grandest hotel — overlooking the Thames, 5 min from Kew',     hotelPrice:'from £280'},
+        'Saatchi Gallery + cocktails':   {iconKey:'gallery',area:'Chelsea',        time:'6:00 PM',date:'Sat 19 Apr',tip:'Chelsea is awkward by tube — a cab via Sloane Square is nicest',        cabEst:'£13–16',cabMins:17,recommended:true,  hotel:'The Levin Hotel',               hotelDesc:'Chelsea boutique hotel — steps from King\'s Road and Sloane Square',      hotelPrice:'from £195'}
       };
       const _bfDrivers=[
         {name:'Marcus T.',car:'Toyota Prius',   reg:'LX24 RKT',rating:'4.9',trips:'1,847',eta:4,initials:'MT',color:'#3B6EA0'},
@@ -6258,7 +6299,22 @@
       ];
       function _bfInfo(name,type){
         if(_bfVenueData[name])return _bfVenueData[name];
-        return{emoji:type==='restaurant'?'🍽️':type==='experience'?'🎟️':'🎬',area:'London',time:'7:30 PM',date:'Sat 19 Apr',tip:'A cab is usually the easiest option for a date night',cabEst:'£14–18',cabMins:20,modeEmoji:'🚕',recommended:true,hotel:'A central London hotel',hotelDesc:'Make a night of it — we\'ll find you something close by',hotelPrice:'from £150'};
+        /* Smart icon key: try to match the name to a relevant icon */
+        let ik=type||'experience';
+        const nl=name.toLowerCase();
+        if(nl.includes('cinema')||nl.includes('film')||nl.includes('bfi')||nl.includes('screen'))ik='cinema';
+        else if(nl.includes('garden')||nl.includes('park')||nl.includes('primrose')||nl.includes('outdoor'))ik='garden';
+        else if(nl.includes('gallery')||nl.includes('museum')||nl.includes('art')||nl.includes('saatchi')||nl.includes('tate'))ik='gallery';
+        else if(nl.includes('wine')||nl.includes('cocktail')||nl.includes('bar')||nl.includes('rooftop'))ik='wine';
+        else if(nl.includes('cook')||nl.includes('kitchen')||nl.includes('baking'))ik='cooking';
+        else if(nl.includes('potter')||nl.includes('ceramic')||nl.includes('craft'))ik='pottery';
+        else if(nl.includes('cruise')||nl.includes('thames')||nl.includes('boat')||nl.includes('river'))ik='boat';
+        else if(nl.includes('picnic')||nl.includes('hill'))ik='picnic';
+        else if(nl.includes('theatre')||nl.includes('west end')||nl.includes('show'))ik='theatre';
+        else if(nl.includes('concert')||nl.includes('o2')||nl.includes('music')||nl.includes('gig'))ik='concert';
+        else if(nl.includes('spa')||nl.includes('wellness')||nl.includes('massage'))ik='wellness';
+        else if(nl.includes('restaurant')||nl.includes('dishoom')||nl.includes('dinner')||nl.includes('dining'))ik='restaurant';
+        return{iconKey:ik,area:'London',time:'7:30 PM',date:'Sat 19 Apr',tip:'A cab is usually the easiest option for a date night',cabEst:'£14–18',cabMins:20,recommended:true,hotel:'A central London hotel',hotelDesc:'Make a night of it — we\'ll find you something close by',hotelPrice:'from £150'};
       }
       function _bfRef(){return 'T4T-'+Math.random().toString(36).slice(2,6).toUpperCase();}
       function _bfMinus(timeStr,mins){
@@ -6278,15 +6334,15 @@
 
       // ── Type-aware booking language ──
       const _BF_LANG={
-        restaurant:{step1:'Find a table',confirmed:'Table reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking tables for',securing:'Locking in your table at',party:'2 guests',partyLabel:'Party',depositIcon:'🍽',depositLabel:'Pay rest at venue',icon:'🍽️',remCat:'Dinner reservation'},
-        concert:{step1:'Get tickets',confirmed:'Tickets confirmed!',slotsLabel:'Available dates · 2 tickets',searching:'Checking ticket availability for',securing:'Reserving your tickets for',party:'2 tickets',partyLabel:'Tickets',depositIcon:'🎟',depositLabel:'Collect at door',icon:'🎤',remCat:'Experience / activity'},
-        theatre:{step1:'Book seats',confirmed:'Seats reserved!',slotsLabel:'Available performances · 2 seats',searching:'Checking seat availability for',securing:'Reserving your seats at',party:'2 seats',partyLabel:'Seats',depositIcon:'🎭',depositLabel:'Collect at box office',icon:'🎭',remCat:'Experience / activity'},
-        wellness:{step1:'Book a session',confirmed:'Session booked!',slotsLabel:'Available slots · 2 guests',searching:'Checking availability for',securing:'Reserving your session at',party:'2 guests',partyLabel:'Guests',depositIcon:'🧖',depositLabel:'Pay rest on arrival',icon:'🧖',remCat:'Experience / activity'},
-        rooftop:{step1:'Reserve a spot',confirmed:'Spot reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 guests',partyLabel:'Party',depositIcon:'🥂',depositLabel:'Pay rest at venue',icon:'🌇',remCat:'Dinner reservation'},
-        latenight:{step1:'Reserve a table',confirmed:'Reservation confirmed!',slotsLabel:'Available times · Party of 2',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 guests',partyLabel:'Party',depositIcon:'🍸',depositLabel:'Pay at venue',icon:'🌙',remCat:'Experience / activity'},
-        activity:{step1:'Book a slot',confirmed:'Slot confirmed!',slotsLabel:'Available times · 2 people',searching:'Checking availability for',securing:'Reserving your slot at',party:'2 people',partyLabel:'People',depositIcon:'🎯',depositLabel:'Pay rest on arrival',icon:'🎯',remCat:'Experience / activity'},
-        experience:{step1:'Reserve a spot',confirmed:'Booking confirmed!',slotsLabel:'Available times · 2 people',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 people',partyLabel:'People',depositIcon:'✨',depositLabel:'Pay rest on arrival',icon:'🎬',remCat:'Experience / activity'},
-        dining:{step1:'Find a table',confirmed:'Table reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking tables for',securing:'Locking in your table at',party:'2 guests',partyLabel:'Party',depositIcon:'🍽',depositLabel:'Pay rest at venue',icon:'🍽️',remCat:'Dinner reservation'},
+        restaurant:{step1:'Find a table',confirmed:'Table reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking tables for',securing:'Locking in your table at',party:'2 guests',partyLabel:'Party',depositLabel:'Pay rest at venue',iconKey:'restaurant',remCat:'Dinner reservation'},
+        concert:{step1:'Get tickets',confirmed:'Tickets confirmed!',slotsLabel:'Available dates · 2 tickets',searching:'Checking ticket availability for',securing:'Reserving your tickets for',party:'2 tickets',partyLabel:'Tickets',depositLabel:'Collect at door',iconKey:'concert',remCat:'Experience / activity'},
+        theatre:{step1:'Book seats',confirmed:'Seats reserved!',slotsLabel:'Available performances · 2 seats',searching:'Checking seat availability for',securing:'Reserving your seats at',party:'2 seats',partyLabel:'Seats',depositLabel:'Collect at box office',iconKey:'theatre',remCat:'Experience / activity'},
+        wellness:{step1:'Book a session',confirmed:'Session booked!',slotsLabel:'Available slots · 2 guests',searching:'Checking availability for',securing:'Reserving your session at',party:'2 guests',partyLabel:'Guests',depositLabel:'Pay rest on arrival',iconKey:'wellness',remCat:'Experience / activity'},
+        rooftop:{step1:'Reserve a spot',confirmed:'Spot reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 guests',partyLabel:'Party',depositLabel:'Pay rest at venue',iconKey:'rooftop',remCat:'Dinner reservation'},
+        latenight:{step1:'Reserve a table',confirmed:'Reservation confirmed!',slotsLabel:'Available times · Party of 2',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 guests',partyLabel:'Party',depositLabel:'Pay at venue',iconKey:'latenight',remCat:'Experience / activity'},
+        activity:{step1:'Book a slot',confirmed:'Slot confirmed!',slotsLabel:'Available times · 2 people',searching:'Checking availability for',securing:'Reserving your slot at',party:'2 people',partyLabel:'People',depositLabel:'Pay rest on arrival',iconKey:'activity',remCat:'Experience / activity'},
+        experience:{step1:'Reserve a spot',confirmed:'Booking confirmed!',slotsLabel:'Available times · 2 people',searching:'Checking availability for',securing:'Reserving your spot at',party:'2 people',partyLabel:'People',depositLabel:'Pay rest on arrival',iconKey:'experience',remCat:'Experience / activity'},
+        dining:{step1:'Find a table',confirmed:'Table reserved!',slotsLabel:'Available times · Party of 2',searching:'Checking tables for',securing:'Locking in your table at',party:'2 guests',partyLabel:'Party',depositLabel:'Pay rest at venue',iconKey:'dining',remCat:'Dinner reservation'},
       };
       function _bfLang(type){
         if(_BF_LANG[type])return _BF_LANG[type];
@@ -6357,14 +6413,14 @@
 
       function simulatePayment(method){
         const labels={apple:'Apple Pay',google:'Google Pay',card:'Card payment'};
-        const icons={apple:'',google:'G',card:'💳'};
+        const icons={apple:'',google:'G',card:'✦'};
         // Show processing
         document.getElementById('pay-choose').style.display='none';
         document.getElementById('pay-processing').style.display='';
         const procIcon=document.getElementById('pay-proc-icon');
         procIcon.textContent=method==='apple'?'':'G';
         if(method==='apple')procIcon.innerHTML='<svg width="36" height="44" viewBox="0 0 17 20" fill="#fff"><path d="M13.1 10.4c0-2 1.6-3 1.7-3.1-0.9-1.4-2.4-1.5-2.9-1.6-1.2-0.1-2.4 0.7-3 0.7s-1.6-0.7-2.6-0.7c-1.3 0-2.6 0.8-3.3 2-1.4 2.4-0.4 6 1 8 0.7 1 1.5 2.1 2.5 2.1 1 0 1.4-0.7 2.6-0.7s1.6 0.7 2.6 0.6c1.1 0 1.8-1 2.5-2 0.8-1.1 1.1-2.2 1.1-2.3-0.1 0-2.2-0.8-2.2-3zM11 4.3c0.6-0.7 0.9-1.7 0.8-2.7-0.8 0-1.8 0.5-2.3 1.2-0.5 0.6-1 1.7-0.8 2.6 0.9 0.1 1.7-0.4 2.3-1.1z"/></svg>';
-        if(method==='card')procIcon.textContent='💳';
+        if(method==='card')procIcon.innerHTML=_SVG.card.replace(/width="\d+"/,'width="36"').replace(/height="\d+"/,'height="36"');
         document.getElementById('pay-proc-title').textContent=method==='apple'?'Authorising with Face ID...':method==='google'?'Connecting to Google Pay...':'Processing card payment...';
         document.getElementById('pay-proc-sub').textContent=method==='apple'?'Double-click side button':method==='google'?'Verifying your account':'Contacting your bank';
 
@@ -6396,7 +6452,7 @@
         const v=_bfInfo(_bfData.name,_bfData.type);
         closeBf();
         // Payment already taken as deposit in step 1 — just show confirmations
-        _showFakePush('Table for Two ♥','Your booking at '+_bfData.name+' on '+v.date+' at '+v.time+' is confirmed 🎉',600);
+        _showFakePush('Table for Two ♥','Your booking at '+_bfData.name+' on '+v.date+' at '+v.time+' is confirmed ✦',600);
         if(_bfData.transportBooked&&_bfData.driver){
           _showFakePush('Your ride',''+_bfData.driver.name+' will collect you — '+_bfData.driver.car+' · '+_bfData.driver.reg,4000);
         }
@@ -6405,7 +6461,11 @@
       function _bfDots(cur){
         return[1,2,3,4].map(i=>`<div class="bf-dot${i===cur?' active':i<cur?' done':''}"></div>`).join('');
       }
-      function _bfLoading(icon,lines){
+      function _bfLoading(iconKeyOrSvg,lines){
+        /* Accept either an SVG icon key string (e.g. 'restaurant') or raw SVG markup */
+        const iconHtml=_SVG[iconKeyOrSvg]
+          ?_SVG[iconKeyOrSvg].replace(/width="\d+"/,'width="36"').replace(/height="\d+"/,'height="36"')
+          :(iconKeyOrSvg||'✦');
         const rows=lines.map((l,i)=>`
           <div class="bf-gen-line" style="animation-delay:${i*0.28}s">
             <div class="bf-gen-dot" style="animation-delay:${i*0.3}s"></div>
@@ -6413,7 +6473,7 @@
           </div>`).join('');
         return`
           <div style="padding:24px 0 8px;text-align:center">
-            <div style="font-size:52px;line-height:1;margin-bottom:20px;animation:confirmPop 0.4s cubic-bezier(0.34,1.56,0.64,1)">${icon}</div>
+            <div style="display:flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.25);margin:0 auto 20px;color:var(--primary);animation:confirmPop 0.4s cubic-bezier(0.34,1.56,0.64,1)">${iconHtml}</div>
             <div style="display:flex;flex-direction:column;gap:8px;text-align:left">${rows}</div>
             <div class="bf-pulse-dots" style="margin-top:20px">
               <div class="bf-pulse-dot"></div>
@@ -6466,7 +6526,7 @@
               </div>
               <div class="bf-step-dots">${_bfDots(1)}</div>
               <div style="font-size:19px;font-weight:700;color:var(--color-text-primary);margin-bottom:2px">${lang.step1}</div>
-              <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px">${v.emoji} ${name} · ${v.area}</div>
+              <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:16px;display:flex;align-items:center;gap:6px"><span style="color:var(--primary)">${_svgIcon(v.iconKey,16)}</span> ${name} · ${v.area}</div>
               <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:8px">Select a date</div>
               <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none;-webkit-overflow-scrolling:touch;margin-bottom:16px">${_bfDatePills}</div>
               <div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:8px">${lang.slotsLabel}</div>
@@ -6481,7 +6541,7 @@
 
           }else if(subState==='checking'){
             el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div></div><div class="bf-step-dots">${_bfDots(1)}</div>`
-              +_bfLoading(v.emoji,[
+              +_bfLoading(v.iconKey,[
                 'Looking for availability at '+name+'…',
                 lang.searching+' '+(_bfData.selectedDate||v.date)+' · '+(_bfData.selectedTime||v.time),
                 'Confirming '+lang.party+'…',
@@ -6489,7 +6549,7 @@
 
           }else if(subState==='securing'){
             el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 1 of 4</div></div><div class="bf-step-dots">${_bfDots(1)}</div>`
-              +_bfLoading('📋',[
+              +_bfLoading('clipboard',[
                 'Generating your booking…',
                 lang.securing+' '+name,
                 'Sending confirmation to your email…',
@@ -6512,7 +6572,7 @@
               </div>
               <div class="bf-venue-card" style="margin-bottom:14px">
                 <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
-                  <div style="font-size:30px">${v.emoji}</div>
+                  <div style="width:44px;height:44px;border-radius:12px;background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)">${_svgIcon(v.iconKey,22)}</div>
                   <div><div style="font-size:14px;font-weight:700;color:var(--color-text-primary)">${name}</div><div style="font-size:12px;color:var(--color-text-secondary)">${v.area}</div></div>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
@@ -6522,8 +6582,8 @@
                   <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--color-text-tertiary);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Est. total</div><div style="font-size:13px;font-weight:600;color:var(--rose-dark)">${amount}</div></div>
                 </div>
                 <div style="display:flex;gap:7px;flex-wrap:wrap">
-                  <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3)">💳 Deposit taken</span>
-                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">${lang.depositIcon} ${lang.depositLabel}</span>
+                  <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon('card',12)} Deposit taken</span>
+                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon(v.iconKey,12)} ${lang.depositLabel}</span>
                   <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation</span>
                 </div>
               </div>
@@ -6542,11 +6602,11 @@
               <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Sort your ride?</div>
               <div style="font-size:13px;color:var(--ink-soft);margin-bottom:16px">Getting to <strong>${v.area}</strong> — here's what we'd suggest</div>
               <div style="background:var(--rose-light);border:1px solid var(--rose-mid);border-radius:12px;padding:13px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px">
-                <span style="font-size:20px">${v.modeEmoji}</span>
+                <span style="color:var(--rose-dark)">${_svgIcon('cab',20)}</span>
                 <div><div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:3px">${v.recommended?'✦ Our recommendation':'Suggested option'}</div><div style="font-size:12px;color:var(--ink-soft);line-height:1.5">${v.tip}</div></div>
               </div>
               <div class="bf-transport-opt${v.recommended?' highlight':''}" onclick="bfBookTransport()">
-                <span style="font-size:22px">🚕</span>
+                <span style="color:var(--primary)">${_svgIcon('cab',22)}</span>
                 <div style="flex:1">
                   <div style="font-size:13px;font-weight:600;color:var(--ink)">Book a cab to ${v.area}</div>
                   <div style="font-size:12px;color:var(--ink-soft)">~${v.cabMins} min · est. ${v.cabEst} · 2 passengers</div>
@@ -6557,7 +6617,7 @@
 
           }else if(subState==='finding'){
             el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div></div><div class="bf-step-dots">${_bfDots(2)}</div>`
-              +_bfLoading('🚕',[
+              +_bfLoading('cab',[
                 'Looking for your ride…',
                 'Checking drivers near you',
                 'Matching with the best option…',
@@ -6565,7 +6625,7 @@
 
           }else if(subState==='connecting'){
             el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 2 of 4</div></div><div class="bf-step-dots">${_bfDots(2)}</div>`
-              +_bfLoading('📍',[
+              +_bfLoading('pin',[
                 'Your driver has been confirmed',
                 driver.name+' · '+driver.car+' · '+driver.reg,
                 'Sending pickup details…',
@@ -6615,7 +6675,7 @@
                   </div>
                   <!-- Animated car -->
                   <div style="position:absolute;bottom:30px;left:32%">
-                    <div class="bf-map-car">🚕</div>
+                    <div class="bf-map-car" style="color:var(--primary)">${_svgIcon('cab',18)}</div>
                   </div>
                   <!-- ETA pill -->
                   <div style="position:absolute;top:10px;left:10px;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);border-radius:20px;padding:5px 11px;display:flex;align-items:center;gap:6px">
@@ -6688,7 +6748,7 @@
                 <div><div style="font-size:12px;font-weight:600;color:var(--plum);margin-bottom:3px">✦ Our pick near ${v.area}</div><div style="font-size:12px;color:var(--ink-soft);line-height:1.5">${v.hotelDesc}</div></div>
               </div>
               <div class="bf-transport-opt highlight" onclick="bfBookHotel()" style="border-color:var(--plum-mid);background:var(--plum-light)">
-                <span style="font-size:22px">🏨</span>
+                <span style="color:var(--plum)">${_svgIcon('hotel',22)}</span>
                 <div style="flex:1">
                   <div style="font-size:13px;font-weight:600;color:var(--ink)">${v.hotel}</div>
                   <div style="font-size:12px;color:var(--ink-soft)">${v.hotelPrice} · 1 night · Breakfast included</div>
@@ -6699,7 +6759,7 @@
 
           }else if(subState==='checking'){
             el.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.07em;color:var(--rose-dark);text-transform:uppercase">Step 3 of 4</div></div><div class="bf-step-dots">${_bfDots(3)}</div>`
-              +_bfLoading('🏨',['Checking availability…','Reserving your room at '+v.hotel]);
+              +_bfLoading('hotel',['Checking availability…','Reserving your room at '+v.hotel]);
 
           }else if(subState==='confirmed'){
             const hRef='HOT-'+Math.random().toString(36).slice(2,6).toUpperCase();
@@ -6710,7 +6770,7 @@
               </div>
               <div class="bf-step-dots">${_bfDots(3)}</div>
               <div style="text-align:center;padding:8px 0 14px">
-                <div style="width:52px;height:52px;border-radius:50%;background:var(--plum-light);display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 10px">🏨</div>
+                <div style="width:52px;height:52px;border-radius:50%;background:var(--plum-light);border:1px solid var(--plum-mid);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--plum)">${_svgIcon('hotel',26)}</div>
                 <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px">Room reserved!</div>
                 <div style="font-size:13px;color:var(--ink-soft)">Confirmation on its way to your email</div>
               </div>
@@ -6721,7 +6781,7 @@
                   <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--plum);opacity:0.8;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Check-out</div><div style="font-size:12px;font-weight:600;color:var(--plum)">Sun 20 Apr · 11 AM</div></div>
                 </div>
                 <div style="display:flex;gap:7px;flex-wrap:wrap">
-                  <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">🍳 Breakfast included</span>
+                  <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid);display:inline-flex;align-items:center;gap:4px">${_svgIcon('breakfast',12)} Breakfast included</span>
                   <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">✓ Free cancellation</span>
                   <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">Ref: ${hRef}</span>
                 </div>
@@ -6733,20 +6793,20 @@
         }else{
           // Build timeline
           const tl=[];
-          if(hotelBooked) tl.push({time:'3:00 PM',emoji:'🏨',label:'Check in',sub:v.hotel,dot:'#7C5295',bg:'var(--plum-light)'});
+          if(hotelBooked) tl.push({time:'3:00 PM',iconKey:'hotel',label:'Check in',sub:v.hotel,dot:'#7C5295',bg:'var(--plum-light)'});
           if(transportBooked){
             const leaveTime=_bfMinus(v.time,v.cabMins+12);
             const cabTime=_bfMinus(v.time,v.cabMins);
-            tl.push({time:leaveTime,emoji:'🔔',label:'We\'ll remind you to leave',sub:'Push notification sent to your phone',dot:'#22C55E',bg:'#F0FDF4'});
-            tl.push({time:cabTime,emoji:'🚕',label:driver.name+' · your cab',sub:driver.car+' · '+driver.reg+' from Home',dot:'#3B6EA0',bg:'#EFF6FF'});
+            tl.push({time:leaveTime,iconKey:'bell',label:'We\'ll remind you to leave',sub:'Push notification sent to your phone',dot:'#22C55E',bg:'#F0FDF4'});
+            tl.push({time:cabTime,iconKey:'cab',label:driver.name+' · your cab',sub:driver.car+' · '+driver.reg+' from Home',dot:'#3B6EA0',bg:'#EFF6FF'});
           }
-          tl.push({time:v.time,emoji:v.emoji,label:name,sub:v.area+' · Table for 2 · '+amount,dot:'var(--rose)',bg:'var(--rose-light)'});
-          if(hotelBooked) tl.push({time:'Late evening',emoji:'🌙',label:'Into the night at '+v.hotel,sub:'Your romantic evening continues…',dot:'#7C5295',bg:'var(--plum-light)'});
+          tl.push({time:v.time,iconKey:v.iconKey,label:name,sub:v.area+' · Table for 2 · '+amount,dot:'var(--rose)',bg:'var(--rose-light)'});
+          if(hotelBooked) tl.push({time:'Late evening',iconKey:'moon',label:'Into the night at '+v.hotel,sub:'Your romantic evening continues…',dot:'#7C5295',bg:'var(--plum-light)'});
 
           const tlHtml=tl.map((item,i)=>`
             <div style="display:flex;gap:12px">
               <div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">
-                <div style="width:32px;height:32px;border-radius:50%;background:${item.bg};border:2px solid ${item.dot};display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">${item.emoji}</div>
+                <div style="width:32px;height:32px;border-radius:50%;background:${item.bg};border:2px solid ${item.dot};display:flex;align-items:center;justify-content:center;flex-shrink:0;color:${item.dot}">${_svgIcon(item.iconKey,14)}</div>
                 ${i<tl.length-1?`<div style="width:1.5px;flex:1;background:var(--bdr2);min-height:16px;margin:2px 0"></div>`:''}
               </div>
               <div style="flex:1;padding-top:4px;${i<tl.length-1?'padding-bottom:12px':''}">
@@ -6770,7 +6830,7 @@
             </div>
             <div class="bf-step-dots">${_bfDots(4)}</div>
             <div class="bf-concierge-banner">
-              <div style="font-size:28px">🎩</div>
+              <div style="color:rgba(255,255,255,0.9)">${_svgIcon('concierge',28)}</div>
               <div>
                 <div style="font-size:14px;font-weight:700">Everything is planned for you</div>
                 <div style="font-size:12px;opacity:0.85;margin-top:2px">We'll coordinate it all and remind you when to leave ♥</div>
@@ -6836,7 +6896,7 @@
         setTimeout(()=>{_bfData.subState='connecting';_renderBfStep();},2000);
         setTimeout(()=>{
           const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
-          bookings.push({id:Date.now(),type:'cab',name:'Home → '+v.area,date:d.toISOString().slice(0,10),meta:'Cab · Standard · 2 passengers · '+_bfData.driver.car,amount:v.cabEst.split('–')[0],icon:'🚗'});
+          bookings.push({id:Date.now(),type:'cab',name:'Home → '+v.area,date:d.toISOString().slice(0,10),meta:'Cab · Standard · 2 passengers · '+_bfData.driver.car,amount:v.cabEst.split('–')[0],icon:_SVG.cab});
           updateStats();renderBookings();_saveState();toast('✦ Cab confirmed · '+_bfData.driver.name);
           _bfData.transportBooked=true;_bfData.subState='assigned';_renderBfStep();
         },4000);
@@ -6847,7 +6907,7 @@
         _bfData.subState='checking';_renderBfStep();
         setTimeout(()=>{
           const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
-          bookings.push({id:Date.now(),type:'hotel',name:v.hotel,date:d.toISOString().slice(0,10),meta:'1 night · 2 guests · Breakfast included',amount:v.hotelPrice.replace('from ',''),icon:'🏨'});
+          bookings.push({id:Date.now(),type:'hotel',name:v.hotel,date:d.toISOString().slice(0,10),meta:'1 night · 2 guests · Breakfast included',amount:v.hotelPrice.replace('from ',''),icon:_SVG.hotel});
           updateStats();renderBookings();_saveState();toast('✦ '+v.hotel+' reserved');
           _bfData.hotelBooked=true;_bfData.subState='confirmed';_renderBfStep();
         },2400);
