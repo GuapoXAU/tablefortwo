@@ -5613,7 +5613,18 @@
         const lp = document.getElementById('landing');
         lp.style.opacity = '0';
         lp.style.transition = 'opacity 0.35s';
-        setTimeout(()=>lp.style.display='none', 350);
+        setTimeout(()=>{
+          lp.style.display='none';
+          lp.style.visibility='hidden';
+          // Force header repaint on iOS Safari — without this the header
+          // content can remain invisible after the landing overlay is removed
+          const hdr=document.querySelector('.mobile-header');
+          if(hdr){
+            hdr.style.display='none';
+            void hdr.offsetHeight;
+            hdr.style.display='flex';
+          }
+        }, 350);
       }
 
       function surpriseUs(){
