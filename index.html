@@ -1804,6 +1804,9 @@
       /* — Mobile logo gradient: rose-to-gold — */
       .mobile-logo{
         background:linear-gradient(125deg,#C4687A 0%,#C9A84C 60%,#8B6914 100%)!important;
+        -webkit-background-clip:text!important;
+        -webkit-text-fill-color:transparent!important;
+        background-clip:text!important;
       }
 
       /* — Swipe heart button hover: rose — */
@@ -4146,7 +4149,8 @@
           const sLLIcon=_LL_ICONS[_sophieLoveLang]||'';
           const jLLIcon=_LL_ICONS[_jamieLoveLang]||'';
 
-          let html=`<div class="section-head" style="flex-wrap:wrap"><div><div class="section-title" style="font-family:var(--font-serif);font-size:20px;letter-spacing:-0.3px">Here's what you're doing in ${loc}</div>${occasionLine}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
+          const locShort=loc.split(',')[0].trim();
+          let html=`<div class="section-head" style="flex-wrap:wrap"><div><div class="section-title" style="font-family:var(--font-serif);font-size:17px;letter-spacing:-0.2px">Here's what you're doing in ${locShort}</div>${occasionLine}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
           html+=`<div id="ll-personalisation-banner" style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft);transition:opacity 0.6s ease">
             <span style="font-size:15px">♥</span>
             <div><span style="font-weight:600;color:var(--ink)">Personalised for your love languages</span> · <span style="color:var(--rose-dark)">${jLLIcon} Jamie: ${jLLLabel}</span> &nbsp;·&nbsp; <span style="color:var(--plum)">${sLLIcon} Sophie: ${sLLLabel}</span>
