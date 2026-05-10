@@ -3821,13 +3821,17 @@
       let _obTooltip=null;
 
       function _obShouldShow(){
-        try{return !localStorage.getItem('t4t_ob_done');}catch(e){return true;}
+        return true;
       }
       function _obMarkDone(){
-        try{localStorage.setItem('t4t_ob_done','1');}catch(e){}
+        // No-op — onboarding always shows after landing page
       }
 
       function startOnboarding(){
+        // Clean up any previous onboarding overlays
+        if(_obOverlay){_obOverlay.remove();_obOverlay=null;}
+        if(_obTooltip){_obTooltip.remove();_obTooltip=null;}
+        document.querySelectorAll('.ob-highlight').forEach(e=>e.classList.remove('ob-highlight'));
         // Wait for swipe cards to render
         const check=setInterval(()=>{
           if(document.querySelector('.swipe-btn-book')){
