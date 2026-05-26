@@ -1,27 +1,810 @@
-      // Skip landing immediately — must run before anything else
-      if(new URLSearchParams(window.location.search).has('app')){
-        const lp=document.getElementById('landing');
-        if(lp){lp.style.display='none';lp.style.visibility='hidden';}
+      // ════════════════════════════════════════════════
+      // ── AUTH + USER IDENTITY (Supabase Magic Link) ──
+      // ════════════════════════════════════════════════
+
+      // Valid invite codes — still used as optional extra gate
+      const _BETA_CODES=['T4T2026','TABLEFORTWO','EARLYACCESS','BETA2026','LONDON26'];
+
+      // Auth state
+      let _authUser=null;     // Supabase auth user object
+      let _authLoading=true;  // true until we know auth state
+      let _authHandled=false; // guard against double-init from listener + session check
+
+      // Check if user has valid beta access (now backed by auth OR legacy code)
+      function _hasBetaAccess(){
+        if(_authUser)return true;
+        try{return localStorage.getItem('t4t_beta_access')==='true';}catch(e){return false;}
+      }
+      function _grantBetaAccess(){
+        try{localStorage.setItem('t4t_beta_access','true');}catch(e){}
       }
 
-      const TITLES={discover:'Discover',profiles:'Our profiles',restaurants:'Dining',experiences:'Experiences',hotels:'Accommodation',cabs:'Transport',planner:'Date planner','whats-hot':"What's Hot",bookings:'My dates',journal:'Date Journal',wishlist:'Wishlist'};
-      const SUBS={discover:'AI ideas matched to both your tastes',profiles:'Manage Jamie & Sophie\'s preferences',restaurants:'Tables reserved, dietary sorted',experiences:'Beyond dinner — make memories',hotels:'Romantic getaways & staycations',cabs:'Tube, bus or cab — we\'ll tell you what makes sense',planner:'Calendar, reminders & .ics export','whats-hot':'Trending this week · Matched to your tastes',bookings:'Every date, all in one place',journal:'Your private scrapbook of memories',wishlist:'Ideas you want to try someday'};
+      // User profile stored in localStorage
+      function _getUserProfile(){
+        try{
+          const p=localStorage.getItem('t4t_user_profile');
+          return p?JSON.parse(p):null;
+        }catch(e){return null;}
+      }
+      function _saveUserProfile(profile){
+        try{localStorage.setItem('t4t_user_profile',JSON.stringify(profile));}catch(e){}
+      }
 
-      let bookings=[
-        {id:1,type:'restaurant',name:'Brat, Shoreditch',date:'2026-05-02',meta:'8:00 PM · 2 covers · Michelin-starred Basque grill',amount:'£160'},
-        {id:2,type:'experience',name:'Ronnie Scott\'s jazz night',date:'2026-06-14',meta:'8:30 PM · 2 tickets · Live jazz',amount:'£140'},
-        {id:3,type:'hotel',name:'The Ned, City of London',date:'2026-07-04',meta:'1 night · Deluxe room',amount:'£380'},
-      ];
-      let reminders=[
-        {id:1,title:'Brat dinner reservation',date:'2026-05-02',time:'19:45',cat:'Dinner reservation',color:'#C9A84C'},
-        {id:2,title:'Ronnie Scott\'s — doors open',date:'2026-06-14',time:'20:00',cat:'Experience / activity',color:'#6B4C7A'},
-        {id:3,title:'The Ned check-in',date:'2026-07-04',time:'15:00',cat:'Hotel check-in',color:'#C9A84C'},
-        {id:4,title:'Pre-dinner cab',date:'2026-05-02',time:'19:20',cat:'Cab pickup',color:'#3A6A8A'},
-      ];
+      // Get display names (falls back to demo names if not set)
+      function _userName(){const p=_getUserProfile();return p?.name||'Jamie';}
+      function _partnerName(){const p=_getUserProfile();return p?.partner||'';}
+      function _userInitials(){const n=_userName();const parts=n.trim().split(/\s+/);return parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
+      function _partnerInitials(){const n=_partnerName();const parts=n.trim().split(/\s+/);return parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
+      function _coupleShort(){const them=_partnerName();if(!them)return _userName().split(' ')[0];return _userName().split(' ')[0][0]+' & '+them.split(' ')[0][0];}
+
+      // Show invite code gate
+      function _showBetaGate(){
+        const overlay=document.getElementById('beta-gate-overlay');
+        if(overlay)overlay.style.display='flex';
+      }
+
+      // Magic link sign-in
+      async function submitMagicLink(){
+        const emailEl=document.getElementById('auth-email');
+        const nameEl=document.getElementById('auth-name');
+        const handleEl=document.getElementById('auth-handle');
+        const errorEl=document.getElementById('auth-error');
+        const btn=document.getElementById('auth-submit-btn');
+        const email=(emailEl?.value||'').trim();
+        const name=(nameEl?.value||'').trim();
+        let handle=(handleEl?.value||'').trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+        if(!email||!email.includes('@')){errorEl.textContent='Please enter a valid email address';errorEl.style.display='block';return;}
+        if(!name){errorEl.textContent='Please enter your name';errorEl.style.display='block';return;}
+        if(!handle)handle=_generateHandle(name);
+        if(handle.length<3){errorEl.textContent='Handle must be at least 3 characters';errorEl.style.display='block';return;}
+        errorEl.style.display='none';
+        btn.textContent='Checking handle...';btn.disabled=true;
+        // Verify handle is unique before proceeding
+        const authHandleOk=await _checkHandleAvailable(handle);
+        if(!authHandleOk){
+          errorEl.textContent='@'+handle+' is already taken — please choose another';errorEl.style.display='block';
+          btn.textContent='Send magic link';btn.disabled=false;return;
+        }
+        btn.textContent='Creating profile...';
+        // Save profile locally — single by default, no partner at signup
+        _handles.jamie='@'+handle;
+        try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}
+        _saveUserProfile({name,partner:'',handle:'@'+handle,account_state:'single',createdAt:new Date().toISOString()});
+        const result=await signInWithMagicLink(email,name,'');
+        if(result.error){
+          errorEl.textContent=result.error;errorEl.style.display='block';
+          btn.textContent='Send magic link';btn.disabled=false;
+          return;
+        }
+        // Show confirmation
+        document.getElementById('auth-form').style.display='none';
+        document.getElementById('auth-sent').style.display='block';
+        document.getElementById('auth-sent-email').textContent=email;
+        _trackEvent('sign_up_started',{email_domain:email.split('@')[1]});
+      }
+
+      function submitBetaCode(){
+        const input=document.getElementById('beta-code-input');
+        const error=document.getElementById('beta-code-error');
+        if(!input)return;
+        const code=input.value.trim().toUpperCase();
+        if(_BETA_CODES.includes(code)){
+          _grantBetaAccess();
+          try{localStorage.setItem('t4t_beta_code',code);}catch(e){}
+          _trackEvent('sign_up_completed',{method:'beta_code',code:code});
+          error.style.display='none';
+          // Hide gate, show name entry
+          document.getElementById('beta-gate-overlay').style.display='none';
+          _showNameEntry();
+        } else {
+          error.style.display='block';
+          input.style.borderColor='rgba(239,68,68,0.5)';
+          input.value='';
+          input.focus();
+          setTimeout(()=>{input.style.borderColor='';},2000);
+        }
+      }
+
+      // Show name entry modal (first-run only)
+      function _showNameEntry(){
+        const profile=_getUserProfile();
+        if(profile)return; // already set up
+        const overlay=document.getElementById('name-entry-overlay');
+        if(overlay)overlay.style.display='flex';
+      }
+
+      function _generateHandle(name){
+        const base=name.toLowerCase().replace(/[^a-z0-9]/g,'');
+        const suffix=Math.floor(Math.random()*900)+100;
+        return base+suffix;
+      }
+
+      // ── Handle uniqueness check (calls Supabase RPC) ──
+      let _handleCheckTimer=null;
+      let _handleAvailable=null; // null=unchecked, true=available, false=taken
+
+      async function _checkHandleAvailable(handle){
+        if(!handle||handle.length<3){_handleAvailable=null;return null;}
+        if(!_sb){_handleAvailable=true;return true;} // offline fallback — allow
+        try{
+          const{data,error}=await _sb.rpc('check_handle_available',{p_handle:'@'+handle});
+          if(error){console.warn('[T4T] Handle check failed',error);_handleAvailable=true;return true;}
+          _handleAvailable=!!data;
+          return _handleAvailable;
+        }catch(e){_handleAvailable=true;return true;}
+      }
+
+      // Debounced live check — call from oninput on handle fields
+      function _onHandleInput(el){
+        el.value=el.value.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase().slice(0,20);
+        const handle=el.value;
+        const feedback=el.parentElement.querySelector('.handle-feedback')||_createHandleFeedback(el);
+        // Reset state
+        _handleAvailable=null;
+        if(handle.length<3){
+          feedback.textContent=handle.length>0?'At least 3 characters':'';
+          feedback.style.color='rgba(255,255,255,0.25)';
+          return;
+        }
+        feedback.textContent='Checking...';
+        feedback.style.color='rgba(255,255,255,0.25)';
+        clearTimeout(_handleCheckTimer);
+        _handleCheckTimer=setTimeout(async()=>{
+          const available=await _checkHandleAvailable(handle);
+          // Only update if the input hasn't changed since we started the check
+          if(el.value===handle){
+            if(available){
+              feedback.textContent='@'+handle+' is available';
+              feedback.style.color='rgba(74,222,128,0.7)';
+            }else{
+              feedback.textContent='@'+handle+' is taken — try another';
+              feedback.style.color='rgba(239,68,68,0.7)';
+            }
+          }
+        },400);
+      }
+
+      function _createHandleFeedback(el){
+        const fb=document.createElement('div');
+        fb.className='handle-feedback';
+        fb.style.cssText='font-size:11px;margin-top:5px;line-height:1.4;min-height:16px;transition:color 0.15s';
+        el.parentElement.appendChild(fb);
+        return fb;
+      }
+
+      function submitNameEntry(){
+        const nameInput=document.getElementById('setup-your-name');
+        const partnerInput=document.getElementById('setup-partner-name');
+        const handleInput=document.getElementById('setup-handle');
+        const yourName=(nameInput?.value||'').trim();
+        const partnerName=(partnerInput?.value||'').trim();
+        let handle=(handleInput?.value||'').trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+        if(!yourName){toast('Please enter your name');nameInput?.focus();return;}
+        // Auto-generate handle if empty
+        if(!handle)handle=_generateHandle(yourName);
+        handle='@'+handle;
+        // Save handle
+        _handles.jamie=handle;
+        if(partnerName){_handles.sophie='@'+_generateHandle(partnerName);}
+        try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}
+        _saveUserProfile({name:yourName,partner:partnerName||'',handle:handle,account_state:partnerName?'paired':'single',createdAt:new Date().toISOString()});
+        document.getElementById('name-entry-overlay').style.display='none';
+        // Update the UI with real names
+        _applyUserNames();
+        setSmartGreeting();
+        // Show demo banner
+        const db=document.getElementById('demo-banner');if(db)db.style.display='block';
+        _trackEvent('user_setup',{name:yourName,partner:partnerName||''});
+        toast('✦ Welcome, '+yourName+'!');
+        // Trigger onboarding flow
+        startOnboarding();
+      }
+
+      function skipNameEntry(){
+        // Save default profile so we don't ask again (single by default)
+        _saveUserProfile({name:'User',partner:'',account_state:'single',createdAt:new Date().toISOString()});
+        document.getElementById('name-entry-overlay').style.display='none';
+      }
+
+      // Demo label HTML — inserted into confirmation screens
+      const _DEMO_LABEL='<div style="font-size:10px;color:rgba(201,168,76,0.5);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Demo — not a real booking</div>';
+
+      // Apply user names throughout the UI (handles single + paired modes)
+      function _applyUserNames(){
+        const you=_userName();const them=_partnerName();
+        const yi=_userInitials();
+        const hasParter=!!them;
+        const pi=hasParter?_partnerInitials():'';
+        const profile=_getUserProfile()||{};
+        const handle=profile.handle||_handles.jamie||'';
+        // Profile pills — show name + handle
+        document.querySelectorAll('.couple-name').forEach(el=>{
+          el.textContent=hasParter?you+' & '+them:you;
+        });
+        document.querySelectorAll('.profile-handle-display').forEach(el=>{
+          el.textContent=handle||'';
+        });
+        document.querySelectorAll('.avatar-a').forEach(el=>el.textContent=yi);
+        // Greeting
+        const titleEl=document.getElementById('page-title');
+        if(titleEl&&(titleEl.textContent.includes('Jamie')||titleEl.textContent.includes('User'))){
+          titleEl.textContent=titleEl.textContent.replace(/Jamie|User/,you);
+        }
+        // Profile page names
+        document.querySelectorAll('.profile-half').forEach((half,i)=>{
+          if(i===1&&!hasParter){half.style.display='none';return;}
+          if(i===1)half.style.display='';
+          const nameEl=half.querySelector('[style*="font-size:14px"][style*="font-weight:500"]');
+          if(nameEl){nameEl.textContent=i===0?you:(them||'Partner');}
+          const llDesc=half.querySelector('[style*="How"]');
+          if(llDesc&&i===0)llDesc.textContent='How '+you+' feels most loved — shapes what kind of date lands best';
+          if(llDesc&&i===1&&hasParter)llDesc.textContent='How '+them+' feels most loved — shapes what kind of date lands best';
+        });
+        // Profile avatar colors
+        document.querySelectorAll('.profile-avatar').forEach((av,i)=>{
+          if(i===0)av.textContent=yi;
+          if(i===1&&hasParter)av.textContent=pi;
+        });
+        // Pairing status
+        const pairingStatus=document.getElementById('pairing-status');
+        if(pairingStatus){
+          if(hasParter){
+            pairingStatus.innerHTML='<span style="color:var(--primary);font-weight:600">Currently paired with '+them+'</span> · planning together';
+          }else{
+            pairingStatus.innerHTML='<span style="color:var(--primary);font-weight:600">Planning solo</span> · finding things just for you';
+          }
+        }
+        // What's Hot subtitle
+        const whSub=document.querySelector('.wh-section-sub');
+        if(whSub){
+          whSub.textContent=hasParter?'Curated for '+you+' & '+them+' · happening in London this week':'Curated for you · happening in London this week';
+        }
+        // Auth status display
+        const authStatus=document.getElementById('auth-status-display');
+        if(authStatus){
+          if(_authUser){
+            authStatus.innerHTML='Signed in as <strong style="color:var(--primary)">'+_authUser.email+'</strong>';
+          } else {
+            authStatus.textContent='Not signed in';
+          }
+        }
+        // Surprise overlay
+        const sovTitle=document.querySelector('#sov-overlay [style*="font-size:18px"]');
+        if(sovTitle&&hasParter)sovTitle.textContent=you+' has planned something special';
+        // Sophie vote overlay headline
+        const svHeadline=document.getElementById('sv-headline');
+        if(svHeadline&&hasParter)svHeadline.textContent=you+' wants to know…';
+      }
+
+      // Reset demo — clears all local data and reloads
+      function resetDemo(){
+        _trackEvent('demo_reset',{user:_userName()});
+        try{
+          localStorage.removeItem('t4t_user_profile');
+          localStorage.removeItem('t4t_beta_access');
+          localStorage.removeItem('t4t_user_id');
+          localStorage.removeItem('t4t_bk');
+          localStorage.removeItem('t4t_rm');
+          localStorage.removeItem('t4t_handles');
+          localStorage.removeItem('t4t_beta_code');
+        }catch(e){}
+        setTimeout(()=>window.location.reload(),300);
+      }
+
+      // ── Beta gate check on page load ──
+      (function _betaInit(){
+        const params=new URLSearchParams(window.location.search);
+        // Allow ?code=XYZ in URL to auto-validate
+        const urlCode=(params.get('code')||'').toUpperCase();
+        if(urlCode&&_BETA_CODES.includes(urlCode)){
+          _grantBetaAccess();
+          // Clean URL
+          const url=new URL(window.location);url.searchParams.delete('code');
+          history.replaceState(null,'',url.toString());
+        }
+        // If going straight to ?app, require beta access
+        if(params.has('app')&&!_hasBetaAccess()){
+          // Don't skip landing — show the gate instead
+        } else if(params.has('app')&&_hasBetaAccess()){
+          const lp=document.getElementById('landing');
+          if(lp){lp.style.display='none';lp.style.visibility='hidden';}
+        }
+      })();
+
+      // ════════════════════════════════════════════════
+      // ── SUPABASE CLIENT + AUTH ──
+      // ════════════════════════════════════════════════
+
+      // Public anon key (safe to expose — RLS protects data)
+      const _SUPABASE_URL='https://wjezqqtkxhzydyzxocow.supabase.co';
+      const _SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqZXpxcXRreGh6eWR5enhvY293Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzQzNTUsImV4cCI6MjA5NTExMDM1NX0.gQTjQTBD9cpgWq_ozYisXA5N6tSXXGbRzvi1zlD-kGQ';
+
+      let _sb=null;
+      let _sbUserId=null;
+      let _sbReady=false;
+      let _syncQueue=[];
+      const _SYNC_DEBOUNCE=1500;
+      let _syncTimers={};
+
+      // Init Supabase client
+      function _sbInit(){
+        if(!_SUPABASE_URL||!_SUPABASE_KEY){console.log('[T4T] Supabase not configured');return;}
+        try{
+          _sb=window.supabase.createClient(_SUPABASE_URL,_SUPABASE_KEY);
+          console.log('[T4T] Supabase connected');
+        }catch(e){console.warn('[T4T] Supabase init failed',e);_sb=null;setTimeout(()=>toast('Working offline — your data is saved locally'),1500);}
+      }
+      _sbInit();
+
+      // ── Magic Link Auth ──
+      async function signInWithMagicLink(email,name,partner){
+        if(!_sb)return{error:'Supabase not configured'};
+        try{
+          const{error}=await _sb.auth.signInWithOtp({
+            email,
+            options:{
+              shouldCreateUser:true,
+              emailRedirectTo:window.location.origin+'/?app',
+              data:{name:name||'',partner:partner||''}
+            }
+          });
+          if(error){
+            console.warn('[T4T] Magic link error:',error);
+            // If it's a database trigger error, the email was still sent — treat as success
+            if(error.message&&error.message.toLowerCase().includes('database')){
+              return{success:true};
+            }
+            return{error:error.message};
+          }
+          return{success:true};
+        }catch(e){
+          console.warn('[T4T] Magic link exception:',e);
+          return{error:'Something went wrong. Please try again.'};
+        }
+      }
+
+      async function signOut(){
+        if(!_sb)return;
+        _trackEvent('sign_out',{user:_userName()});
+        await _sb.auth.signOut();
+        _authUser=null;_sbUserId=null;_sbReady=false;
+        // Clear session data from localStorage (user data persists in Supabase)
+        try{
+          localStorage.removeItem('t4t_user_profile');
+          localStorage.removeItem('t4t_beta_access');
+          localStorage.removeItem('t4t_bk');
+          localStorage.removeItem('t4t_rm');
+          localStorage.removeItem('t4t_handles');
+          localStorage.removeItem('t4t_venue_cache');
+        }catch(e){}
+        window.location.reload();
+      }
+
+      // Get the current authenticated user's DB row ID + restore full profile
+      async function _sbEnsureUser(){
+        if(!_sb||!_authUser)return null;
+        try{
+          const{data}=await _sb.from('users').select('id,name,partner_name,email,handle,account_state,city,onboarding_completed,preferences').eq('auth_id',_authUser.id).maybeSingle();
+          if(data){
+            _sbUserId=data.id;
+            // Restore full profile to localStorage (DB is source of truth)
+            const restoredProfile={
+              name:data.name||_authUser.email?.split('@')[0]||'User',
+              partner:data.partner_name||'',
+              handle:data.handle||_handles.jamie||'',
+              email:data.email||_authUser.email||'',
+              account_state:data.account_state||'single',
+              city:data.city||'London',
+              onboarding_completed:!!data.onboarding_completed,
+              preferences:data.preferences||{},
+              createdAt:_authUser.created_at
+            };
+            // Restore handle into _handles
+            if(data.handle){_handles.jamie=data.handle;try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}}
+            _saveUserProfile(restoredProfile);
+            // Restore in-memory preferences for plan engine
+            if(data.onboarding_completed&&data.preferences&&typeof data.preferences==='object'){
+              Object.assign(_obPrefs,data.preferences);
+              // Apply preference-driven state
+              if(_obPrefs.date_mode)_pairingMode=_obPrefs.date_mode==='couple'?'couple':_obPrefs.date_mode;
+              if(_obPrefs.energy_level)_moodEnergy=_obPrefs.energy_level==='low'?'tired':_obPrefs.energy_level==='high'?'energetic':'moderate';
+              if(_obPrefs.budget){
+                const budgetMap={under50:0,'50to150':1,'150to300':2,'300plus':3};
+                const sl=document.getElementById('budget-slider');
+                if(sl&&budgetMap[_obPrefs.budget]!=null){sl.value=budgetMap[_obPrefs.budget];updateBudgetLabel(sl.value);}
+              }
+            }
+            // Set pairing mode from account_state
+            if(data.account_state==='paired'&&data.partner_name)_pairingMode='couple';
+            else if(!_obPrefs.date_mode)_pairingMode='solo';
+            // Update last_seen + sync handle if not yet in DB (fire and forget)
+            const _updateFields={last_seen_at:new Date().toISOString()};
+            const _localHandle=_getUserProfile()?.handle||_handles.jamie||'';
+            if(_localHandle&&!data.handle)_updateFields.handle=_localHandle;
+            _sb.from('users').update(_updateFields).eq('id',data.id).then(()=>{});
+            console.log('[T4T] Profile restored from DB:',data.account_state,data.onboarding_completed?'onboarded':'not onboarded');
+            return data.id;
+          }
+          // User row should have been created by the trigger, but handle edge case
+          const profile=_getUserProfile()||{name:_authUser.email?.split('@')[0]||'User',partner:''};
+          const{data:newUser,error}=await _sb.from('users').insert({
+            auth_id:_authUser.id,
+            email:_authUser.email||'',
+            name:profile.name,
+            handle:profile.handle||_handles.jamie||'',
+            partner_name:profile.partner||'',
+            account_state:profile.partner?'paired':'single',
+            city:'London'
+          }).select('id').single();
+          if(error){console.warn('[T4T] User create failed',error);return null;}
+          _sbUserId=newUser.id;
+          return newUser.id;
+        }catch(e){console.warn('[T4T] User ensure failed',e);return null;}
+      }
+
+      // Listen for auth state changes
+      function _setupAuthListener(){
+        if(!_sb)return;
+        _sb.auth.onAuthStateChange(async(event,session)=>{
+          console.log('[T4T Auth]',event,session?.user?.email);
+          if(session?.user){
+            if(_authHandled&&_authUser?.id===session.user.id)return;
+            _authHandled=true;
+            _authUser=session.user;
+            _grantBetaAccess();
+            if(event==='SIGNED_IN')_trackEvent('sign_up_completed',{method:'magic_link'});
+            // Save profile from auth metadata (will be overwritten by DB restore in _sbEnsureUser)
+            const meta=session.user.user_metadata||{};
+            if(meta.name){_saveUserProfile({name:meta.name,partner:meta.partner||'',account_state:meta.partner?'paired':'single',createdAt:session.user.created_at});}
+            // Hide landing + overlays IMMEDIATELY (don't wait for DB)
+            const lp=document.getElementById('landing');
+            if(lp){lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';}
+            const ag=document.getElementById('beta-gate-overlay');if(ag)ag.style.display='none';
+            const ne=document.getElementById('name-entry-overlay');if(ne)ne.style.display='none';
+            const ls=document.getElementById('auth-loading-screen');if(ls)ls.remove();
+            _applyUserNames();
+            setSmartGreeting();
+            const db=document.getElementById('demo-banner');if(db)db.style.display='block';
+            _authLoading=false;
+            // Then sync DB — restores full profile + preferences + app state
+            try{
+              const uid=await _sbEnsureUser();
+              if(uid){await _sbLoadState();}
+            }catch(e){console.warn('[T4T] DB sync failed (non-fatal)',e);}
+            // Re-apply names and greeting after DB restore (profile may have changed)
+            _applyUserNames();
+            setSmartGreeting();
+            // Check if onboarding is needed AFTER DB sync (profile is now authoritative)
+            const _prof=_getUserProfile();
+            if(!_prof?.onboarding_completed){setTimeout(startOnboarding,600);}
+            else{
+              // Preferences exist — regenerate personalised suggestions
+              setTimeout(()=>generateSuggestions(true),300);
+            }
+          } else {
+            _authUser=null;_sbUserId=null;_sbReady=false;
+            _authLoading=false;
+          }
+        });
+      }
+      _setupAuthListener();
+
+      // Check initial session on page load
+      (async function _checkSession(){
+        if(!_sb)return;
+        try{
+          const{data:{session}}=await _sb.auth.getSession();
+          if(session?.user){
+            _authUser=session.user;
+            _grantBetaAccess();
+            // Hide landing immediately if already signed in
+            const lp=document.getElementById('landing');
+            if(lp){lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';}
+            const ls=document.getElementById('auth-loading-screen');if(ls)ls.remove();
+            const meta=session.user.user_metadata||{};
+            if(meta.name){_saveUserProfile({name:meta.name,partner:meta.partner||'',account_state:meta.partner?'paired':'single',createdAt:session.user.created_at});}
+            _applyUserNames();
+            setSmartGreeting();
+            const db=document.getElementById('demo-banner');if(db)db.style.display='block';
+          }
+        }catch(e){console.warn('[T4T] Session check failed',e);}
+        _authLoading=false;
+      })();
+
+      // Load all state from Supabase → merge into local vars
+      async function _sbLoadState(){
+        if(!_sb||!_sbUserId)return;
+        try{
+          const{data,error}=await _sb.from('user_state').select('state_key,state_data').eq('user_id',_sbUserId);
+          if(error){console.warn('[T4T] State load failed',error);return;}
+          if(!data||!data.length)return;
+          const stateMap={};
+          data.forEach(row=>{stateMap[row.state_key]=row.state_data;});
+          // Merge into app variables (Supabase wins if it has data, otherwise keep localStorage)
+          if(stateMap.bookings&&Array.isArray(stateMap.bookings)&&stateMap.bookings.length){bookings=stateMap.bookings;}
+          if(stateMap.reminders&&Array.isArray(stateMap.reminders)&&stateMap.reminders.length){reminders=stateMap.reminders;}
+          if(stateMap.wishlist&&Array.isArray(stateMap.wishlist)&&stateMap.wishlist.length){_wishlist=stateMap.wishlist;}
+          if(stateMap.journal&&Array.isArray(stateMap.journal)&&stateMap.journal.length){_journal=stateMap.journal;}
+          if(stateMap.handles&&typeof stateMap.handles==='object'){_handles=Object.assign(_handles,stateMap.handles);}
+          // Restore preferences from user_state as fallback (belt-and-suspenders with users.preferences)
+          if(stateMap.preferences&&typeof stateMap.preferences==='object'){
+            const prof=_getUserProfile()||{};
+            // Only apply if profile doesn't already have preferences from _sbEnsureUser
+            if(!prof.preferences||!Object.keys(prof.preferences).length){
+              prof.preferences=stateMap.preferences;
+              prof.onboarding_completed=true;
+              _saveUserProfile(prof);
+              Object.assign(_obPrefs,stateMap.preferences);
+              if(_obPrefs.date_mode)_pairingMode=_obPrefs.date_mode==='couple'?'couple':_obPrefs.date_mode;
+              console.log('[T4T] Preferences restored from user_state fallback');
+            }
+          }
+          // Re-render everything with loaded data
+          _applyUserNames();
+          renderBookings();renderReminders?.();renderCal?.();updateStats();renderWishlist?.();renderJournal?.();renderHubWishlist?.();
+          console.log('[T4T] State loaded from Supabase');
+          _sbReady=true;
+        }catch(e){console.warn('[T4T] State load error',e);}
+      }
+
+      // Save a specific state key to Supabase (debounced)
+      function _sbSaveState(key,data){
+        if(!_sb||!_sbUserId)return;
+        clearTimeout(_syncTimers[key]);
+        _syncTimers[key]=setTimeout(async()=>{
+          try{
+            await _sb.rpc('upsert_state',{p_user_id:_sbUserId,p_key:key,p_data:data});
+          }catch(e){console.warn('[T4T] Sync failed for',key,e);}
+        },_SYNC_DEBOUNCE);
+      }
+
+      // Convenience: save all app state
+      function _sbSyncAll(){
+        _sbSaveState('bookings',bookings);
+        _sbSaveState('reminders',reminders);
+        _sbSaveState('wishlist',_wishlist);
+        _sbSaveState('journal',_journal);
+        _sbSaveState('handles',_handles);
+      }
+
+      // ── Analytics layer ──
+      // PostHog-compatible: swap _analytics.provider to 'posthog' when ready.
+      // Event naming: snake_case, past tense for completed actions, present for views.
+      // Properties: always include user_id, plan_id where relevant, provider on bookings.
+      const _analytics={
+        provider:'supabase', // 'supabase' | 'posthog'
+        _anonId:null,
+        _getAnonId(){
+          if(this._anonId)return this._anonId;
+          try{this._anonId=localStorage.getItem('t4t_anon_id');if(!this._anonId){this._anonId='anon_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);localStorage.setItem('t4t_anon_id',this._anonId);}}catch(e){this._anonId='anon_'+Date.now().toString(36);}
+          return this._anonId;
+        },
+        track(event,props){
+          const p=Object.assign({},props||{});
+          p.$user_id=_sbUserId||null;
+          p.$anon_id=this._getAnonId();
+          p.$timestamp=new Date().toISOString();
+          // Console log in beta (always, for debugging)
+          console.log('[T4T]',event,p);
+          // Essential events (auth, errors) always log; product usage events require consent
+          const _essentialEvents=new Set(['sign_up_started','sign_up_completed','sign_out','account_deletion_requested','error_state_seen']);
+          const needsConsent=!_essentialEvents.has(event);
+          if(needsConsent&&!_hasAnalyticsConsent())return; // skip non-essential tracking without consent
+          // Supabase backend
+          if(this.provider==='supabase'&&_sb){
+            _sb.from('events').insert({user_id:_sbUserId||null,event_type:event,event_data:p}).then(()=>{}).catch(()=>{});
+          }
+          // PostHog — uncomment when SDK is loaded
+          // if(this.provider==='posthog'&&window.posthog){
+          //   window.posthog.capture(event,p);
+          // }
+        }
+      };
+      // Backward-compatible wrapper
+      function _trackEvent(type,data){_analytics.track(type,data);}
+
+      // ════════════════════════════════════════════════
+      // ── COOKIE / ANALYTICS CONSENT ──
+      // ════════════════════════════════════════════════
+      // Consent states: null (not yet chosen), 'accepted', 'rejected'
+      // Essential storage (auth, profile, app state) always works.
+      // Non-essential (Vercel Insights, Sentry, product events to DB) requires consent.
+
+      function _getConsent(){
+        try{return localStorage.getItem('t4t_cookie_consent');}catch(e){return null;}
+      }
+      function _setConsent(val){
+        try{localStorage.setItem('t4t_cookie_consent',val);}catch(e){}
+      }
+      function _hasAnalyticsConsent(){return _getConsent()==='accepted';}
+
+      // Load optional analytics scripts only after consent
+      function _loadOptionalAnalytics(){
+        // Vercel Insights
+        if(!document.getElementById('vercel-insights-script')){
+          const s=document.createElement('script');
+          s.id='vercel-insights-script';
+          s.src='/_vercel/insights/script.js';
+          s.defer=true;
+          document.head.appendChild(s);
+        }
+        // Sentry (only if DSN is configured)
+        if(typeof Sentry!=='undefined'&&!Sentry.isInitialized?.()){
+          _initSentry();
+        }
+        console.log('[T4T] Optional analytics loaded (consent given)');
+      }
+
+      // Remove/disable optional analytics
+      function _disableOptionalAnalytics(){
+        const vs=document.getElementById('vercel-insights-script');
+        if(vs)vs.remove();
+        console.log('[T4T] Optional analytics disabled');
+      }
+
+      // Show consent banner
+      function _showConsentBanner(){
+        if(document.getElementById('cookie-consent-banner'))return;
+        const banner=document.createElement('div');
+        banner.id='cookie-consent-banner';
+        banner.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:10000;background:#1A1917;border-top:0.5px solid rgba(201,168,76,0.2);padding:16px 20px;display:flex;flex-direction:column;gap:12px;align-items:center;animation:slideUpBanner 0.3s ease';
+        banner.innerHTML=`
+          <div style="max-width:600px;width:100%;text-align:center">
+            <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:12px">We use essential storage to make the app work. We also use optional analytics to understand how features are used and fix bugs. <a href="cookies.html" style="color:#C9A84C;text-decoration:underline" target="_blank">Learn more</a></div>
+            <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+              <button onclick="_acceptConsent()" style="padding:10px 24px;background:#C9A84C;color:#0E0D0B;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Accept analytics</button>
+              <button onclick="_rejectConsent()" style="padding:10px 24px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border:0.5px solid rgba(255,255,255,0.1);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit">Reject</button>
+            </div>
+          </div>`;
+        document.body.appendChild(banner);
+      }
+
+      function _hideConsentBanner(){
+        const b=document.getElementById('cookie-consent-banner');
+        if(b)b.remove();
+      }
+
+      function _acceptConsent(){
+        _setConsent('accepted');
+        _hideConsentBanner();
+        _loadOptionalAnalytics();
+        toast('Analytics enabled — you can change this in Preferences');
+      }
+
+      function _rejectConsent(){
+        _setConsent('rejected');
+        _hideConsentBanner();
+        _disableOptionalAnalytics();
+      }
+
+      // Open privacy settings (from Preferences page or anywhere)
+      function openPrivacySettings(){
+        const current=_getConsent();
+        const isAccepted=current==='accepted';
+        const ov=document.getElementById('bf-overlay');
+        const el=document.getElementById('bf-content');
+        if(!ov||!el)return;
+        el.innerHTML=`
+          <div style="padding:8px 0">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div style="font-size:16px;font-weight:700;color:#fff">Privacy settings</div>
+              <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">Done</button>
+            </div>
+            <div style="margin-bottom:16px">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:8px">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.8)">Essential storage</div>
+                  <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px">Sign-in, preferences, saved plans</div>
+                </div>
+                <div style="font-size:11px;font-weight:600;color:rgba(74,222,128,0.7)">Always on</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px">
+                <div>
+                  <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.8)">Analytics & error tracking</div>
+                  <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:2px">Vercel Insights, Sentry, usage events</div>
+                </div>
+                <button onclick="this.textContent=this.textContent==='On'?'Off':'On';this.style.background=this.textContent==='On'?'rgba(74,222,128,0.15)':'rgba(255,255,255,0.06)';this.style.color=this.textContent==='On'?'#4ADE80':'rgba(255,255,255,0.4)';this.style.borderColor=this.textContent==='On'?'rgba(74,222,128,0.3)':'rgba(255,255,255,0.1)'" id="consent-toggle-btn" style="padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:0.5px solid ${isAccepted?'rgba(74,222,128,0.3)':'rgba(255,255,255,0.1)'};background:${isAccepted?'rgba(74,222,128,0.15)':'rgba(255,255,255,0.06)'};color:${isAccepted?'#4ADE80':'rgba(255,255,255,0.4)'};font-family:inherit">${isAccepted?'On':'Off'}</button>
+              </div>
+            </div>
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;border-radius:10px;font-size:13px;font-weight:600" onclick="_savePrivacySettings()">Save preferences</button>
+            <div style="display:flex;gap:12px;justify-content:center;margin-top:14px;font-size:11px">
+              <a href="privacy.html" target="_blank" style="color:rgba(255,255,255,0.35)">Privacy policy</a>
+              <a href="cookies.html" target="_blank" style="color:rgba(255,255,255,0.35)">Cookie notice</a>
+              <a href="terms.html" target="_blank" style="color:rgba(255,255,255,0.35)">Terms</a>
+            </div>
+          </div>`;
+        ov.style.display='flex';document.body.style.overflow='hidden';
+      }
+
+      function _savePrivacySettings(){
+        const btn=document.getElementById('consent-toggle-btn');
+        const isOn=btn&&btn.textContent==='On';
+        if(isOn){_setConsent('accepted');_loadOptionalAnalytics();}
+        else{_setConsent('rejected');_disableOptionalAnalytics();}
+        closeBf();
+        toast(isOn?'Analytics enabled':'Analytics disabled');
+      }
+
+      // Init consent on page load
+      (function _initConsent(){
+        const consent=_getConsent();
+        if(consent==='accepted'){_loadOptionalAnalytics();}
+        else if(!consent){
+          // Show banner after a short delay (don't interrupt first paint)
+          setTimeout(_showConsentBanner,1500);
+        }
+        // If 'rejected', do nothing — scripts stay unloaded
+      })();
+
+      // ════════════════════════════════════════════════
+      // ── ACCOUNT DELETION ──
+      // ════════════════════════════════════════════════
+      function requestAccountDeletion(){
+        const ov=document.getElementById('bf-overlay');
+        const el=document.getElementById('bf-content');
+        if(!ov||!el)return;
+        el.innerHTML=`
+          <div style="padding:8px 0;text-align:center">
+            <div style="font-size:24px;margin-bottom:12px">&#9888;</div>
+            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:6px">Delete your account?</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:20px">This will permanently delete your profile, preferences, saved plans, wishlist, journal entries, and all usage data. This cannot be undone.</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button onclick="_confirmDeleteAccount()" style="padding:12px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:10px;color:#EF4444;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Yes, delete my account</button>
+              <button onclick="closeBf()" style="padding:12px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;font-family:inherit">Cancel</button>
+            </div>
+          </div>`;
+        ov.style.display='flex';document.body.style.overflow='hidden';
+      }
+
+      async function _confirmDeleteAccount(){
+        const el=document.getElementById('bf-content');
+        if(el)el.innerHTML='<div style="text-align:center;padding:40px 0"><div class="spinner" style="margin:0 auto 12px"></div><div style="font-size:13px;color:rgba(255,255,255,0.4)">Deleting your data...</div></div>';
+        _trackEvent('account_deletion_requested',{user:_userName()});
+        // Delete from Supabase
+        if(_sb&&_sbUserId){
+          try{
+            // Delete user_state rows
+            await _sb.from('user_state').delete().eq('user_id',_sbUserId);
+            // Delete events
+            await _sb.from('events').delete().eq('user_id',_sbUserId);
+            // Delete user row
+            await _sb.from('users').delete().eq('id',_sbUserId);
+          }catch(e){console.warn('[T4T] Deletion error (will complete via support):',e);}
+        }
+        // Clear all local data
+        try{
+          const keys=['t4t_user_profile','t4t_beta_access','t4t_user_id','t4t_bk','t4t_rm',
+            't4t_handles','t4t_beta_code','t4t_anon_id','t4t_venue_cache','t4t_plan_states','t4t_cookie_consent'];
+          keys.forEach(k=>localStorage.removeItem(k));
+        }catch(e){}
+        // Sign out from Supabase auth
+        if(_sb){try{await _sb.auth.signOut();}catch(e){}}
+        // Show confirmation
+        if(el)el.innerHTML=`
+          <div style="text-align:center;padding:20px 0">
+            <div style="font-size:24px;margin-bottom:12px">&#10003;</div>
+            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:6px">Account deleted</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:20px">Your data has been removed. If anything was missed, email <a href="mailto:privacy@tablefortwo.app" style="color:#C9A84C">privacy@tablefortwo.app</a> and we'll ensure full deletion within 30 days.</div>
+            <button onclick="window.location.href='index.html'" style="padding:12px 24px;background:#C9A84C;color:#0E0D0B;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Done</button>
+          </div>`;
+      }
+
+      // Bootstrap: connect user + load state on page load
+      (async function _sbBootstrap(){
+        if(!_sb)return;
+        const uid=await _sbEnsureUser();
+        if(uid){await _sbLoadState();}
+      })();
+
+      const TITLES={discover:'Discover',profiles:'Preferences',restaurants:'Dining',experiences:'Experiences',hotels:'Stays',cabs:'Getting there',planner:'Planner','whats-hot':"What's On",bookings:'Your dates',journal:'Journal',wishlist:'Saved'};
+      const SUBS={discover:'Chosen for your shared taste',profiles:'What shapes your recommendations',restaurants:'Find and reserve a table',experiences:'Activities, culture and things to do',hotels:'Stays and getaways',cabs:'Compare routes and book transport',planner:'Upcoming dates, reminders and calendar','whats-hot':'Trending in London this week',bookings:'Confirmed, upcoming and past',journal:'Notes and ratings from your dates',wishlist:'Ideas you want to come back to'};
+
+      let bookings=[];
+      let reminders=[];
       let calMonth=new Date(2026,3,1);
       let selectedDay=null;
       let activeFilter='all';
-      let _handles={jamie:'@jamie887',sophie:'@sophie2024'};
+      let _handles={jamie:'',sophie:''};
       let _connectedHandles=[];
 
       const catColors={'Dinner reservation':'#C4687A','Experience / activity':'#6B4C7A','Hotel check-in':'#C4687A','Hotel check-out':'#8B3A4A','Cab pickup':'#3A6A8A','Personal':'#5A7A5A'};
@@ -53,7 +836,8 @@
         if(id==='wishlist')renderWishlist();
         if(id==='whats-hot')renderWhatsHot();
         // scroll content back to top on page change
-        window.scrollTo({top:0,behavior:'smooth'});
+        const _contentEl=document.querySelector('.content');
+        if(_contentEl)_contentEl.scrollTo({top:0,behavior:'smooth'});
       }
 
       function mobileGo(id,el){
@@ -88,7 +872,12 @@
         const tgt=document.getElementById(panelId);if(tgt)tgt.style.display='block';
       }
 
-      function savePref(){toast('✦ Preferences saved for Jamie & Sophie');}
+      function savePref(){
+        _trackEvent('preferences_updated',{user:_userName()});
+        const btn=document.getElementById('pref-save-btn');
+        if(btn){btn.textContent='Saved';btn.style.opacity='0.6';setTimeout(()=>{btn.textContent='Save';btn.style.opacity='1';},2000);}
+        toast('Preferences saved');
+      }
 
       // ── @handle system ──
       const _DEMO_HANDLES={
@@ -185,57 +974,1283 @@
 
       const IDEAS={
         budget:[
-          {name:'Maltby Street Market brunch',loc:'Bermondsey · Street food',emoji:'🌮',img:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=320&fit=crop&q=80',price:'avg. £13pp',why:'Both love casual food scenes — London\'s best street food market',score:78,type:'foodie',vibes:['Walkable']},
-          {name:'Tate Modern + Thames walk',loc:'South Bank · Art & outdoors',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'Free–avg. £8pp',why:'Jamie loves cultural, Sophie loves outdoors — free world-class art',score:86,type:'cultural',vibes:['Walkable','Unique / memorable']},
-          {name:'TeamSport Go-Karting',loc:'Stratford · Indoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Thrilling and competitive — guaranteed laughs and bragging rights',score:82,type:'fun',vibes:['Unique / memorable']},
-          {name:'BFI Southbank cinema + wine',loc:'South Bank · Film & culture',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Jamie loves cultural — independent cinema right on the river',score:80,type:'cultural',vibes:['Walkable']},
-          {name:'Escape Hunt London',loc:'Holborn · Escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1590012314607-cda9d9b699ae?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Solve puzzles together — teamwork makes the dream work',score:79,type:'fun',vibes:['Unique / memorable']},
-          {name:'Rooftop Film Club screening',loc:'Peckham / Shoreditch · Outdoor cinema',emoji:'🎥',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'Watching films under the stars with blankets and wine',score:83,type:'fun',vibes:['Outdoor seats','Unique / memorable']},
-          {name:'Whistle Punks Axe Throwing',loc:'Shoreditch · Axe throwing',emoji:'🪓',img:'https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&h=320&fit=crop&q=80',price:'avg. £19pp',why:'Unexpectedly brilliant fun — loud, silly, weirdly satisfying',score:77,type:'fun',vibes:['Unique / memorable']},
-          {name:'Battersea Park boating + picnic',loc:'Battersea · Outdoor',emoji:'🚣',img:'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=600&h=320&fit=crop&q=80',price:'avg. £14pp',why:'Sophie loves the outdoors — relaxed, romantic, London classic',score:77,type:'outdoor',vibes:['Walkable','Outdoor seats']},
-          {name:'The Comedy Store',loc:'Soho · Live comedy',emoji:'🎭',img:'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'London\'s legendary comedy club — guaranteed laughter',score:74,type:'fun',vibes:['Live music']},
-          {name:'Leake Street Arches street art walk',loc:'Waterloo · Street art',emoji:'🎨',img:'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=600&h=320&fit=crop&q=80',price:'Free',why:'Jamie loves cultural — Banksy\'s famous graffiti tunnel',score:70,type:'cultural',vibes:['Walkable']},
-          {name:'Brindisa tapas + Borough Market',loc:'Borough · Spanish',emoji:'🥘',img:'https://images.unsplash.com/photo-1515443961218-a51367888e4b?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Both love bold food — best tapas beside London\'s greatest market',score:79,type:'foodie',vibes:['Walkable']},
+          {name:'Maltby Street Market brunch',loc:'Bermondsey · Street food',emoji:'🌮',img:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=320&fit=crop&q=80',price:'avg. £13pp',why:'Both love casual food scenes — London\'s best street food market',score:78,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Tate Modern + Thames walk',loc:'South Bank · Art & outdoors',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'Free–avg. £8pp',why:'Free world-class art followed by a Thames-side walk',score:86,type:'outdoor',vibes:['Walkable','Unique / memorable'],venue_status:'active'},
+          {name:'TeamSport Go-Karting',loc:'Stratford · Indoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Thrilling and competitive — guaranteed laughs and bragging rights',score:82,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'BFI Southbank cinema + wine',loc:'South Bank · Film & culture',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Independent cinema right on the river — perfect for culture lovers',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Escape Hunt London',loc:'Holborn · Escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Solve puzzles together — teamwork makes the dream work',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Rooftop Film Club screening',loc:'Peckham / Shoreditch · Outdoor cinema',emoji:'🎥',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'Watching films under the stars with blankets and wine',score:83,type:'outdoor',vibes:['Outdoor seats','Unique / memorable'],venue_status:'active'},
+          {name:'Whistle Punks Axe Throwing',loc:'Shoreditch · Axe throwing',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £19pp',why:'Unexpectedly brilliant fun — loud, silly, weirdly satisfying',score:77,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Battersea Park boating + picnic',loc:'Battersea · Outdoor',emoji:'🚣',img:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=320&fit=crop&q=80',price:'avg. £14pp',why:'Relaxed, romantic London classic on the lake',score:77,type:'outdoor',vibes:['Walkable','Outdoor seats'],venue_status:'active'},
+          {name:'The Comedy Store',loc:'Soho · Live comedy',emoji:'🎭',img:'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'London\'s legendary comedy club — guaranteed laughter',score:74,type:'fun',vibes:['Live music'],venue_status:'active'},
+          {name:'Leake Street Arches street art walk',loc:'Waterloo · Street art',emoji:'🎨',img:'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=600&h=320&fit=crop&q=80',price:'Free',why:'Banksy\'s famous graffiti tunnel — free street art walk',score:70,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Brindisa tapas + Borough Market',loc:'Borough · Spanish',emoji:'🥘',img:'https://images.unsplash.com/photo-1515443961218-a51367888e4b?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Both love bold food — best tapas beside London\'s greatest market',score:79,type:'fun',vibes:['Walkable','Live music'],venue_status:'active'},
+          {name:'Jenki matcha bar',loc:'Soho · Matcha café',emoji:'🍵',img:'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=600&h=320&fit=crop&q=80',price:'avg. £12pp',why:'London\'s best matcha lattes and mochi — calm, aesthetic and delicious',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Puttshack mini golf',loc:'Bank · Tech-infused mini golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'Trackable mini golf with cocktails and street food — proper fun, zero skill required',score:83,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Hotpod Yoga date',loc:'Various London · Hot yoga',emoji:'🧘',img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'37-degree pod, dim lights, deep stretches — weirdly intimate and totally relaxing',score:79,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Toca Social',loc:'The O2 · Interactive football & bar',emoji:'⚽',img:'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Football meets arcade — smash targets, eat street food, drink cocktails at The O2',score:84,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active'},
         ],
         mid:[
-          {name:'Hakkasan Mayfair dinner',loc:'Mayfair · Chinese',emoji:'✦',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Michelin-starred Cantonese — moody, beautiful and endlessly romantic',score:93,type:'foodie',vibes:['Candlelit','Unique / memorable']},
-          {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £33pp',why:'Sophie loves Indian, Jamie loves bold flavours — always unmissable',score:92,type:'foodie',vibes:['Candlelit']},
-          {name:'Secret Cinema evening',loc:'London · Immersive',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',why:'Unique & memorable — live actors, costumes, and a film',score:94,type:'romantic',vibes:['Unique / memorable']},
-          {name:'O2 Arena concert night',loc:'Greenwich · Live music',emoji:'🎤',img:'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=320&fit=crop&q=80',price:'avg. £50pp',why:'Nothing beats live music together — electric atmosphere',score:88,type:'fun',vibes:['Live music','Unique / memorable']},
-          {name:'The Crystal Maze LIVE Experience',loc:'Farringdon · Immersive game',emoji:'💎',img:'https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?w=600&h=320&fit=crop&q=80',price:'avg. £48pp',why:'The iconic TV experience — team challenges across four zones',score:87,type:'fun',vibes:['Unique / memorable']},
-          {name:'Kew Gardens + riverside pub',loc:'Richmond · Outdoor',emoji:'🌿',img:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Sophie loves outdoors — UNESCO world heritage gardens',score:81,type:'outdoor',vibes:['Walkable','Outdoor seats']},
-          {name:'Kiln restaurant Soho',loc:'Soho · Thai',emoji:'🔥',img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'London\'s most exciting Thai — cooked over wood fire, intense flavours',score:89,type:'foodie',vibes:['Candlelit']},
-          {name:'Ottolenghi dinner',loc:'Islington · Mediterranean',emoji:'🥗',img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Sophie loves Med — Ottolenghi\'s bold flavours never disappoint',score:88,type:'foodie',vibes:['Candlelit']},
-          {name:'Shakespeare\'s Globe Theatre',loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £38pp',why:'Iconic open-air theatre on the Thames — utterly memorable',score:87,type:'cultural',vibes:['Unique / memorable','Walkable']},
-          {name:'All Star Lanes bowling + cocktails',loc:'Holborn · Boutique bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Retro-cool boutique bowling with killer cocktails — great fun',score:81,type:'fun',vibes:['Live music']},
-          {name:'Turning Earth pottery class',loc:'Hoxton · Pottery studio',emoji:'🏺',img:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Make something together — wonderfully silly and surprisingly therapeutic',score:84,type:'fun',vibes:['Unique / memorable']},
-          {name:'Padella pasta dinner',loc:'Borough · Italian',emoji:'🍝',img:'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'London\'s best hand-rolled pasta — simple, romantic, delicious',score:86,type:'foodie',vibes:['Candlelit']},
-          {name:'Barbican Cinema + cocktails',loc:'Barbican · Arts cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Indie film in a stunning brutalist arts centre',score:80,type:'cultural',vibes:['Walkable','Unique / memorable']},
-          {name:'Alexandra Palace sunset terrace',loc:'North London · Views',emoji:'🌇',img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Best panoramic views over London — magic at golden hour',score:83,type:'outdoor',vibes:['Outdoor seats','Unique / memorable']},
+          {name:'Hakkasan Mayfair dinner',loc:'Mayfair · Chinese',emoji:'✦',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Michelin-starred Cantonese — moody, beautiful and endlessly romantic',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £33pp',why:'Bold Indian flavours — always unmissable',score:92,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
+          {name:'Secret Cinema evening',loc:'London · Immersive',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',why:'Unique & memorable — live actors, costumes, and a film',score:94,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'O2 Arena concert night',loc:'Greenwich · Live music',emoji:'🎤',img:'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=320&fit=crop&q=80',price:'avg. £50pp',why:'Nothing beats live music together — electric atmosphere',score:88,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active'},
+          {name:'The Crystal Maze LIVE Experience',loc:'Farringdon · Immersive game',emoji:'💎',img:'https://images.unsplash.com/photo-1511882150382-421056c89033?w=600&h=320&fit=crop&q=80',price:'avg. £48pp',why:'The iconic TV experience — team challenges across four zones',score:87,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Kew Gardens + riverside pub',loc:'Richmond · Outdoor',emoji:'🌿',img:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'UNESCO world heritage gardens with a riverside pub',score:81,type:'outdoor',vibes:['Walkable','Outdoor seats'],venue_status:'active'},
+          {name:'Kiln restaurant Soho',loc:'Soho · Thai',emoji:'🔥',img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'London\'s most exciting Thai — cooked over wood fire, intense flavours',score:89,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
+          {name:'Ottolenghi dinner',loc:'Islington · Mediterranean',emoji:'🥗',img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Ottolenghi\'s bold Mediterranean flavours never disappoint',score:88,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Shakespeare\'s Globe Theatre',loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £38pp',why:'Iconic open-air theatre on the Thames — utterly memorable',score:87,type:'all',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
+          {name:'All Star Lanes bowling + cocktails',loc:'Holborn · Boutique bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Retro-cool boutique bowling with killer cocktails — great fun',score:81,type:'fun',vibes:['Live music'],venue_status:'active'},
+          {name:'Turning Earth pottery class',loc:'Hoxton · Pottery studio',emoji:'🏺',img:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Make something together — wonderfully silly and surprisingly therapeutic',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Padella pasta dinner',loc:'Borough · Italian',emoji:'🍝',img:'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'London\'s best hand-rolled pasta — simple, romantic, delicious',score:86,type:'outdoor',vibes:['Walkable','Candlelit'],venue_status:'active'},
+          {name:'Barbican Cinema + cocktails',loc:'Barbican · Arts cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Indie film in a stunning brutalist arts centre',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Alexandra Palace sunset terrace',loc:'North London · Views',emoji:'🌇',img:'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Best panoramic views over London — magic at golden hour',score:83,type:'outdoor',vibes:['Outdoor seats','Walkable'],venue_status:'active'},
+          {name:'Ironmonger Row Baths',loc:'Clerkenwell · Turkish baths',emoji:'🧖',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Steam room, sauna and plunge pool — the ultimate wind-down together',score:85,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Frame fitness class for two',loc:'Shoreditch · Fitness',emoji:'💪',img:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Work out together — endorphins, energy and an excuse for brunch after',score:78,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Kobox boxing date',loc:'King\'s Road · Boxing',emoji:'🥊',img:'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Neon-lit boxing studio with music — competitive, sweaty and brilliantly fun',score:83,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Reformer Pilates for two',loc:'Notting Hill · Pilates',emoji:'🤸',img:'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Side-by-side reformer beds — a controlled burn that leaves you both glowing',score:82,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Yoga + brunch at Triyoga',loc:'Camden · Yoga & brunch',emoji:'🧘',img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Flow class then plant-based brunch next door — the perfect slow morning together',score:84,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Swingers crazy golf + cocktails',loc:'City / West End · Crazy golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Two courses of crazy golf, street food vendors and killer cocktails — proper fun',score:86,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active'},
+          {name:'Padel court session for two',loc:'Various London · Padel tennis',emoji:'🎾',img:'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'The fastest-growing sport in the world — easy to pick up, competitive and addictive',score:81,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Tsujiri matcha + mochi',loc:'Wardour Street, Soho · Matcha café',emoji:'🍵',img:'https://images.unsplash.com/photo-1563822249366-3efb23b8e0c9?w=600&h=320&fit=crop&q=80',price:'avg. £18pp',why:'Kyoto\'s famous matcha house — ceremonial lattes, soft serve and handmade mochi',score:84,type:'outdoor',vibes:['Walkable','Candlelit'],venue_status:'active'},
+          {name:'Escape London',loc:'Central London · Live escape game',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Cleverly themed rooms with real puzzles — immersive, playful and properly challenging',score:80,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'clueQuest',loc:'Caledonian Road · Themed escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'One of London\'s top-rated escape rooms — great teamwork test for a date',score:81,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Mission: Breakout',loc:'Camden · Immersive escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £27pp',why:'Quirky Camden escape room with immersive storylines — brilliantly fun together',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'K1 Speed Canary Wharf',loc:'Canary Wharf · Indoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Electric karts, real competition — adrenaline-fuelled and seriously fast',score:82,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Daytona Motorsport London',loc:'Various London · Outdoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'Outdoor track karting — proper speed, proper racing, proper date',score:83,type:'fun',vibes:['Unique / memorable','Outdoor seats'],venue_status:'active'},
+          {name:'Shoreditch Balls',loc:'Shoreditch · Crazy golf & bar',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £18pp',why:'Quirky crazy golf with cocktails in the heart of Shoreditch — playful and social',score:80,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Crazy Putt Greenwich Peninsula',loc:'Greenwich · Adventure golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £14pp',why:'Outdoor adventure golf by the Thames — lighthearted, cheap and cheerful',score:75,type:'outdoor',vibes:['Outdoor seats','Walkable'],venue_status:'active'},
+          {name:'Axeperience London',loc:'Central London · Urban axe throwing',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Throw axes at targets — competitive, quirky and oddly satisfying',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Game of Throwing London',loc:'Central London · Axe throwing bar',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £27pp',why:'Axe throwing with drinks — competitive, social and brilliantly different',score:78,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Boom Battle Bar Liverpool Street',loc:'Liverpool Street · Activity bar',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Axe throwing, shuffleboard and cocktails all under one roof — after-work date gold',score:78,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active'},
+          {name:'Lightroom',loc:'King\'s Cross · Digital art experience',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Immersive digital art projections — walk through light, colour and sound together',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Queens London',loc:'Bayswater · Classic bowling & bar',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'Retro-style bowling with cocktails and street food — classic date night fun',score:79,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Hollywood Bowl O2',loc:'The O2 · Bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Casual bowling at The O2 — easy, affordable and great pre-event date',score:72,type:'fun',vibes:[],venue_status:'active'},
+          {name:'Hollywood Bowl Finchley',loc:'Finchley · Bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Low-key bowling date in North London — casual, fun and no-pressure',score:71,type:'fun',vibes:[],venue_status:'active'},
         ],
         treat:[
-          {name:'Sketch, Mayfair',loc:'Mayfair · Modern European',emoji:'🎨',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'The egg-pod bathrooms, the pink dining room — truly unforgettable',score:85,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-          {name:'Novikov restaurant',loc:'Mayfair · Italian & Asian',emoji:'🥂',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £100pp',why:'Mayfair\'s most glamorous see-and-be-seen dining room',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-          {name:'Bob Bob Ricard dinner',loc:'Soho · Anglo-Russian',emoji:'🍾',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'Press for champagne buttons at every table — impossibly fun',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-          {name:'Ronnie Scott\'s jazz night',loc:'Soho · Live music',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'London\'s most legendary jazz club — intimate and electric',score:83,type:'cultural',vibes:['Live music','Candlelit']},
-          {name:'National Theatre + dinner at Brasserie Blanc',loc:'South Bank · Theatre & dining',emoji:'🎭',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'World-class production + riverside dinner — a full, perfect evening',score:88,type:'cultural',vibes:['Unique / memorable','Walkable']},
-          {name:'Aqua Shard cocktails + dinner',loc:'London Bridge · Rooftop views',emoji:'🌆',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'31st-floor views of London — the most romantic skyline in the city',score:87,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-          {name:'Electric Cinema, Notting Hill',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',why:'Leather armchairs, footstools, and wine — cinema reimagined',score:85,type:'fun',vibes:['Unique / memorable','Candlelit']},
-          {name:'Brat restaurant',loc:'Shoreditch · Modern British',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'Tomos Parry\'s Michelin-starred Basque grill — outstanding every time',score:90,type:'foodie',vibes:['Candlelit','Unique / memorable']},
-          {name:'Almeida Theatre + Ottolenghi dinner',loc:'Islington · Theatre & dining',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'Intimate studio theatre then supper at Ottolenghi — a perfect Islington evening',score:84,type:'cultural',vibes:['Unique / memorable','Walkable']},
+          {name:'Sketch, Mayfair',loc:'Mayfair · Modern European',emoji:'🎨',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'The egg-pod bathrooms, the pink dining room — truly unforgettable',score:85,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Novikov restaurant',loc:'Mayfair · Italian & Asian',emoji:'🥂',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £100pp',why:'Mayfair\'s most glamorous see-and-be-seen dining room',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Bob Bob Ricard dinner',loc:'Soho · Anglo-Russian',emoji:'🍾',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'Press for champagne buttons at every table — impossibly fun',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Ronnie Scott\'s jazz night',loc:'Soho · Live music',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'London\'s most legendary jazz club — intimate and electric',score:83,type:'cultural',vibes:['Live music','Candlelit'],venue_status:'active'},
+          {name:'National Theatre',loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'World-class productions on the Thames — three stages, always something remarkable',score:88,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
+          {name:'Aqua Shard cocktails + dinner',loc:'London Bridge · Rooftop views',emoji:'🌆',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'31st-floor views of London — the most romantic skyline in the city',score:87,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Electric Cinema, Notting Hill',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',why:'Leather armchairs, footstools, and wine — cinema reimagined',score:85,type:'fun',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
+          {name:'Brat restaurant',loc:'Shoreditch · Modern British',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'Tomos Parry\'s Michelin-starred Basque grill — outstanding every time',score:90,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Almeida Theatre',loc:'Islington · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'Intimate studio theatre — bold new writing in a 325-seat space',score:84,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
+          {name:'AIRE Ancient Baths couples',loc:'Bayswater · Thermal spa',emoji:'🧖',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'Candlelit thermal baths, salt flotation and massage — deeply romantic',score:92,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
+          {name:'Monk London ice bath & sauna',loc:'Fulham · Wellness',emoji:'🧊',img:'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Cold plunge together — weirdly bonding and incredibly energising',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Cubo matcha ceremony for two',loc:'Shoreditch · Matcha experience',emoji:'🍵',img:'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',why:'Private matcha ceremony with a Japanese tea master — whisking, tasting and desserts',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'F1 Drive London',loc:'Tottenham · Themed karting experience',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £65pp',why:'F1-themed karting at Tottenham Hotspur Stadium — immersive, adrenaline-packed and special',score:87,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Taste Film',loc:'Various London · Immersive dining cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'Multi-course meal synced to a film screening — creative, romantic and utterly unique',score:89,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
         ],
         luxury:[
-          {name:'The Savoy afternoon tea + dinner',loc:'Strand · Classic London',emoji:'✦',img:'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'The most iconic hotel in London — impeccable and intimate',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-          {name:'Core by Clare Smyth',loc:'Notting Hill · ★★★ Michelin',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £190pp',why:'Three stars, one of the world\'s best restaurants — truly exceptional',score:88,type:'foodie',vibes:['Candlelit','Tasting menu']},
-          {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'✦',img:'https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=600&h=320&fit=crop&q=80',price:'avg. £160pp',why:'Fine dining gliding past the lit-up London skyline — romantic perfection',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable']},
-          {name:'Royal Opera House + The Ivy dinner',loc:'Covent Garden · Opera & fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £190pp',why:'London\'s most iconic cultural evening — world-class opera then supper at The Ivy',score:94,type:'cultural',vibes:['Unique / memorable','Candlelit','Tasting menu']},
-          {name:'Helicopter city tour at sunset',loc:'London · Private experience',emoji:'✦',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £225pp',why:'See all of London from above at golden hour — nothing more memorable',score:96,type:'romantic',vibes:['Unique / memorable']},
-          {name:'Annabel\'s members club evening',loc:'Mayfair · Private members club',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £175pp',why:'London\'s most storied members club — jaw-dropping interiors, flawless service',score:92,type:'romantic',vibes:['Unique / memorable','Candlelit']},
-          {name:'Alain Ducasse at The Dorchester',loc:'Park Lane · French fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £210pp',why:'Three Michelin stars — the absolute pinnacle of London dining',score:92,type:'foodie',vibes:['Candlelit','Tasting menu']},
-          {name:'Glyndebourne opera at sunset',loc:'East Sussex · Outdoor opera',emoji:'✦',img:'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=320&fit=crop&q=80',price:'avg. £240pp',why:'Champagne picnic in the grounds then world-class opera — utterly magical',score:95,type:'cultural',vibes:['Unique / memorable','Outdoor seats','Candlelit']},
-          {name:'Kensington Palace private tour + dinner',loc:'Kensington · Historic',emoji:'✦',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £250pp',why:'After-hours royal palace — the most exclusive date in all of London',score:97,type:'romantic',vibes:['Unique / memorable','Candlelit']},
+          {name:'The Savoy afternoon tea + dinner',loc:'Strand · Classic London',emoji:'✦',img:'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'The most iconic hotel in London — impeccable and intimate',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Core by Clare Smyth',loc:'Notting Hill · ★★★ Michelin',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £190pp',why:'Three stars, one of the world\'s best restaurants — truly exceptional',score:88,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active'},
+          {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'✦',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £160pp',why:'Fine dining gliding past the lit-up London skyline — romantic perfection',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Royal Opera House',loc:'Covent Garden · Opera & ballet',emoji:'✦',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'World-class opera and ballet in one of London\'s most iconic buildings',score:94,type:'cultural',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
+          {name:'The Ivy',loc:'Covent Garden · British fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',why:'A classic — the theatre crowd\'s favourite post-show supper spot',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Helicopter city tour at sunset',loc:'London · Private experience',emoji:'✦',img:'https://images.unsplash.com/photo-1534397860164-120c97f4db0b?w=600&h=320&fit=crop&q=80',price:'avg. £225pp',why:'See all of London from above at golden hour — nothing more memorable',score:96,type:'romantic',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Chiltern Firehouse dinner',loc:'Marylebone · Celebrity hotspot',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £150pp',why:'London\'s most glamorous restaurant — the place to see and be seen',score:92,type:'romantic',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
+          {name:'Alain Ducasse at The Dorchester',loc:'Park Lane · French fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £210pp',why:'Three Michelin stars — the absolute pinnacle of London dining',score:92,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active'},
+          {name:'Glyndebourne opera at sunset',loc:'East Sussex · Outdoor opera',emoji:'✦',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £240pp',why:'Champagne picnic in the grounds then world-class opera — utterly magical',score:95,type:'cultural',vibes:['Unique / memorable','Outdoor seats','Candlelit'],venue_status:'active'},
+          {name:'Kensington Palace private tour',loc:'Kensington · Historic',emoji:'✦',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'After-hours royal palace — the most exclusive cultural experience in London',score:97,type:'cultural',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
+          {name:'Cowshed Spa at Soho House',loc:'Shoreditch · Luxury spa',emoji:'💆',img:'https://images.unsplash.com/photo-1540555700478-4be289fbec6d?w=600&h=320&fit=crop&q=80',price:'avg. £180pp',why:'Full couples spa day — massage, facial, pool and rooftop at Soho House',score:93,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
+          {name:'Bamford Wellness Spa retreat',loc:'The Berkshires · Country retreat',emoji:'🌿',img:'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=600&h=320&fit=crop&q=80',price:'avg. £280pp',why:'Escape the city completely — yoga, nature walks and hydrotherapy in the countryside',score:94,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
+          {name:'Private tasting menu at The Clove Club',loc:'Shoreditch · Modern British',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £165pp',why:'Michelin-starred tasting menu in a former town hall — inventive, seasonal, unforgettable',score:91,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active'},
+          {name:'Afternoon tea at The Ritz',loc:'Piccadilly · Iconic luxury',emoji:'✦',img:'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'The most iconic afternoon tea in London — gilded, formal and extraordinary',score:90,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Couples spa ritual at ESPA Life',loc:'Westminster · Luxury spa',emoji:'💆',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £200pp',why:'Full-day couples treatment at the Corinthia — London\'s most indulgent spa',score:93,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
+          {name:'Rooftop champagne at Shangri-La',loc:'The Shard · Sky bar',emoji:'🥂',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'Champagne on the 52nd floor — the highest hotel bar in Western Europe',score:90,type:'romantic',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
+          {name:'Late opening at the V&A',loc:'Kensington · Private art',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Friday late at the V&A — cocktails, live music and galleries after dark',score:85,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
+          {name:'Jazz supper at Ronnie Scott\'s',loc:'Soho · Jazz & dining',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'avg. £130pp',why:'Front-row jazz with a three-course meal — London\'s most legendary music club',score:91,type:'cultural',vibes:['Live music','Candlelit'],venue_status:'active'},
+          {name:'Chef\'s table at Climpson\'s Arch',loc:'Hackney · Open kitchen',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'Sit at the pass and watch every dish made — intimate, theatrical and delicious',score:88,type:'foodie',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
+          {name:'Electric Cinema double bill + dinner',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £110pp',why:'Leather beds, cashmere blankets and wine — cinema elevated to an art form',score:87,type:'fun',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
+          {name:'Luxury wine tasting at 67 Pall Mall',loc:'St James · Wine club',emoji:'🍷',img:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'World-class wines in a stunning Victorian townhouse — for serious wine lovers',score:89,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Cocktail masterclass at Lyaness',loc:'South Bank · Award-winning bar',emoji:'🍸',img:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Learn to make drinks from one of the world\'s best bar teams — inventive and fun',score:86,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
         ]
       };
+
+      // ═══════════════════════════════════════════════════════
+      // Data Layer — DB-backed venues with offline fallback
+      // ═══════════════════════════════════════════════════════
+
+      // Local venue cache — loaded from DB, falls back to IDEAS
+      let _venueCache=null;
+      let _venueCacheExpiry=0;
+      const _VENUE_CACHE_TTL=15*60*1000; // 15 minutes
+
+      // Provider adapters — isolated per provider
+      const _providerAdapters={
+        opentable:{
+          name:'OpenTable',
+          buildUrl(venue,params){
+            // Construct an OpenTable search URL with optional date/party params
+            const q=encodeURIComponent(venue.name);
+            let url='https://www.opentable.co.uk/s?term='+q;
+            if(params?.covers)url+='&covers='+params.covers;
+            if(params?.date)url+='&dateTime='+params.date;
+            return url;
+          },
+          parseAvailability(data){return data;} // placeholder for future API integration
+        },
+        'google-places':{
+          name:'Google Places',
+          buildSearchUrl(query,loc){
+            return'https://www.google.com/maps/search/'+encodeURIComponent(query+' '+loc);
+          },
+          parseResults(data){return data;}
+        },
+        'venue-direct':{
+          name:'Venue Website',
+          buildUrl(venue){return venue.booking_url||null;}
+        }
+      };
+
+      // Load venues from Supabase → local cache
+      async function _loadVenuesFromDB(budgetTier){
+        // Check cache
+        if(_venueCache&&Date.now()<_venueCacheExpiry){
+          return budgetTier?_venueCache.filter(v=>v.budget_tier===budgetTier):_venueCache;
+        }
+        // Try DB
+        if(_sb){
+          try{
+            const{data,error}=await _sb.from('venues')
+              .select('*,booking_links(booking_url,booking_type,is_verified,is_primary,providers(slug,name))')
+              .eq('is_active',true)
+              .order('curation_score',{ascending:false});
+            if(!error&&data&&data.length){
+              // Transform to match plan engine format
+              _venueCache=data.map(_dbVenueToIdea);
+              _venueCacheExpiry=Date.now()+_VENUE_CACHE_TTL;
+              localStorage.setItem('t4t_venue_cache',JSON.stringify({ts:Date.now(),data:_venueCache}));
+              return budgetTier?_venueCache.filter(v=>v.budget_tier===budgetTier):_venueCache;
+            }
+          }catch(e){_captureError(e,{context:'venue_fetch',source:'_loadVenuesFromDB'});}
+        }
+        // Try localStorage cache
+        try{
+          const cached=JSON.parse(localStorage.getItem('t4t_venue_cache')||'null');
+          if(cached&&cached.data&&cached.data.length&&(Date.now()-cached.ts)<24*60*60*1000){
+            _venueCache=cached.data;
+            _venueCacheExpiry=Date.now()+_VENUE_CACHE_TTL;
+            return budgetTier?_venueCache.filter(v=>v.budget_tier===budgetTier):_venueCache;
+          }
+        }catch(e){}
+        // Final fallback: hardcoded IDEAS
+        return null;
+      }
+
+      // Transform a DB venue row into the format the plan engine expects
+      function _dbVenueToIdea(row){
+        // Extract primary booking link
+        const links=row.booking_links||[];
+        const primary=links.find(l=>l.is_primary)||links[0];
+        return{
+          name:row.name,
+          loc:(row.area||'London')+' · '+(row.cuisine||row.category),
+          emoji:row.emoji||'✦',
+          img:row.image_url||'',
+          price:row.price_label||'',
+          why:row.short_description||'',
+          score:row.curation_score||50,
+          type:row.venue_type==='restaurant'?(row.vibes?.includes('Candlelit')?'romantic':'foodie')
+              :row.category==='outdoors'?'outdoor'
+              :row.category==='culture'?'cultural'
+              :row.category==='nightlife'?'fun'
+              :'all',
+          vibes:row.vibes||[],
+          // DB-backed fields
+          budget_tier:row.budget_tier,
+          category:row.category,
+          _setting:row.setting||'indoor',
+          time_fit:row.time_fit||'evening',
+          duration_mins:row.duration_mins||90,
+          bookable:primary?.booking_type||'partner_handoff',
+          _area:row.area_zone||'central',
+          _dbId:row.id,
+          _bookingUrl:primary?.booking_url||null,
+          _bookingProvider:primary?.providers?.name||null,
+          _bookingVerified:primary?.is_verified||false,
+          _lastVerified:row.last_verified_at,
+          _source:row.source||'curated',
+          veg_friendly:row.veg_friendly!==false,
+        };
+      }
+
+      // Get booking info — checks DB-backed data first, then registry
+      function _getBookingInfoFromDB(venue){
+        // If venue came from DB with booking data
+        if(venue._bookingUrl){
+          const ls=venue._bookingVerified?'verified':'unverified';
+          return{booking_url:venue._bookingUrl,website_url:venue._bookingUrl,provider:venue._bookingProvider||'Venue',verified:venue._bookingVerified,link_status:ls,has_website:true};
+        }
+        // Fall back to hardcoded registry
+        return _getBookingInfo(venue.name);
+      }
+
+      // Invalidate venue cache (call after admin edits)
+      function _invalidateVenueCache(){
+        _venueCache=null;
+        _venueCacheExpiry=0;
+        localStorage.removeItem('t4t_venue_cache');
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Plan Engine — deterministic rules-based recommendations
+      // ═══════════════════════════════════════════════════════
+
+      function _classifyVenue(v){
+        const nm=v.name.toLowerCase(),lc=v.loc.toLowerCase();
+        // Category → maps to onboarding interest tags
+        let cat='dining';
+        if(/yoga|spa|bath|pilates|wellness|sauna|massage|flotation|ice bath/.test(nm))cat='wellness';
+        else if(/boxing|gym|fitness|karting|padel|climbing|bxr|kobox|frame|reformer|k1 speed|daytona|f1 drive|motorsport/.test(nm))cat='active';
+        else if(/bowl|axe|throwing|escape|crazy golf|crazy putt|swingers|toca|go-kart|comedy|concert|jazz|ronnie|o2 arena|boom battle|shoreditch balls|puttshack|mini golf/.test(nm))cat='nightlife';
+        else if(/theatre|opera|globe|cinema|gallery|museum|tate|bfi|secret cinema|crystal maze|pottery|turning earth|palace|lightroom|taste film/.test(nm))cat='culture';
+        else if(/park|garden|hike|walk|boating|rooftop film|market|thames|leake|alexandra|sunset|picnic/.test(nm))cat='outdoors';
+        else if(v.type==='outdoor'&&!/dinner|restaurant|brunch/.test(nm))cat='outdoors';
+        else if(v.type==='cultural')cat='culture';
+        else if(v.type==='fun')cat='nightlife';
+        // Setting
+        let sett='indoor';
+        if(/park|garden|hike|walk|rooftop|street art|thames|boating|market|outdoor|sunset|picnic/.test(nm))sett='outdoor';
+        else if(v.type==='outdoor'||v.vibes.includes('Outdoor seats'))sett='both';
+        else if(v.vibes.includes('Walkable'))sett='both';
+        // Time fit
+        let tf='evening';
+        if(/brunch|market|park|garden|gallery|museum|tate|walk|sunrise|morning|hike|picnic/.test(nm))tf='daytime';
+        else if(cat==='active'||cat==='wellness')tf='any';
+        // Duration (minutes)
+        let dur=90;
+        if(cat==='active')dur=60;
+        if(cat==='culture')dur=120;
+        if(/afternoon tea|tasting|cruise|opera|theatre|secret cinema/.test(nm))dur=150;
+        if(/walk|market|park|street art/.test(nm))dur=90;
+        if(/spa|bath|couples|retreat/.test(nm))dur=120;
+        // Bookable status
+        let bk='partner_handoff';
+        if(cat==='dining')bk='bookable_now';
+        if(v.price.toLowerCase().includes('free')||/walk|park|street art|leake/.test(nm))bk='details_only';
+        // Area
+        let ar='central';
+        if(/shoreditch|hoxton|bermondsey|peckham|islington|camden|notting hill|chelsea|king.s road|battersea|fulham|various/.test(lc))ar='local';
+        else if(/richmond|kew|greenwich|stratford|o2|north london|berkshire|east sussex/.test(lc))ar='anywhere';
+        return Object.assign({},v,{category:cat,_setting:sett,time_fit:tf,duration_mins:dur,bookable:bk,_area:ar});
+      }
+
+      function _scoreVenue(v,prefs){
+        let s=50;
+        if(prefs.interests&&prefs.interests.length){
+          if(prefs.interests.includes(v.category))s+=15;
+          else s+=2;
+        }
+        if(prefs.setting&&prefs.setting!=='both'){
+          if(v._setting===prefs.setting||v._setting==='both')s+=10;
+          else s-=8;
+        }
+        if(prefs.time_preference&&prefs.time_preference!=='any'){
+          if(v.time_fit===prefs.time_preference||v.time_fit==='any')s+=10;
+          else s-=5;
+        }
+        if(prefs.energy_level==='low'){
+          if(['dining','wellness'].includes(v.category))s+=10;
+          if(v.category==='active')s-=10;
+        }else if(prefs.energy_level==='high'){
+          if(['active','outdoors','nightlife'].includes(v.category))s+=10;
+        }
+        if(prefs.travel_radius==='central'&&v._area==='central')s+=5;
+        else if(prefs.travel_radius==='central'&&v._area==='anywhere')s-=8;
+        if(prefs.travel_radius==='local'&&v._area!=='anywhere')s+=5;
+        s+=Math.round((v.score||50)/10);
+        // Boost verified-live links, penalise unverified/broken/unavailable
+        const _bi=_getBookingInfo(v.name);
+        if(_isVenueVerifiedLive(v.name))s+=8;
+        else if(_bi.link_status==='unavailable')s-=15;
+        else if(_bi.link_status==='needs_review')s-=12;
+        else if(_bi.link_status==='unverified')s-=8;
+        else if(_bi.link_status==='website_only')s-=6;
+        else if(v._unverifiedLink)s-=10;
+        // ── Refine filters scoring ──
+        if(_rfActive&&typeof _rfFilters!=='undefined'){
+          const rf=_rfFilters;
+          const nm=v.name.toLowerCase();
+          const lc=(v.loc||'').toLowerCase();
+          // Setting filter (strong)
+          if(rf.setting&&rf.setting!=='both'){
+            if(v._setting===rf.setting||v._setting==='both')s+=12;
+            else s-=15;
+          }
+          // Time filter
+          if(rf.time){
+            const tfMap={daytime:'daytime',evening:'evening',late_night:'evening',weekend:'any'};
+            const wanted=tfMap[rf.time]||'any';
+            if(wanted!=='any'){
+              if(v.time_fit===wanted||v.time_fit==='any')s+=10;
+              else s-=12;
+            }
+          }
+          // Area filter — match London zones
+          if(rf.area){
+            const areaTerms={
+              central:/mayfair|soho|covent garden|south bank|waterloo|holborn|strand|barbican|farringdon|city|westminster|marylebone|fitzrovia|bloomsbury|london bridge|bank|clerkenwell/,
+              east:/shoreditch|hoxton|hackney|bethnal|whitechapel|stratford|canary wharf|bermondsey|peckham|mile end|bow|poplar|wapping|docklands|liverpool street/,
+              south:/brixton|clapham|battersea|dulwich|greenwich|lewisham|balham|tooting|fulham|putney|vauxhall|elephant|kennington|camberwell|crystal palace|borough/,
+              north:/camden|islington|angel|highgate|hampstead|finsbury|stoke newington|dalston|archway|muswell|wood green|tottenham|finchley|caledonian/,
+              west:/notting hill|chelsea|kensington|richmond|kew|bayswater|hammersmith|shepherd|ealing|chiswick|paddington|holland park|king.s road/
+            };
+            const rx=areaTerms[rf.area];
+            if(rx){
+              if(rx.test(lc))s+=15;
+              else s-=10;
+            }
+          }
+          // Date style filter
+          if(rf.style&&rf.style.length){
+            const styleMap={
+              romantic:{cats:['dining','wellness'],vibes:['Candlelit'],types:['romantic','foodie']},
+              playful:{cats:['nightlife','active'],vibes:['Unique / memorable'],types:['fun']},
+              calm:{cats:['dining','wellness','outdoors'],vibes:['Walkable'],types:['outdoor']},
+              cultured:{cats:['culture'],vibes:['Unique / memorable'],types:['cultural']},
+              active:{cats:['active','nightlife'],vibes:['Unique / memorable'],types:['fun','all']}
+            };
+            let styleMatch=0;
+            rf.style.forEach(st=>{
+              const m=styleMap[st];
+              if(m){
+                if(m.cats.includes(v.category))styleMatch+=8;
+                if(m.types.includes(v.type))styleMatch+=5;
+                if(v.vibes&&m.vibes.some(vb=>v.vibes.includes(vb)))styleMatch+=3;
+              }
+            });
+            if(styleMatch>0)s+=Math.min(styleMatch,18);
+            else s-=8;
+          }
+          // Food preference filter
+          if(rf.food){
+            if(rf.food==='dinner'){
+              if(v.category==='dining')s+=10;
+            }else if(rf.food==='drinks'){
+              if(/cocktail|bar|wine|rooftop/.test(nm))s+=10;
+              else if(v.category==='dining')s-=5;
+            }else if(rf.food==='activity_first'){
+              if(v.category!=='dining')s+=10;
+              else s-=5;
+            }else if(rf.food==='no_food'){
+              if(v.category==='dining')s-=20;
+              else s+=8;
+            }else if(rf.food==='veg_friendly'){
+              if(!_VEG_UNFRIENDLY.has(v.name))s+=5;
+              else s-=15;
+            }
+          }
+          // Occasion filter — adjust archetypes via prefs.date_mode
+          if(rf.occasion==='first_date'){
+            // Boost impressive but not overwhelming venues
+            if(v.score>=80&&v.score<=92)s+=8;
+            if(v.category==='dining'||v.category==='culture')s+=5;
+          }else if(rf.occasion==='anniversary'){
+            // Boost premium/romantic
+            if(v.type==='romantic'||v.type==='foodie')s+=10;
+            if(v.vibes&&v.vibes.includes('Candlelit'))s+=5;
+          }else if(rf.occasion==='friends'){
+            // Boost social/fun
+            if(['nightlife','active'].includes(v.category))s+=10;
+          }
+        }
+        return Math.min(99,Math.max(10,s));
+      }
+
+      const _PLAN_ARCHETYPES=[
+        {id:'romantic_evening',name:'Evening Out',min:1,max:2,
+         slots:[{cats:['dining'],role:'Dinner',req:true},{cats:['nightlife','culture'],role:'Entertainment',req:false}],
+         forModes:['couple','solo'],forEnergy:['low','moderate']},
+        {id:'dinner_activity',name:'Dinner & Activity',min:2,max:2,
+         slots:[{cats:['active','nightlife','culture'],role:'Activity',req:true},{cats:['dining'],role:'Dinner',req:true}],
+         forModes:['couple','friends','solo'],forEnergy:['moderate','high']},
+        {id:'cultural_night',name:'Cultural Night Out',min:2,max:2,
+         slots:[{cats:['culture'],role:'Cultural experience',req:true},{cats:['dining'],role:'Dinner',req:true}],
+         forModes:['couple','solo','friends'],forEnergy:['low','moderate']},
+        {id:'outdoor_day',name:'Day Adventure',min:2,max:3,
+         slots:[{cats:['outdoors'],role:'Outdoor activity',req:true},{cats:['dining','outdoors'],role:'Food & drink',req:true},{cats:['active','culture'],role:'Afternoon activity',req:false}],
+         forModes:['couple','solo','friends'],forEnergy:['moderate','high']},
+        {id:'wellness_dine',name:'Wellness & Dine',min:2,max:2,
+         slots:[{cats:['wellness'],role:'Wellness',req:true},{cats:['dining'],role:'Dinner',req:true}],
+         forModes:['couple','solo'],forEnergy:['low','moderate']},
+        {id:'group_night',name:'Group Night Out',min:2,max:3,
+         slots:[{cats:['nightlife','active'],role:'Group activity',req:true},{cats:['dining'],role:'Dinner',req:true},{cats:['nightlife'],role:'Late night',req:false}],
+         forModes:['friends'],forEnergy:['moderate','high']},
+        {id:'solo_explore',name:'Solo Exploration',min:1,max:2,
+         slots:[{cats:['culture','outdoors'],role:'Explore',req:true},{cats:['dining'],role:'Treat yourself',req:false}],
+         forModes:['solo'],forEnergy:['low','moderate','high']},
+        {id:'full_day',name:'Full Day Out',min:3,max:3,
+         slots:[{cats:['outdoors','culture'],role:'Morning',req:true},{cats:['dining'],role:'Lunch',req:true},{cats:['active','nightlife','culture'],role:'Afternoon',req:true}],
+         forModes:['couple','friends'],forEnergy:['high']}
+      ];
+
+      function _parseCost(ps){const m=ps.match(/£(\d+)/);return m?parseInt(m[1]):30;}
+
+      function _fmtDuration(mins){
+        if(mins<60)return mins+' min';
+        const h=Math.floor(mins/60),m=mins%60;
+        return m>0?h+'h '+m+'m':h+(h===1?' hour':' hours');
+      }
+
+      function _planTitle(arch,items){
+        const area=items[0]?.loc?.split('·')[0]?.trim()||'London';
+        switch(arch.id){
+          case'romantic_evening':return(_pairingMode==='solo'?'Evening Out':'Romantic Evening')+' in '+area;
+          case'dinner_activity':{
+            const act=items.find(i=>i.category!=='dining');
+            return(act?act.name.split(/[,(]/)[0].trim():'Activity')+' + Dinner';}
+          case'cultural_night':{
+            const cult=items.find(i=>i.category==='culture');
+            return(cult?cult.name.split(/[,(]/)[0].trim():'Cultural')+' Night';}
+          case'outdoor_day':return area+' Day Out';
+          case'wellness_dine':return'Wellness & Dining in '+area;
+          case'group_night':return'Group Night in '+area;
+          case'solo_explore':return'Solo '+area+' Exploration';
+          case'full_day':return'Full Day in London';
+          default:return arch.name;
+        }
+      }
+
+      // Generate a personalised "why this fits" line for a plan
+      function _whyThisFits(arch,items,prefs,score){
+        const cats=items.map(i=>i.category);
+        const hasDining=cats.includes('dining');
+        const budget=prefs.budget||'mid';
+        const energy=prefs.energy_level||'moderate';
+        // Build from archetype + preferences
+        if(arch.id==='romantic_evening')return score>=80?'A strong pairing for an intimate evening within your budget':'A relaxed evening with dinner'+(items.length>1?' and a second stop':'');
+        if(arch.id==='dinner_activity')return 'Balances a great meal with something active — fits your '+energy+' energy';
+        if(arch.id==='cultural_night')return hasDining?'Culture and dining together — matches your shared interests':'A cultural evening tailored to your tastes';
+        if(arch.id==='outdoor_day')return 'An outdoor plan that works for your '+energy+' energy and '+(budget==='budget'?'lighter':'current')+' budget';
+        if(arch.id==='wellness_dine')return 'Wind down together — wellness and dining paired for a low-effort evening';
+        if(arch.id==='group_night')return 'Group-friendly picks with enough variety for everyone';
+        if(arch.id==='solo_explore')return 'A solo outing shaped around your interests';
+        if(arch.id==='full_day')return 'A full day with variety — morning, lunch and afternoon covered';
+        // Generic fallback based on score
+        if(score>=85)return 'Closely matched to your shared preferences and budget';
+        if(score>=70)return 'A solid option based on your interests and energy level';
+        return 'A different angle — worth exploring if you want to try something new';
+      }
+
+      function _planSummary(items){
+        if(items.length===1)return items[0].why;
+        const names=items.map(i=>i.name.split(/[,(]/)[0].trim());
+        if(names.length===2)return names[0]+', then '+names[1];
+        return names.slice(0,-1).join(', ')+', then '+names[names.length-1];
+      }
+
+      function _assemblePlan(arch,venues,usedSet,prefs){
+        const items=[];
+        for(const slot of arch.slots){
+          // Collect all qualifying candidates for this slot, not just the first
+          const candidates=venues.filter(v=>
+            slot.cats.includes(v.category)&&
+            !usedSet.has(v._slug||_venueSlug(v.name))&&
+            !items.some(i=>i.name===v.name)
+          );
+          if(!candidates.length&&slot.req)return null;
+          if(!candidates.length)continue;
+          // On refresh (genCount>1), pick from position 1+ if a fresh candidate exists there
+          let pick=candidates[0];
+          if(_genCount>1&&candidates.length>1){
+            const freshIdx=candidates.findIndex(c=>!_allShownSlugs().has(c._slug||_venueSlug(c.name)));
+            if(freshIdx>0)pick=candidates[freshIdx];
+            else if(candidates.length>1)pick=candidates[1]; // at least skip the #1 default
+          }
+          items.push(Object.assign({},pick,{role:slot.role,status:pick.bookable}));
+        }
+        if(items.length<arch.min)return null;
+        const avgScore=Math.round(items.reduce((s,i)=>s+i._prefScore,0)/items.length);
+        const totalCost=items.reduce((s,i)=>s+_parseCost(i.price),0);
+        const totalDur=items.reduce((s,i)=>s+i.duration_mins,0);
+        return{
+          id:arch.id+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,5),
+          archetype:arch.id,
+          title:_planTitle(arch,items),
+          summary:_planSummary(items),
+          fit_reason:_whyThisFits(arch,items,prefs,avgScore),
+          estimated_cost:'~£'+totalCost+'pp',
+          estimated_duration:_fmtDuration(totalDur),
+          score:avgScore,
+          status:'generated',
+          items:items.map((it,idx)=>Object.assign({},it,{order:idx+1}))
+        };
+      }
+
+      // ── Stable venue slug ──
+      // Deterministic ID from venue name — survives renames of display text
+      function _venueSlug(name){
+        return name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+      }
+
+      // ── Session memory: track shown venues across refreshes ──
+      // Uses stable slugs instead of raw names. Resets when constraints change.
+      let _shownSlugs=[];       // array of Set<slug> — one per generation
+      let _shownContextKey='';  // serialized constraint fingerprint
+      let _genCount=0;          // how many generations under current constraints
+
+      function _constraintKey(prefs){
+        return[prefs.budget||'',prefs.energy_level||'',prefs.date_mode||'',
+          _rfActive?JSON.stringify(_rfFilters):''].join('|');
+      }
+
+      function _recordShownSlugs(plans){
+        const slugs=new Set();
+        plans.forEach(p=>p.items.forEach(i=>slugs.add(_venueSlug(i.name))));
+        _shownSlugs.push(slugs);
+        if(_shownSlugs.length>5)_shownSlugs.shift();
+      }
+
+      // Count how many recent generations included this venue
+      function _slugShowCount(slug){
+        return _shownSlugs.filter(s=>s.has(slug)).length;
+      }
+
+      // All slugs shown at least once in current context
+      function _allShownSlugs(){
+        const all=new Set();
+        _shownSlugs.forEach(s=>s.forEach(sl=>all.add(sl)));
+        return all;
+      }
+
+      async function _generatePlans(prefs){
+        prefs=prefs||{};
+        const budgetMap={under50:'budget','50to150':'mid','150to300':'treat','300plus':'luxury'};
+        const tier=budgetMap[prefs.budget]||'mid';
+
+        // Reset session memory when constraints change
+        const ck=_constraintKey(prefs);
+        if(ck!==_shownContextKey){
+          _shownSlugs=[];
+          _shownContextKey=ck;
+          _genCount=0;
+        }
+        _genCount++;
+        // Try DB-backed venues first, fall back to hardcoded IDEAS
+        let venues;
+        const dbVenues=await _loadVenuesFromDB(tier);
+        if(dbVenues&&dbVenues.length>=5){
+          venues=dbVenues;
+        }else{
+          venues=(IDEAS[tier]||IDEAS.mid).map(_classifyVenue);
+        }
+        // Venue status filter — remove closed/hidden venues
+        venues=venues.filter(v=>!v.venue_status||v.venue_status==='active');
+        // Dietary filter
+        if(prefs.dietary&&prefs.dietary.length&&!prefs.dietary.includes('none')){
+          if(prefs.dietary.includes('vegetarian')||prefs.dietary.includes('vegan')){
+            venues=venues.filter(v=>!_VEG_UNFRIENDLY.has(v.name));
+          }
+        }
+        // ── Refine hard filters (exclude clearly wrong venues) ──
+        if(_rfActive&&typeof _rfFilters!=='undefined'){
+          const rf=_rfFilters;
+          // Food: no_food → exclude pure dining venues
+          if(rf.food==='no_food'){
+            venues=venues.filter(v=>v.category!=='dining');
+          }
+          // Food: veg_friendly → exclude known non-veg
+          if(rf.food==='veg_friendly'){
+            venues=venues.filter(v=>!_VEG_UNFRIENDLY.has(v.name));
+          }
+          // Occasion: friends → set mode
+          if(rf.occasion==='friends')prefs.date_mode='friends';
+          else if(rf.occasion==='first_date'||rf.occasion==='anniversary'||rf.occasion==='casual')prefs.date_mode='couple';
+        }
+        // ── Verified-live filter for beta ──
+        // Only include venues with verified live links in primary plans.
+        // Unverified venues are kept as fallback but heavily penalized in scoring.
+        const _verifiedVenues=venues.filter(v=>_isVenueVerifiedLive(v.name));
+        const _unverifiedVenues=venues.filter(v=>!_isVenueVerifiedLive(v.name));
+        // Use verified-only pool if it's large enough, otherwise mix in unverified
+        if(_verifiedVenues.length>=8){
+          venues=_verifiedVenues;
+        }else{
+          // Tag unverified so scoring can penalize them
+          _unverifiedVenues.forEach(v=>{v._unverifiedLink=true;});
+          venues=[..._verifiedVenues,..._unverifiedVenues];
+        }
+        // Score & sort — slug-based freshness scoring
+        const _prevSlugs=_allShownSlugs();
+        venues.forEach(v=>{
+          v._slug=_venueSlug(v.name);
+          v._prefScore=_scoreVenue(v,prefs);
+          const showCount=_slugShowCount(v._slug);
+          // Penalize shown venues, bonus for never-seen ones
+          if(showCount>0)v._prefScore-=showCount*14;
+          else if(_prevSlugs.size>0)v._prefScore+=6; // fresh venue boost
+        });
+        venues.sort((a,b)=>b._prefScore-a._prefScore);
+        // Weather adjustment — deprioritise outdoor venues when raining
+        if(_weatherCode>=0){
+          const rainy=[51,53,55,61,63,65,71,73,75,80,81,82,95,96,99].includes(_weatherCode);
+          if(rainy){
+            venues.sort((a,b)=>{
+              const aOut=a._setting==='outdoor';
+              const bOut=b._setting==='outdoor';
+              if(aOut===bOut)return 0;
+              return aOut?1:-1;
+            });
+          }
+        }
+        // Select archetypes matching mode & energy
+        const mode=prefs.date_mode||((_getUserProfile()?.account_state==='paired')?'couple':'solo');
+        const energy=prefs.energy_level||'moderate';
+        let archetypes=_PLAN_ARCHETYPES.filter(a=>
+          a.forModes.includes(mode)&&a.forEnergy.includes(energy)
+        );
+        if(archetypes.length<3){
+          archetypes=_PLAN_ARCHETYPES.filter(a=>a.forModes.includes(mode));
+        }
+        if(archetypes.length<2){
+          archetypes=[..._PLAN_ARCHETYPES];
+        }
+        // Shuffle archetypes on refresh for structural variety
+        // (deterministic first time, shuffled on subsequent generations)
+        if(_genCount>1){
+          for(let i=archetypes.length-1;i>0;i--){
+            const j=Math.floor(Math.random()*(i+1));
+            [archetypes[i],archetypes[j]]=[archetypes[j],archetypes[i]];
+          }
+        }
+        // Assemble plans — usedSet tracks slugs to prevent duplicates
+        const plans=[];
+        const used=new Set();
+        for(const arch of archetypes){
+          const plan=_assemblePlan(arch,venues,used,prefs);
+          if(plan){
+            plans.push(plan);
+            plan.items.forEach(i=>used.add(i._slug||_venueSlug(i.name)));
+          }
+          if(plans.length>=5)break;
+        }
+        plans.sort((a,b)=>b.score-a.score);
+        // Fallback: single-venue plans if fewer than 3
+        if(plans.length<3){
+          const remaining=venues.filter(v=>!used.has(v._slug||_venueSlug(v.name)));
+          for(const v of remaining){
+            if(plans.length>=3)break;
+            plans.push({
+              id:'single_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,5),
+              archetype:'single',
+              title:v.name,
+              summary:v.why,
+              estimated_cost:v.price,
+              estimated_duration:_fmtDuration(v.duration_mins),
+              score:v._prefScore,
+              status:'generated',
+              items:[Object.assign({},v,{order:1,role:'Main event',status:v.bookable})]
+            });
+          }
+        }
+        let finalPlans=plans.slice(0,5);
+
+        // ── Near-duplicate detection (slug-based) ──
+        const finalSlugs=new Set();
+        finalPlans.forEach(p=>p.items.forEach(i=>finalSlugs.add(i._slug||_venueSlug(i.name))));
+        let isNearDupe=false;
+        for(const prevSet of _shownSlugs){
+          if(!prevSet.size)continue;
+          const overlap=[...finalSlugs].filter(s=>prevSet.has(s)).length;
+          if(overlap/Math.max(finalSlugs.size,1)>0.7){isNearDupe=true;break;}
+        }
+        if(isNearDupe)finalPlans._nearDupe=true;
+
+        // Record this generation in session memory
+        _recordShownSlugs(finalPlans);
+
+        return finalPlans;
+      }
+
+      // Plan state management
+      let _currentPlans=[];
+      let _planStates={};
+      try{_planStates=JSON.parse(localStorage.getItem('t4t_plan_states')||'{}');}catch(e){}
+
+      function _savePlanStates(){
+        localStorage.setItem('t4t_plan_states',JSON.stringify(_planStates));
+      }
+
+      function _setPlanStatus(planId,status){
+        _planStates[planId]={status:status,updatedAt:Date.now()};
+        _savePlanStates();
+        const badge=document.querySelector('[data-plan-id="'+planId+'"] .plan-status-badge');
+        if(badge){badge.textContent=status;badge.className='plan-status-badge plan-status-'+status;}
+        const plan=_currentPlans.find(p=>p.id===planId);
+        const evProps={plan_id:planId,plan_title:plan?.title||null,item_count:plan?.items?.length||0};
+        if(status==='viewed')_trackEvent('plan_viewed',evProps);
+        else if(status==='saved')_trackEvent('plan_saved',evProps);
+        else if(status==='active')_trackEvent('plan_activated',evProps);
+      }
+
+      function togglePlanDetails(planId){
+        _setPlanStatus(planId,'viewed');
+        const el=document.querySelector('[data-plan-id="'+planId+'"] .plan-details');
+        if(el)el.style.display=el.style.display==='none'?'block':'none';
+      }
+
+      function savePlanToWishlist(planId){
+        _setPlanStatus(planId,'saved');
+        const plan=_currentPlans.find(p=>p.id===planId);
+        if(!plan)return;
+        plan.items.forEach(item=>{
+          if(!_wishlist.some(w=>w.name===item.name)){
+            _wishlist.push({id:Date.now()+Math.random(),name:item.name,emoji:item.emoji,price:item.price,type:item.type||'activity',why:'From plan: '+plan.title,addedDate:new Date().toISOString().slice(0,10),done:false});
+          }
+        });
+        toast('♥ Plan saved to wishlist');
+      }
+
+      // ── Plan reactions ──
+      function reactToPlan(planId,reaction,el){
+        _trackEvent('plan_reaction',{plan_id:planId,reaction:reaction});
+        // Visual feedback
+        if(el){
+          el.classList.add('plan-react-on');
+          el.closest('.plan-reactions').querySelectorAll('.plan-react').forEach(r=>{if(r!==el)r.classList.remove('plan-react-on');});
+        }
+        toast(reaction==='love'?'Saved — more like this coming':reaction==='not_my_vibe'?'Got it — we\'ll skip similar ones':reaction==='too_expensive'?'Noted — we\'ll keep it lighter':reaction==='too_far'?'Noted — staying closer next time':'Thanks, that helps');
+      }
+
+      function activatePlan(planId){
+        Object.keys(_planStates).forEach(id=>{
+          if(_planStates[id]&&_planStates[id].status==='active')_planStates[id].status='saved';
+        });
+        _setPlanStatus(planId,'active');
+        _trackEvent('plan_booking_started',{plan_id:planId});
+        // Expand the plan details so user can see booking buttons
+        const detailsEl=document.querySelector('[data-plan-id="'+planId+'"] .plan-details');
+        if(detailsEl)detailsEl.style.display='block';
+        // Show per-stop booking status summary
+        const plan=_currentPlans.find(p=>p.id===planId);
+        if(plan&&plan.items){
+          const bookable=plan.items.filter(i=>{const bi=_getBookingInfo(i.name);return bi.link_status==='verified'||(bi.link_status==='unverified'&&bi.booking_url);}).length;
+          const total=plan.items.length;
+          if(bookable===total){
+            toast('✦ '+total+' stops to book — work through each one below');
+          }else if(bookable>0){
+            toast('✦ '+bookable+' of '+total+' stops bookable — book each separately below');
+          }else{
+            toast('Plan saved — no stops have direct booking yet');
+          }
+        }else{
+          toast('✦ Plan activated');
+        }
+      }
+
+      // ═══════════════════════════════════════════════════════
+      // Booking Handoff — honest outbound booking flow
+      // ═══════════════════════════════════════════════════════
+
+      // Verified booking URLs for known venues
+      const _VENUE_BOOKING={
+        // OpenTable restaurants
+        'Hakkasan Mayfair dinner':{url:'https://www.opentable.co.uk/hakkasan-mayfair',website_url:'https://hakkasan.com',provider:'OpenTable',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Dishoom dinner':{url:'https://www.dishoom.com/',website_url:'https://www.dishoom.com/',provider:'Dishoom',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Sketch, Mayfair':{url:'https://sketch.london/make-a-reservation/',website_url:'https://sketch.london',provider:'Sketch',type:'restaurant',link_status:'verified'},
+        'Novikov restaurant':{url:'https://www.novikovrestaurant.co.uk/reservations',provider:'Novikov',type:'restaurant',link_status:'verified'},
+        'Bob Bob Ricard':{url:'https://www.bobbobricard.com/',provider:'Bob Bob Ricard',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Kiln restaurant Soho':{url:null,website_url:'https://kilnsoho.com',provider:'Kiln',type:'restaurant',link_status:'needs_review'},
+        'Ottolenghi dinner':{url:'https://ottolenghi.co.uk/restaurants',provider:'Ottolenghi',type:'restaurant',link_status:'verified'},
+        'Padella pasta dinner':{url:null,website_url:'https://www.padella.co',provider:'Padella',type:'restaurant',link_status:'needs_review'},
+        'Brat restaurant':{url:'https://bratrestaurant.com/reservations',provider:'Brat',type:'restaurant',link_status:'verified'},
+        'Core by Clare Smyth':{url:null,website_url:'https://corebyclaresmyth.com',provider:'Core',type:'restaurant',link_status:'needs_review'},
+        'Alain Ducasse at The Dorchester':{url:'https://www.sevenrooms.com/reservations/alainducasseatthedorchester/',website_url:'https://www.dorchestercollection.com/london/the-dorchester/restaurants-bars/alain-ducasse/',provider:'SevenRooms',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Brindisa tapas + Borough Market':{url:'https://www.brindisakitchens.com/book',provider:'Brindisa',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'The Savoy afternoon tea + dinner':{url:'https://www.thesavoylondon.com/dining/',provider:'The Savoy',type:'restaurant',link_status:'verified'},
+        'Aqua Shard cocktails + dinner':{url:'https://aquashard.co.uk/reservations',provider:'Aqua Shard',type:'restaurant',link_status:'verified'},
+        // Experiences — partner handoff
+        'Secret Cinema evening':{url:null,website_url:'https://www.secretcinema.org',provider:'Secret Cinema',type:'experience',link_status:'needs_review'},
+        'The Crystal Maze LIVE Experience':{url:'https://the-crystal-maze.com/london/',provider:'Crystal Maze',type:'experience',link_status:'verified'},
+        'O2 Arena concert night':{url:'https://www.theo2.co.uk/events',provider:'The O2',type:'experience',link_status:'verified'},
+        'Shakespeare\'s Globe Theatre':{url:'https://www.shakespearesglobe.com/whats-on/',provider:'Globe Theatre',type:'experience',link_status:'verified'},
+        'National Theatre':{url:'https://www.nationaltheatre.org.uk/whats-on/',provider:'National Theatre',type:'experience',link_status:'verified'},
+        'Ronnie Scott\'s jazz night':{url:'https://www.ronniescotts.co.uk/performances',provider:'Ronnie Scott\'s',type:'experience',link_status:'verified'},
+        'Electric Cinema, Notting Hill':{url:null,website_url:'https://www.electriccinema.co.uk',provider:'Electric Cinema',type:'experience',link_status:'needs_review'},
+        'Royal Opera House':{url:'https://www.roh.org.uk/tickets-and-events',provider:'Royal Opera House',type:'experience',link_status:'verified'},
+        'The Ivy':{url:'https://www.the-ivy.co.uk/book',provider:'The Ivy',type:'restaurant',link_status:'verified'},
+        'All Star Lanes bowling + cocktails':{url:'https://www.allstarlanes.co.uk/book',provider:'All Star Lanes',type:'experience',link_status:'verified'},
+        'Turning Earth pottery class':{url:'https://www.turningearth.org/classes',provider:'Turning Earth',type:'experience',link_status:'verified'},
+        'Escape Hunt London':{url:'https://escapehunt.com/uk/london/',provider:'Escape Hunt',type:'experience',link_status:'verified'},
+        'TeamSport Go-Karting':{url:'https://www.team-sport.co.uk/go-karting-london/',provider:'TeamSport',type:'experience',link_status:'verified'},
+        'Swingers crazy golf + cocktails':{url:'https://swingersldn.com',provider:'Swingers',type:'experience',link_status:'verified'},
+        'Toca Social':{url:'https://www.toca.social/',provider:'Toca Social',type:'experience',link_status:'verified',bookingType:'book_now',ctaLabel:'Book now'},
+        'Whistle Punks Axe Throwing':{url:'https://whistlepunks.com/london/',provider:'Whistle Punks',type:'experience',link_status:'verified'},
+        'BFI Southbank cinema + wine':{url:'https://whatson.bfi.org.uk',provider:'BFI',type:'experience',link_status:'verified'},
+        'Rooftop Film Club screening':{url:'https://www.rooftopfilmclub.com/london',provider:'Rooftop Film Club',type:'experience',link_status:'verified'},
+        // Wellness
+        'AIRE Ancient Baths couples':{url:'https://beaire.com/en/aire-ancient-baths-london',provider:'AIRE',type:'experience',link_status:'verified'},
+        'Monk London ice bath & sauna':{url:'https://www.monklondon.com',provider:'Monk London',type:'experience',link_status:'verified'},
+        'Ironmonger Row Baths':{url:'https://www.better.org.uk/leisure-centre/london/islington/ironmonger-row-baths',provider:'Better',type:'experience',link_status:'verified'},
+        'Cowshed Spa at Soho House':{url:'https://www.cowshed.com/pages/book-a-treatment',provider:'Cowshed',type:'experience',link_status:'verified'},
+        'Hotpod Yoga date':{url:'https://hotpodyoga.com/timetable/',provider:'Hotpod Yoga',type:'experience',link_status:'verified'},
+        // Outdoor / free
+        'Kew Gardens + riverside pub':{url:'https://www.kew.org/kew-gardens/visit-kew-gardens/tickets',provider:'Kew Gardens',type:'experience',link_status:'verified'},
+        'Bateaux London dinner cruise':{url:'https://www.cityexperiences.com/london/city-cruises/dining-cruises/',provider:'City Experiences',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
+        'Helicopter city tour at sunset':{url:'https://www.virginexperiencedays.co.uk/helicopter-flights',provider:'Virgin Experience Days',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy experience'},
+        // Additional venues
+        'The Comedy Store':{url:'https://www.thecomedystore.co.uk',provider:'Comedy Store',type:'experience',link_status:'verified'},
+        'Maltby Street Market brunch':{url:'https://www.maltby.st',provider:'Maltby St Market',type:'experience',link_status:'verified'},
+        'Jenki matcha bar':{url:'https://www.jenki.co.uk/pages/find-us',provider:'Jenki',type:'experience',link_status:'verified',bookingType:'find_locations',ctaLabel:'Find locations'},
+        'Puttshack mini golf':{url:'https://www.puttshack.com/venues/bank/',provider:'Puttshack',type:'experience',link_status:'verified',bookingType:'book_now',ctaLabel:'Book now'},
+        'Barbican Cinema + cocktails':{url:'https://www.barbican.org.uk/whats-on/cinema',provider:'Barbican',type:'experience',link_status:'verified'},
+        'Alexandra Palace sunset terrace':{url:'https://www.alexandrapalace.com',provider:'Alexandra Palace',type:'experience',link_status:'verified'},
+        'Frame fitness class for two':{url:'https://www.moveyourframe.com',provider:'Frame',type:'experience',link_status:'verified'},
+        'Kobox boxing date':{url:'https://kobox.co.uk/private-sessions/#offer',provider:'Kobox',type:'experience',link_status:'verified'},
+        'Reformer Pilates for two':{url:'https://www.heartcore.co.uk',provider:'Heartcore',type:'experience',link_status:'verified'},
+        'Yoga + brunch at Triyoga':{url:'https://triyoga.co.uk',provider:'Triyoga',type:'experience',link_status:'verified'},
+        'Padel court session for two':{url:'https://www.lta.org.uk/play/ways-to-play/padel/',provider:'Padel',type:'experience',link_status:'verified'},
+        'Tsujiri matcha + mochi':{url:'https://www.tsujiri.co.uk',provider:'Tsujiri',type:'experience',link_status:'verified'},
+        'Bob Bob Ricard dinner':{url:'https://www.bobbobricard.com/',provider:'Bob Bob Ricard',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Almeida Theatre':{url:'https://almeida.co.uk/whats-on',provider:'Almeida Theatre',type:'experience',link_status:'verified'},
+        'Cubo matcha ceremony for two':{url:'https://www.cubolondon.com',provider:'Cubo',type:'experience',link_status:'verified'},
+        'Chiltern Firehouse dinner':{url:'https://www.chilternfirehouse.com/',provider:'Chiltern Firehouse',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Glyndebourne opera at sunset':{url:'https://www.glyndebourne.com',provider:'Glyndebourne',type:'experience',link_status:'verified'},
+        'Kensington Palace private tour':{url:'https://www.hrp.org.uk/kensington-palace/',provider:'Historic Royal Palaces',type:'experience',link_status:'verified'},
+        'Bamford Wellness Spa retreat':{url:'https://www.bamford.com/spas',provider:'Bamford',type:'experience',link_status:'verified',bookingType:'book_treatment',ctaLabel:'Book treatment'},
+        'Battersea Park boating + picnic':{url:'https://batterseapark.org/boating/',provider:'Battersea Park',type:'experience',link_status:'verified',bookingType:'walk_in',ctaLabel:'Turn up and book',helperText:'Tickets purchased at the kiosk — no online booking needed'},
+        'Tate Modern + Thames walk':{url:'https://www.tate.org.uk/visit/tate-modern',provider:'Tate Modern',type:'experience',link_status:'verified'},
+        'Leake Street Arches street art walk':{url:'https://www.leakestreetarches.london',provider:'Leake Street',type:'experience',link_status:'verified'},
+        // Static HTML cards — added for booking reliability
+        'Saatchi Gallery + cocktails':{url:'https://www.saatchigallery.com/visit',provider:'Saatchi Gallery',type:'experience',link_status:'unverified'},
+        'Thames sunset cruise':{url:'https://www.citycruises.com/london-cruises',provider:'City Cruises',type:'experience',link_status:'unverified'},
+        'Rooftop wine tasting':{url:null,provider:null,type:'experience',link_status:'unavailable'},
+        'West End show + dinner':{url:'https://www.londontheatredirect.com',provider:'London Theatre Direct',type:'experience',link_status:'unverified'},
+        'Primrose Hill picnic at sunset':{url:null,provider:null,type:'experience',link_status:'unavailable'},
+        'Couples cooking class':{url:'https://www.atelierdeschefs.co.uk',provider:'Atelier des Chefs',type:'experience',link_status:'unverified'},
+        // Taxonomy CSV import — escape rooms
+        'Escape London':{url:'https://www.escape-london.co.uk',provider:'Escape London',type:'experience',link_status:'verified'},
+        'clueQuest':{url:'https://cluequest.co.uk',provider:'clueQuest',type:'experience',link_status:'verified'},
+        'Mission: Breakout':{url:'https://www.missionbreakout.london',provider:'Mission: Breakout',type:'experience',link_status:'verified'},
+        // Taxonomy CSV import — go karting
+        'K1 Speed Canary Wharf':{url:'https://www.k1speed.com/uk/canary-wharf.html',provider:'K1 Speed',type:'experience',link_status:'verified'},
+        'Daytona Motorsport London':{url:'https://www.daytona.co.uk/go-karting-in-london/',provider:'Daytona',type:'experience',link_status:'verified'},
+        'F1 Drive London':{url:'https://www.tottenhamhotspurstadium.com/f1-drive-london/',provider:'F1 Drive',type:'experience',link_status:'verified'},
+        // Taxonomy CSV import — crazy golf
+        'Shoreditch Balls':{url:'https://www.shoreditchballs.com/bookings',provider:'Shoreditch Balls',type:'experience',link_status:'verified'},
+        'Crazy Putt Greenwich Peninsula':{url:'https://www.greenwichpeninsula.co.uk/whats-here/crazy-putt-adventure-golf',website_url:'https://www.greenwichpeninsula.co.uk',provider:'Greenwich Peninsula',type:'experience',link_status:'verified'},
+        // Taxonomy CSV import — axe throwing
+        'Axeperience London':{url:'https://axeperience.co.uk/booking/',provider:'Axeperience',type:'experience',link_status:'verified'},
+        'Game of Throwing London':{url:'https://www.gameofthrowing.co.uk/game-of-throwing-london',provider:'Game of Throwing',type:'experience',link_status:'verified'},
+        'Boom Battle Bar Liverpool Street':{url:'https://boombattlebar.com/uk/london-liverpool-street/battleground/axe-throwing/',provider:'Boom Battle Bar',type:'experience',link_status:'verified'},
+        // Taxonomy CSV import — immersive & bowling
+        'Lightroom':{url:'https://lightroom.uk',provider:'Lightroom',type:'experience',link_status:'verified'},
+        'Taste Film':{url:'https://www.tastefilm.co.uk',provider:'Taste Film',type:'experience',link_status:'verified'},
+        'Queens London':{url:'https://queens.london/bowling/main-lanes/',provider:'Queens',type:'experience',link_status:'verified'},
+        'Hollywood Bowl O2':{url:'https://www.hollywoodbowl.co.uk/london-o2',provider:'Hollywood Bowl',type:'experience',link_status:'verified'},
+        'Hollywood Bowl Finchley':{url:'https://www.hollywoodbowl.co.uk/finchley',provider:'Hollywood Bowl',type:'experience',link_status:'verified'},
+        // New luxury tier venues
+        'Private tasting menu at The Clove Club':{url:null,website_url:'https://thecloveclub.com',provider:'The Clove Club',type:'restaurant',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Afternoon tea at The Ritz':{url:null,website_url:'https://www.theritzlondon.com/dine-with-us/afternoon-tea/',provider:'The Ritz',type:'restaurant',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Couples spa ritual at ESPA Life':{url:null,website_url:'https://www.espalifeatcorinthia.com',provider:'ESPA Life',type:'experience',link_status:'needs_review',bookingType:'book_treatment',ctaLabel:'Book treatment'},
+        'Rooftop champagne at Shangri-La':{url:null,website_url:'https://www.shangri-la.com/london/shangrila/',provider:'Shangri-La',type:'experience',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Late opening at the V&A':{url:null,website_url:'https://www.vam.ac.uk/info/friday-late',provider:'V&A',type:'experience',link_status:'needs_review',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
+        'Jazz supper at Ronnie Scott\'s':{url:'https://www.ronniescotts.co.uk/performances',provider:'Ronnie Scott\'s',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
+        'Chef\'s table at Climpson\'s Arch':{url:null,website_url:'https://climpsonsarch.com',provider:'Climpson\'s Arch',type:'restaurant',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Electric Cinema double bill + dinner':{url:null,website_url:'https://www.electriccinema.co.uk',provider:'Electric Cinema',type:'experience',link_status:'needs_review',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
+        'Luxury wine tasting at 67 Pall Mall':{url:null,website_url:'https://www.67pallmall.co.uk',provider:'67 Pall Mall',type:'experience',link_status:'needs_review',bookingType:'book_now',ctaLabel:'Book now'},
+        'Cocktail masterclass at Lyaness':{url:null,website_url:'https://lfrg.com/lyaness/',provider:'Lyaness',type:'experience',link_status:'needs_review',bookingType:'book_now',ctaLabel:'Book now'},
+      };
+
+      // ── Venue link verification overlay ──
+      // Founder-controlled overrides: mark specific venues as verified/unverified
+      // regardless of what link_status says. For the beta, only verified_live venues
+      // appear in live recommendations. Unverified ones get downgraded CTAs.
+      //
+      // Fields:
+      //   verified_live: boolean — has a human confirmed this URL loads correctly?
+      //   verified_at:   ISO date string — when was it last checked?
+      //   cta_label:     string — custom CTA override (optional)
+      //   verification_notes: string — freeform notes for the founder
+      //
+      // If a venue is NOT in this map, verified_live is computed from the registry:
+      //   link_status==='verified' AND url is non-null → verified_live:true
+      //   everything else → verified_live:false
+      const _VENUE_VERIFICATION={
+        // Override examples — add entries here when manually checking links:
+        // 'Venue Name':{verified_live:true,verified_at:'2026-05-26',verification_notes:'Checked, loads fine'},
+        // 'Broken Venue':{verified_live:false,verified_at:'2026-05-26',verification_notes:'404 on booking page'},
+      };
+
+      // Compute whether a venue has a verified live booking link
+      function _isVenueVerifiedLive(venueName){
+        // 1. Check explicit override first
+        const ov=_VENUE_VERIFICATION[venueName];
+        if(ov&&typeof ov.verified_live==='boolean')return ov.verified_live;
+        // 2. Compute from registry data
+        const entry=_VENUE_BOOKING[venueName];
+        if(!entry)return false;
+        return entry.link_status==='verified'&&!!entry.url;
+      }
+
+      // Get the CTA label for a venue — uses override, then defaults
+      function _getVenueCta(venueName){
+        // 1. Explicit verification override
+        const ov=_VENUE_VERIFICATION[venueName];
+        if(ov&&ov.cta_label)return ov.cta_label;
+        // 2. Registry ctaLabel (booking-type-aware)
+        const entry=_VENUE_BOOKING[venueName];
+        if(!entry)return 'Save';
+        if(entry.ctaLabel)return entry.ctaLabel;
+        // 3. Fallback based on link_status
+        if(_isVenueVerifiedLive(venueName))return'Book now';
+        if(entry.link_status==='unverified'&&entry.url)return'Check availability';
+        if(entry.link_status==='needs_review'&&entry.website_url)return'Visit website';
+        if(entry.link_status==='unavailable')return'Save';
+        return'Check availability';
+      }
+
+      // Get booking info — separates booking_url from website_url
+      // States: verified, unverified, needs_review, website_only, broken, unavailable
+      function _getBookingInfo(venueName){
+        let known=_VENUE_BOOKING[venueName];
+        // Fuzzy match: if exact key not found, find registry entry sharing a distinctive word
+        if(!known){
+          const _common=new Set(['the','and','for','with','date','night','london','dinner','lunch','two','from','this','that','evening','morning','class','session','club','bar','restaurant','tour','private','royal','experience','days','open','fire','cooking','press','champagne','cocktails','brunch','walk','market','wine','mochi','picnic','sunset','book','palace','ancient','star','lanes','film','street','arches','modern','city']);
+          const vWords=venueName.toLowerCase().replace(/[–—:+&]/g,' ').match(/[a-z]{4,}/g)||[];
+          const distinctV=vWords.filter(w=>!_common.has(w));
+          for(const key of Object.keys(_VENUE_BOOKING)){
+            const kLow=key.toLowerCase();
+            if(distinctV.some(w=>kLow.includes(w))){known=_VENUE_BOOKING[key];break;}
+          }
+        }
+        if(!known)return{booking_url:null,website_url:null,provider:null,verified:false,link_status:'unavailable',has_website:false};
+        const bUrl=known.url||null;
+        const wUrl=known.website_url||null;
+        const ls=known.link_status||'unverified';
+        // Genuinely broken or unavailable — no usable booking URL
+        if(ls==='broken'||ls==='unavailable'){
+          if(wUrl)return{booking_url:null,website_url:wUrl,provider:known.provider,verified:false,link_status:ls==='broken'?'website_only':'unavailable',has_website:true};
+          return{booking_url:null,website_url:null,provider:null,verified:false,link_status:'unavailable',has_website:false};
+        }
+        // Needs review — booking deep link uncertain, but website works
+        if(ls==='needs_review'||(!bUrl&&wUrl)){
+          return{booking_url:null,website_url:wUrl,provider:known.provider,verified:false,link_status:'website_only',has_website:true};
+        }
+        // No URLs at all
+        if(!bUrl&&!wUrl){
+          return{booking_url:null,website_url:null,provider:null,verified:false,link_status:'unavailable',has_website:false};
+        }
+        // Booking URL exists
+        return{booking_url:bUrl,website_url:wUrl||bUrl,provider:known.provider,verified:ls==='verified',link_status:ls,has_website:true};
+      }
+
+      // Current handoff state
+      let _pendingBooking=null;
+
+      // Graceful fallback — now offers official site if available
+      function showVenueUnavailable(venueName,venuePrice,websiteUrl){
+        _trackEvent('booking_unavailable_shown',{venue:venueName,has_website:!!websiteUrl});
+        const ov=document.getElementById('booking-handoff-overlay');
+        const content=document.getElementById('booking-handoff-content');
+        if(!ov||!content)return;
+        const safeName=venueName.replace(/'/g,"\\'");
+        const safeWebsite=(websiteUrl||'').replace(/'/g,"\\'");
+        content.innerHTML=`
+          <div style="text-align:center;padding:8px 0">
+            <div style="font-size:24px;margin-bottom:12px">📌</div>
+            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">${venueName}</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:6px;line-height:1.5">${websiteUrl?'Direct booking isn\'t available, but you can visit their official site.':'Direct booking isn\'t available for this venue yet.'}</div>
+            ${!websiteUrl?'<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:16px">We\'re adding verified booking links during beta.</div>':''}
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}'});window.open('${safeWebsite}','_blank','noopener')">Visit official site ↗</button>`:''}
+              <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','${venuePrice||''}','experience','Saved — awaiting booking link');closeBookingHandoff();toast('✦ Saved to wishlist')">Save to wishlist</button>
+              <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
+            </div>
+            <div style="text-align:center;margin-top:10px"><span style="font-size:10px;color:rgba(255,255,255,0.15);cursor:pointer" onclick="_trackEvent('support_clicked',{from:'booking_unavailable'});openFeedback();closeBookingHandoff()">Know a booking link? Tell us</span></div>
+          </div>`;
+        ov.style.display='flex';document.body.style.overflow='hidden';
+      }
+
+      // Open booking handoff overlay
+      function initiateBooking(venueName,venuePrice,venueStatus,planId){
+        let info;
+        try{
+          const planItem=planId?(_currentPlans.find(p=>p.id===planId)?.items||[]).find(i=>i.name===venueName):null;
+          info=planItem?_getBookingInfoFromDB(planItem):_getBookingInfo(venueName);
+        }catch(err){
+          _captureError(err,{context:'booking_lookup',source:'initiateBooking',venue:venueName});
+          info={booking_url:null,website_url:null,provider:null,verified:false,link_status:'unavailable',has_website:false};
+        }
+        // Use booking_url as the primary URL for the handoff, fall back to website_url
+        const primaryUrl=info.booking_url||info.website_url||null;
+        // Determine source screen
+        const _bkSrc=planId?'plan_card':document.querySelector('.page.active')?.id?.replace('page-','')||'discover';
+        _pendingBooking={name:venueName,price:venuePrice,status:venueStatus,planId:planId||null,url:primaryUrl,booking_url:info.booking_url,website_url:info.website_url,provider:info.provider,verified:info.verified,link_status:info.link_status||'unverified',source_screen:_bkSrc,booking_status:'clicked_out',clickedAt:new Date().toISOString()};
+        _trackEvent('booking_click',{name:venueName,provider:info.provider,verified:info.verified,link_status:info.link_status,item_type:venueStatus,plan_id:planId||null,source_screen:_bkSrc,outbound_url:primaryUrl});
+
+        // Route unavailable venues to fallback (with website if available)
+        if(info.link_status==='unavailable'){
+          showVenueUnavailable(venueName,venuePrice,info.website_url);
+          return;
+        }
+        // Website-only: booking URL broken but official site works
+        if(info.link_status==='website_only'){
+          _trackEvent('downgraded_to_official_site',{venue:venueName,website_url:info.website_url});
+          showVenueUnavailable(venueName,venuePrice,info.website_url);
+          return;
+        }
+
+        const ov=document.getElementById('booking-handoff-overlay');
+        const content=document.getElementById('booking-handoff-content');
+        if(!ov||!content){toast('Booking unavailable — try again');return;}
+
+        // Different flow for details_only (free/walk-in)
+        if(venueStatus==='details_only'){
+          content.innerHTML=`
+            <div style="text-align:center;padding:8px 0">
+              <div style="font-size:24px;margin-bottom:12px">📍</div>
+              <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">${venueName}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px">${venuePrice} · Free / walk-in — no booking needed</div>
+              <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;text-align:left;margin-bottom:16px">
+                <div style="font-size:12px;color:rgba(255,255,255,0.5);line-height:1.5">No reservation needed — just turn up and enjoy.</div>
+              </div>
+              <div style="display:flex;gap:8px;justify-content:center">
+                <button class="plan-btn plan-btn-save" onclick="confirmBookingDone()">✓ Add to your plan</button>
+                <button class="plan-btn" style="background:rgba(255,255,255,0.05);border:0.5px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.4)" onclick="closeBookingHandoff()">Close</button>
+              </div>
+            </div>`;
+          ov.style.display='flex';document.body.style.overflow='hidden';
+          return;
+        }
+
+        // Provider trust badge based on link_status
+        const ls=info.link_status||'unverified';
+        const providerBadge=ls==='verified'
+          ?'<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.15);border-radius:6px;font-size:9px;font-weight:600;color:#4ADE80">Verified link</span>'
+          :ls==='unverified'
+          ?'<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 7px;background:rgba(251,191,36,0.08);border:0.5px solid rgba(251,191,36,0.15);border-radius:6px;font-size:9px;font-weight:600;color:#FBBF24">Unverified</span>'
+          :'';
+
+        // Destination description based on link_status
+        const destDesc=ls==='verified'
+          ?info.provider+'\'s official booking page'
+          :ls==='unverified'
+          ?info.provider+'\'s website (not recently verified)'
+          :'a search page to find their booking site';
+
+        // CTA label based on link_status
+        const ctaLabel=ls==='verified'?'Book on '+info.provider+' ↗'
+          :ls==='broken'?'Search for '+venueName+' ↗'
+          :'Check availability on '+info.provider+' ↗';
+
+        content.innerHTML=`
+          <div style="padding:8px 0">
+            <div style="text-align:center;margin-bottom:14px">
+              <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:3px">${venueName}</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.35)">${venuePrice}</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:14px">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5)">Booking via ${info.provider}</span>
+                ${providerBadge}
+              </div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.6">This opens ${destDesc} in a new tab. Make your reservation there, then come back to confirm it.</div>
+            </div>
+            <button class="booking-handoff-cta" onclick="openBookingUrl()">
+              ${ctaLabel}
+            </button>
+            <div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:8px;text-align:center">You'll book directly with the venue — we never handle payments</div>
+          </div>`;
+
+        ov.style.display='flex';document.body.style.overflow='hidden';
+      }
+
+      // Open the booking URL and show return confirmation
+      // Append UTM source params without breaking the URL
+      function _addUtm(url){
+        try{
+          const u=new URL(url);
+          if(!u.searchParams.has('utm_source'))u.searchParams.set('utm_source','tablefortwo');
+          if(!u.searchParams.has('utm_medium'))u.searchParams.set('utm_medium','app');
+          if(!u.searchParams.has('utm_campaign'))u.searchParams.set('utm_campaign','booking');
+          return u.toString();
+        }catch(e){return url;}
+      }
+
+      function openBookingUrl(){
+        if(!_pendingBooking)return;
+        const url=_pendingBooking.url;
+        if(!url){showBookingFallback();return;}
+        try{new URL(url);}catch(e){showBookingFallback();return;}
+        const isDirectBooking=_pendingBooking.booking_url&&url===_pendingBooking.booking_url;
+        _pendingBooking.booking_status='site_opened';
+        _trackEvent(isDirectBooking?'direct_booking_clicked':'official_site_clicked',{name:_pendingBooking.name,provider:_pendingBooking.provider,link_status:_pendingBooking.link_status,url:url,source_screen:_pendingBooking.source_screen});
+        window.open(_addUtm(url),'_blank','noopener');
+        showBookingReturnState();
+      }
+
+      // Fallback when URL is invalid at open time
+      function showBookingFallback(){
+        const fbContent=document.getElementById('booking-handoff-content');
+        if(!fbContent)return;
+        const name=_pendingBooking?.name||'this venue';
+        const safeName=name.replace(/'/g,"\\'");
+        const websiteUrl=_pendingBooking?.website_url;
+        const safeWebsite=(websiteUrl||'').replace(/'/g,"\\'");
+        _captureError(new Error('Booking URL invalid or missing'),{context:'booking_fallback',source:'showBookingFallback',venue:name});
+        _trackEvent('broken_booking_url_detected',{venue:name,provider:_pendingBooking?.provider||'unknown',has_website:!!websiteUrl});
+        fbContent.innerHTML=`
+          <div style="padding:8px 0">
+            <div style="text-align:center;margin-bottom:14px">
+              <div style="font-size:16px;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:6px">Booking link broken</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.5">The booking link for <strong style="color:rgba(255,255,255,0.6)">${name}</strong> isn't working.${websiteUrl?' You can still visit their official site.':' We\'ve flagged it for review.'}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}',from:'fallback'});window.open('${safeWebsite}','_blank','noopener')">Visit official site ↗</button>`:''}
+              <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','','experience','Saved — booking link broken');closeBookingHandoff();toast('✦ Saved — we\\'ll fix the link')">Save to wishlist</button>
+              <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
+            </div>
+            <div style="text-align:center;margin-top:10px"><span style="font-size:10px;color:rgba(255,255,255,0.15);cursor:pointer" onclick="_trackEvent('support_clicked',{from:'booking_fallback'});openFeedback();closeBookingHandoff()">Report this issue</span></div>
+          </div>`;
+      }
+
+      // After outbound click — ask if booking was completed
+      function showBookingReturnState(){
+        if(_pendingBooking)_pendingBooking.booking_status='returned';
+        _trackEvent('booking_returned',{name:_pendingBooking?.name,provider:_pendingBooking?.provider,source_screen:_pendingBooking?.source_screen});
+        const content=document.getElementById('booking-handoff-content');
+        if(!content)return;
+        const name=_pendingBooking?.name||'this venue';
+        const provider=_pendingBooking?.provider||'the booking site';
+        content.innerHTML=`
+          <div style="padding:8px 0">
+            <div style="text-align:center;margin-bottom:16px">
+              <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Did you book ${name}?</div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.35);line-height:1.5">Let us know so we can keep your plan up to date.</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <button class="booking-confirm-btn booking-confirm-yes" onclick="confirmBookingDone()">
+                <span style="font-size:16px">✓</span>
+                <div style="text-align:left">
+                  <div style="font-size:13px;font-weight:600">Yes, all booked</div>
+                  <div style="font-size:11px;opacity:0.5;margin-top:1px">We'll save it to your upcoming dates</div>
+                </div>
+              </button>
+              <button class="booking-confirm-btn booking-confirm-no" onclick="confirmBookingSkipped()">
+                <span style="font-size:16px">-</span>
+                <div style="text-align:left">
+                  <div style="font-size:13px;font-weight:600">Not yet</div>
+                  <div style="font-size:11px;opacity:0.5;margin-top:1px">No rush — book whenever you're ready</div>
+                </div>
+              </button>
+              <button class="booking-confirm-btn" style="border-color:rgba(239,68,68,0.15)" onclick="confirmBookingFailed()">
+                <span style="font-size:16px;color:rgba(239,68,68,0.6)">!</span>
+                <div style="text-align:left">
+                  <div style="font-size:13px;font-weight:600">Booking failed</div>
+                  <div style="font-size:11px;opacity:0.5;margin-top:1px">Something went wrong on the partner site</div>
+                </div>
+              </button>
+              <button class="booking-confirm-btn booking-confirm-retry" onclick="openBookingUrl()">
+                <span style="font-size:16px">↗</span>
+                <div style="text-align:left">
+                  <div style="font-size:13px;font-weight:600">Reopen ${provider}</div>
+                  <div style="font-size:11px;opacity:0.5;margin-top:1px">Opens in a new tab again</div>
+                </div>
+              </button>
+            </div>
+          </div>`;
+      }
+
+      // User confirms they completed the booking
+      function confirmBookingDone(){
+        if(!_pendingBooking)return;
+        const b=_pendingBooking;
+        b.booking_status='confirmed_by_user';
+        _trackEvent('booking_confirmed_yes',{name:b.name,provider:b.provider,verified:b.verified,plan_id:b.planId||null,source_screen:b.source_screen,outbound_url:b.url});
+        // Record in bookings list with full attribution
+        bookings.push({id:Date.now(),type:b.status==='bookable_now'?'restaurant':'experience',name:b.name,date:new Date().toISOString().slice(0,10),meta:'Booked via '+b.provider,amount:b.price,icon:_BOOKING_ICONS[b.status==='bookable_now'?'restaurant':'experience']||_SVG.experience,booking_status:'confirmed_by_user',provider:b.provider,outbound_url:b.url,source_screen:b.source_screen,clicked_at:b.clickedAt,confirmed_at:new Date().toISOString(),plan_id:b.planId||null});
+        updateStats();renderBookings();_saveState();
+        // Activate plan if applicable
+        if(b.planId)activatePlan(b.planId);
+        // Show success + satisfaction question
+        const content=document.getElementById('booking-handoff-content');
+        if(!content){toast('Booking saved');_pendingBooking=null;return;}
+        const bName=b.name;const bPlanId=b.planId||'';
+        content.innerHTML=`
+          <div style="text-align:center;padding:8px 0">
+            <div style="width:48px;height:48px;border-radius:50%;background:rgba(74,222,128,0.1);border:1.5px solid rgba(74,222,128,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;font-size:20px;color:#4ADE80">✓</div>
+            <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">You're all set</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:14px">${bName} · via ${b.provider}</div>
+            <div id="post-booking-q" style="padding:12px 14px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:12px;margin-bottom:14px;text-align:left">
+              <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.5);margin-bottom:8px">How did that feel?</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <button class="plan-react" onclick="postBookingAnswer('${bName.replace(/'/g,"\\'")}','${bPlanId}','yes_perfect')">Yes, perfect</button>
+                <button class="plan-react" onclick="postBookingAnswer('${bName.replace(/'/g,"\\'")}','${bPlanId}','yes_close')">Close enough</button>
+                <button class="plan-react" onclick="postBookingAnswer('${bName.replace(/'/g,"\\'")}','${bPlanId}','not_quite')">Not quite</button>
+              </div>
+            </div>
+            <button class="plan-btn plan-btn-activate" style="width:100%" onclick="closeBookingHandoff()">Done</button>
+          </div>`;
+        toast('✓ Booking confirmed — '+bName);
+        _pendingBooking=null;
+      }
+
+      function postBookingAnswer(name,planId,answer){
+        _trackEvent('post_booking_satisfaction',{name:name,plan_id:planId||null,answer:answer});
+        const q=document.getElementById('post-booking-q');
+        if(q)q.innerHTML='<div style="font-size:11px;color:rgba(201,168,76,0.6);font-weight:500;padding:4px 0">Thanks — noted for next time.</div>';
+      }
+
+      // User didn't complete the booking
+      function confirmBookingSkipped(){
+        if(_pendingBooking){
+          _pendingBooking.booking_status='not_booked';
+          _trackEvent('booking_not_completed',{name:_pendingBooking.name,provider:_pendingBooking.provider,source_screen:_pendingBooking.source_screen});
+        }
+        _pendingBooking=null;
+        closeBookingHandoff();
+        toast('No problem — you can book anytime');
+      }
+
+      // User reports booking failed on partner site
+      function confirmBookingFailed(){
+        if(_pendingBooking){
+          _pendingBooking.booking_status='failed';
+          _trackEvent('booking_failed',{name:_pendingBooking.name,provider:_pendingBooking.provider,outbound_url:_pendingBooking.url,source_screen:_pendingBooking.source_screen});
+        }
+        const name=_pendingBooking?.name||'this venue';
+        const websiteUrl=_pendingBooking?.website_url;
+        _pendingBooking=null;
+        // Show fallback with helpful next steps
+        const content=document.getElementById('booking-handoff-content');
+        if(content){
+          const safeName=name.replace(/'/g,"\\'");
+          const safeWebsite=(websiteUrl||'').replace(/'/g,"\\'");
+          content.innerHTML=`
+            <div style="text-align:center;padding:8px 0">
+              <div style="font-size:24px;margin-bottom:12px;color:rgba(239,68,68,0.6)">!</div>
+              <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Sorry about that</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:16px;line-height:1.5">We've logged this issue. ${websiteUrl?'You can try their official site directly.':'Try again later or save it for next time.'}</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="window.open('${safeWebsite}','_blank','noopener')">Visit official site ↗</button>`:''}
+                <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','','experience','Saved — booking failed on partner site');closeBookingHandoff();toast('Saved to wishlist')">Save to wishlist</button>
+                <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
+              </div>
+            </div>`;
+        } else {
+          closeBookingHandoff();
+          toast('Sorry about that — we\'ve noted the issue');
+        }
+      }
+
+      function closeBookingHandoff(){
+        const ov=document.getElementById('booking-handoff-overlay');
+        if(ov){ov.style.display='none';document.body.style.overflow='';}
+        _pendingBooking=null;
+      }
+
+      // Updated bookPlanItem — uses handoff flow
+      function bookPlanItem(planId,itemIdx){
+        const plan=_currentPlans.find(p=>p.id===planId);
+        if(!plan||!plan.items[itemIdx])return;
+        const item=plan.items[itemIdx];
+        initiateBooking(item.name,item.price,item.status,planId);
+      }
 
       // ── Smart greeting ──
       const _WMO={0:'Clear skies',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Icy fog',51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',61:'Light rain',63:'Rain',65:'Heavy rain',71:'Light snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
@@ -252,23 +2267,8 @@
       let _jeStarVal=0;
       let _wishFilter='all';
       let _wishBadgeCount=0;
-      let _wishlist=[
-        {id:1,name:'Roof terrace dinner at Sushisamba',emoji:'🍣',price:'££££',type:'foodie',why:'Always wanted to see the view from up there',addedDate:'2025-12-10',done:false},
-        {id:2,name:'Sunrise hike at Box Hill',emoji:'🌄',price:'Free',type:'outdoor',why:'We keep saying we\'ll do an early morning adventure',addedDate:'2025-12-22',done:false},
-        {id:3,name:'Turning Earth pottery, Hoxton',emoji:'🏺',price:'££',type:'activity',why:'Saw it on a video and it looked so fun and silly',addedDate:'2026-01-05',done:true},
-        {id:4,name:'Secret Cinema experience',emoji:'🎬',price:'£££',type:'cultural',why:'The immersive element sounds magical — live actors, costumes, the lot',addedDate:'2026-01-18',done:true},
-        {id:5,name:'Couples spa day',emoji:'🧖',price:'£££',type:'romantic',why:'We need a proper reset together',addedDate:'2026-02-03',done:false},
-        {id:6,name:'Backgammon night at Mãos',emoji:'🎲',price:'££££',type:'foodie',why:'Tiny restaurant, impossible to get a table — challenge accepted',addedDate:'2026-02-20',done:false},
-        {id:7,name:'Picnic in Regent\'s Park',emoji:'🧺',price:'Free',type:'outdoor',why:'A slow Sunday morning with pastries and no plans',addedDate:'2026-03-01',done:false}
-      ];
-      let _journal=[
-        {id:1,name:'Dishoom, King\'s Cross',note:'We waited 40 minutes but it was absolutely worth it. The black dal was incredible and we ended up staying for two hours just talking. One of those nights that felt effortless.',date:'2025-11-14',vibe:'foodie',rating:5},
-        {id:2,name:'Kew Gardens Winter Walk',note:'Went on a whim because the weather looked okay. It wasn\'t — it rained the whole time — but we bought matching terrible ponchos from the gift shop and laughed the entire way round.',date:'2025-12-07',vibe:'outdoor',rating:4},
-        {id:3,name:'Turning Earth, Hoxton',note:'We were both awful. My bowl looked like a sad taco. We have photographic evidence. 10/10 would humiliate ourselves again.',date:'2026-01-11',vibe:'fun',rating:5},
-        {id:4,name:'Tate Modern & Borough Market',note:'Started with the Tate, got into a playful argument about modern art, then ate our feelings at Borough Market. Perfect Saturday.',date:'2026-01-25',vibe:'cultural',rating:4},
-        {id:5,name:'Valentine\'s dinner at Brat',note:'Splurged on the tasting menu. Every single course was a moment. Dressed up properly for the first time in ages and it felt special. Definitely coming back.',date:'2026-02-14',vibe:'romantic',rating:5},
-        {id:6,name:'Sunday brunch at Caravan, King\'s Cross',note:'Low-key, lazy, perfect. We got there right when it opened, grabbed the window seat, and spent two hours on coffee and eggs. Exactly what we needed.',date:'2026-03-02',vibe:'foodie',rating:4}
-      ];
+      let _wishlist=[];
+      let _journal=[];
       let _quizAnswers={energy:'mixed',adventure:'mid',tod:'evening',crowd:'quiet',priority:'experience'};
       let _recurringFreq='';
       let _checklistState={}; // {key: bool}
@@ -283,7 +2283,7 @@
         const now=new Date();
         const h=now.getHours();
         const day=now.getDay(); // 0=Sun,6=Sat
-        const name='Jamie';
+        const name=_userName();
 
         // Time-based greeting
         let greet;
@@ -353,7 +2353,7 @@
       let _occasion='first_date';
       const _OCCASION_HEADLINES={
         first_date:"Let's make a great first impression",
-        partner:"Let's plan something special for Sophie",
+        partner:"Let's plan something special for your partner",
         special:"What's the occasion? Let's make it unforgettable",
         just_because:"Just the two of you — no reason needed ♥",
         anniversary:"Let's make this anniversary unforgettable",
@@ -394,7 +2394,7 @@
           ctx.innerHTML=`<div style="padding:11px 13px;background:#EDE6F2;border:0.5px solid var(--plum-mid);border-radius:var(--r-md)">
             <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
               <div style="width:28px;height:28px;border-radius:50%;background:#EDE6F2;color:#3C3489;font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--plum-mid);flex-shrink:0">SP</div>
-              <div style="font-size:12px;font-weight:600;color:var(--plum)">Sophie's preferences</div>
+              <div style="font-size:12px;font-weight:600;color:var(--plum)">Partner preferences</div>
             </div>
             <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px">
               <span class="badge badge-plum">✓ Vegetarian</span>
@@ -404,7 +2404,7 @@
               <span class="badge badge-rose">Romantic</span>
               <span class="badge badge-rose">Outdoor</span>
             </div>
-            <div style="font-size:11px;color:var(--ink-muted)">Ideas prioritise Sophie's vegetarian diet and love of outdoor & romantic settings</div>
+            <div style="font-size:11px;color:var(--ink-muted)">Ideas prioritise vegetarian-friendly venues and outdoor settings</div>
           </div>`;
           ctx._dismissTimer=setTimeout(()=>{ctx.style.transition='opacity 0.6s ease';ctx.style.opacity='0';setTimeout(()=>{ctx.innerHTML='';ctx.style.transition='';ctx.style.opacity='1';},650);},4000);
         } else if(val==='just_because'){
@@ -584,7 +2584,7 @@
             <span style="font-size:11px;color:var(--ink-muted)">${signNote}</span>
           </div>`);
         } else {
-          const who=_jamieSign?'Jamie':'Sophie';
+          const who=_jamieSign?_userName():_partnerName();
           const sign=_jamieSign||_sophieSign;
           rows.push(`<div style="font-size:11px;color:var(--ink-muted);padding:4px 0;border-bottom:0.5px solid var(--bdr)">${_SIGN_EMOJI[sign]||'✦'} ${who}: ${sign} — add the other's birthdate to see star sign compatibility</div>`);
         }
@@ -629,174 +2629,221 @@
         {id:'wh1',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎸',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=600&q=80',
         name:'Khruangbin – Rondeaux Tour',venue:'Roundhouse, Camden',date:'Sat 3 May',
-        price:'From £45',match:94,booked:312,tags:['Soulful','Intimate atmosphere','Live music']},
+        price:'From £45',match:94,booked:312,tags:['Soulful','Intimate atmosphere','Live music'],venue_status:'active'},
         {id:'wh2',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎻',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1465847899084-d164df4dedc6?w=600&q=80',
         name:'LSO: Ravel & Debussy',venue:'Barbican Centre',date:'Fri 9 May',
-        price:'From £28',match:89,booked:204,tags:['Classical','Cultural','Elegant']},
+        price:'From £28',match:89,booked:204,tags:['Classical','Cultural','Elegant'],venue_status:'active'},
         {id:'wh3',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎹',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=600&q=80',
         name:'Hania Rani – Piano Portraits',venue:"King's Place, King's Cross",date:'Thu 1 May',
-        price:'From £35',match:91,booked:178,tags:['Piano','Atmospheric','Intimate']},
+        price:'From £35',match:91,booked:178,tags:['Piano','Atmospheric','Intimate'],venue_status:'active'},
         {id:'wh4',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎷',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1511192336575-5a79af67a629?w=600&q=80',
         name:"Ronnie Scott's Late Night Jazz",venue:'Frith Street, Soho',date:'Every Fri & Sat',
-        price:'From £30',match:88,booked:267,tags:['Jazz','Late night','Iconic venue']},
+        price:'From £30',match:88,booked:267,tags:['Jazz','Late night','Iconic venue'],venue_status:'active'},
         {id:'wh40',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎤',trending:'Ending soon',trendCls:'ending',
         img:'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=600&q=80',
         name:'Jorja Smith – Falling or Flying',venue:'O2 Academy Brixton',date:'Fri 16 May',
-        price:'From £55',match:90,booked:428,tags:['R&B','Soulful','High energy']},
+        price:'From £55',match:90,booked:428,tags:['R&B','Soulful','High energy'],venue_status:'active'},
         {id:'wh41',cat:'concert',gradient:'wh-gradient-concert',emoji:'🎵',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=600&q=80',
         name:'Nils Frahm – All Encores',venue:'Royal Albert Hall',date:'Sat 24 May',
-        price:'From £40',match:93,booked:356,tags:['Electronic','Ambient','Immersive']},
+        price:'From £40',match:93,booked:356,tags:['Electronic','Ambient','Immersive'],venue_status:'active'},
         // DINING
         {id:'wh5',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥗',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80',
         name:'Ottolenghi ROVI – Spring Menu',venue:'Wells Street, Fitzrovia',date:'Open now',
-        price:'£70–85pp',match:96,booked:341,tags:['Mediterranean','Vegetarian','Seasonal']},
+        price:'£70–85pp',match:96,booked:341,tags:['Mediterranean','Vegetarian','Seasonal'],venue_status:'active'},
         {id:'wh6',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍜',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=600&q=80',
         name:'Kiln – Northern Thai Fire',venue:'Brewer Street, Soho',date:'Open now',
-        price:'£45pp',match:93,booked:227,tags:['Thai','Vibrant','Counter dining']},
+        price:'£45pp',match:93,booked:227,tags:['Thai','Vibrant','Counter dining'],venue_status:'active'},
         {id:'wh7',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥢',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1579027989536-b7b1f875659b?w=600&q=80',
         name:'Bossa – Brazilian Izakaya',venue:'Hoxton Square, Shoreditch',date:'Open now',
-        price:'£55pp',match:92,booked:196,tags:['Japanese-Brazilian','Cocktails','Intimate']},
+        price:'£55pp',match:92,booked:196,tags:['Japanese-Brazilian','Cocktails','Intimate'],venue_status:'active'},
         {id:'wh8',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍛',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1631452180519-c014fe946bc7?w=600&q=80',
         name:'Gymkhana – Tasting Menu',venue:'Albemarle Street, Mayfair',date:'Open now',
-        price:'£115pp',match:90,booked:289,tags:['Indian fine dining','Refined','Cultural']},
+        price:'£115pp',match:90,booked:289,tags:['Indian fine dining','Refined','Cultural'],venue_status:'active'},
         {id:'wh9',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍱',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1553621042-f6e147245754?w=600&q=80',
         name:'Matsunoki – Omakase Counter',venue:'Marylebone High Street',date:'Open now',
-        price:'£95pp',match:95,booked:142,tags:['Japanese','Omakase','Intimate']},
+        price:'£95pp',match:95,booked:142,tags:['Japanese','Omakase','Intimate'],venue_status:'active'},
         {id:'wh42',cat:'dining',gradient:'wh-gradient-dining',emoji:'🦪',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1615141982883-c7ad0e69fd62?w=600&q=80',
         name:'The Oystermen – Seafood Bar',venue:'Covent Garden',date:'Open now',
-        price:'£60pp',match:88,booked:183,tags:['Seafood','Champagne','Intimate']},
+        price:'£60pp',match:88,booked:183,tags:['Seafood','Champagne','Intimate'],venue_status:'active'},
         {id:'wh43',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍝',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&q=80',
         name:'Padella – Fresh Pasta Counter',venue:'Borough Market, SE1',date:'Open now',
-        price:'£25pp',match:91,booked:412,tags:['Italian','Handmade pasta','Queue-worthy']},
+        price:'£25pp',match:91,booked:412,tags:['Italian','Handmade pasta','Queue-worthy'],venue_status:'active'},
         {id:'wh44',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥩',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1558030006-450675393462?w=600&q=80',
         name:'Brat – Open Fire Cooking',venue:'Shoreditch High Street',date:'Open now',
-        price:'£85pp',match:94,booked:276,tags:['Michelin','Fire-cooked','Intimate']},
+        price:'£85pp',match:94,booked:276,tags:['Michelin','Fire-cooked','Intimate'],venue_status:'active'},
         {id:'wh45',cat:'dining',gradient:'wh-gradient-dining',emoji:'🫕',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=600&q=80',
         name:'Bob Bob Ricard – Press for Champagne',venue:'Soho',date:'Open now',
-        price:'£90pp',match:93,booked:305,tags:['Glamorous','Champagne button','Iconic']},
+        price:'£90pp',match:93,booked:305,tags:['Glamorous','Champagne button','Iconic'],venue_status:'active'},
         // EXPERIENCES
         {id:'wh10',cat:'experience',gradient:'wh-gradient-experience',emoji:'🎬',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&q=80',
         name:'Secret Cinema: La Dolce Vita',venue:'Tobacco Dock, Wapping',date:'Every Fri & Sat',
-        price:'£49pp',match:95,booked:389,tags:['Italian','Cinematic','Romantic']},
+        price:'£49pp',match:95,booked:389,tags:['Italian','Cinematic','Romantic'],venue_status:'active'},
         {id:'wh11',cat:'experience',gradient:'wh-gradient-experience',emoji:'🌿',trending:'Ending soon',trendCls:'ending',
         img:'https://images.unsplash.com/photo-1585320806297-9794b3e4eeae?w=600&q=80',
         name:'Kew Gardens – Orchid Festival',venue:'Royal Botanic Gardens, Kew',date:'Until 4 May',
-        price:'£22pp',match:90,booked:267,tags:['Outdoor','Romantic','Garden']},
+        price:'£22pp',match:90,booked:267,tags:['Outdoor','Romantic','Garden'],venue_status:'active'},
         {id:'wh12',cat:'experience',gradient:'wh-gradient-experience',emoji:'🫙',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&q=80',
         name:'Pottery Date at Turning Earth',venue:'London Fields, Hackney',date:'Saturdays',
-        price:'£65pp',match:88,booked:156,tags:['Creative','Intimate','Hands-on']},
+        price:'£65pp',match:88,booked:156,tags:['Creative','Intimate','Hands-on'],venue_status:'active'},
         {id:'wh13',cat:'experience',gradient:'wh-gradient-experience',emoji:'🎨',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=600&q=80',
         name:'Life Drawing with Wine',venue:'Bermondsey Street, SE1',date:'Wed & Fri evenings',
-        price:'£40pp',match:86,booked:118,tags:['Creative','Relaxed','Cultural']},
+        price:'£40pp',match:86,booked:118,tags:['Creative','Relaxed','Cultural'],venue_status:'active'},
         {id:'wh46',cat:'experience',gradient:'wh-gradient-experience',emoji:'🎭',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&q=80',
         name:'Punchdrunk: The Burnt City',venue:'Woolwich Works, SE18',date:'Thu–Sat evenings',
-        price:'£58pp',match:96,booked:347,tags:['Immersive','Theatre','Atmospheric']},
+        price:'£58pp',match:96,booked:347,tags:['Immersive','Theatre','Atmospheric'],venue_status:'active'},
         {id:'wh47',cat:'experience',gradient:'wh-gradient-experience',emoji:'🔮',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&q=80',
         name:'Frameless – Immersive Art',venue:'Marble Arch',date:'Open daily',
-        price:'£32pp',match:89,booked:224,tags:['Art','Immersive','Photography']},
+        price:'£32pp',match:89,booked:224,tags:['Art','Immersive','Photography'],venue_status:'active'},
         // ACTIVITIES
         {id:'wh14',cat:'activity',gradient:'wh-gradient-activity',emoji:'🍸',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80',
         name:'Cocktail Masterclass – Negroni Ed.',venue:'Cahoots, Kingly Court, Soho',date:'Thursdays',
-        price:'£55pp',match:93,booked:219,tags:['Fun','Intimate','Drinks']},
+        price:'£55pp',match:93,booked:219,tags:['Fun','Intimate','Drinks'],venue_status:'active'},
         {id:'wh15',cat:'activity',gradient:'wh-gradient-activity',emoji:'🍜',trending:'Hot',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&q=80',
         name:'Japanese Ramen Workshop',venue:'Notting Hill Kitchen',date:'Saturdays',
-        price:'£70pp',match:97,booked:188,tags:['Japanese','Cooking','Intimate']},
+        price:'£70pp',match:97,booked:188,tags:['Japanese','Cooking','Intimate'],venue_status:'active'},
         {id:'wh16',cat:'activity',gradient:'wh-gradient-activity',emoji:'🧘',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&q=80',
         name:'Sunrise Yoga at Sky Garden',venue:'20 Fenchurch Street, City',date:'Sun 4 May, 7am',
-        price:'£28pp',match:84,booked:143,tags:['Outdoor','Wellness','Active']},
+        price:'£28pp',match:84,booked:143,tags:['Outdoor','Wellness','Active'],venue_status:'active'},
         {id:'wh48',cat:'activity',gradient:'wh-gradient-activity',emoji:'🏎️',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80',
         name:'F1 Arcade – Racing Simulators',venue:'One New Change, City',date:'Open daily',
-        price:'£35pp',match:85,booked:198,tags:['Competitive','Fun','High-tech']},
+        price:'£35pp',match:85,booked:198,tags:['Competitive','Fun','High-tech'],venue_status:'active'},
         {id:'wh49',cat:'activity',gradient:'wh-gradient-activity',emoji:'🎳',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&q=80',
         name:'All Star Lanes – Boutique Bowling',venue:'Holborn',date:'Open daily',
-        price:'£38pp',match:82,booked:167,tags:['Retro','Cocktails','Playful']},
+        price:'£38pp',match:82,booked:167,tags:['Retro','Cocktails','Playful'],venue_status:'active'},
         // ROOFTOPS
         {id:'wh50',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🌇',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&q=80',
         name:'Sushisamba – 38th Floor',venue:'Heron Tower, Liverpool Street',date:'Open now',
-        price:'£95pp',match:92,booked:284,tags:['Japanese-Brazilian','Skyline views','Prestige']},
+        price:'£95pp',match:92,booked:284,tags:['Japanese-Brazilian','Skyline views','Prestige'],venue_status:'active'},
         {id:'wh51',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🥂',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1566417713940-fe7c737a9ef2?w=600&q=80',
         name:'Aqua Shard – Sunset Cocktails',venue:'31st Floor, The Shard',date:'Open now',
-        price:'£75pp',match:90,booked:336,tags:['Panoramic','Cocktails','Romantic']},
+        price:'£75pp',match:90,booked:336,tags:['Panoramic','Cocktails','Romantic'],venue_status:'active'},
         {id:'wh52',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🍹',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1560624052-449f5ddf0c31?w=600&q=80',
         name:'Roof East – Open Air Cinema',venue:'Stratford Multi-Storey',date:'Fri & Sat',
-        price:'£22pp',match:86,booked:195,tags:['Outdoor cinema','Casual','Summer vibes']},
+        price:'£22pp',match:86,booked:195,tags:['Outdoor cinema','Casual','Summer vibes'],venue_status:'active'},
         {id:'wh53',cat:'rooftop',gradient:'wh-gradient-rooftop',emoji:'🌃',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1470219556762-1fd5b25f1bcc?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&q=80',
         name:'Madison – St Paul\'s Terrace',venue:'One New Change, City',date:'Open now',
-        price:'£55pp',match:88,booked:251,tags:['St Paul\'s view','Elegant','After-work']},
+        price:'£55pp',match:88,booked:251,tags:['St Paul\'s view','Elegant','After-work'],venue_status:'active'},
         // THEATRE
         {id:'wh54',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'🎭',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&q=80',
         name:'Cabaret at the Kit Kat Club',venue:'Playhouse Theatre, West End',date:'Mon–Sat',
-        price:'From £35',match:95,booked:478,tags:['Immersive','Iconic','Intimate']},
+        price:'From £35',match:95,booked:478,tags:['Immersive','Iconic','Intimate'],venue_status:'active'},
         {id:'wh55',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'🩰',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80',
         name:'Romeo & Juliet – Royal Ballet',venue:'Royal Opera House, Covent Garden',date:'Until 10 May',
-        price:'From £28',match:91,booked:312,tags:['Ballet','World-class','Romantic']},
+        price:'From £28',match:91,booked:312,tags:['Ballet','World-class','Romantic'],venue_status:'active'},
         {id:'wh56',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'✨',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1460723237483-7a6dc9d0b212?w=600&q=80',
         name:'Stranger Things: The First Shadow',venue:'Phoenix Theatre, West End',date:'Mon–Sat',
-        price:'From £25',match:87,booked:389,tags:['Sci-fi','Immersive','Production']},
+        price:'From £25',match:87,booked:389,tags:['Sci-fi','Immersive','Production'],venue_status:'active'},
         {id:'wh57',cat:'theatre',gradient:'wh-gradient-theatre',emoji:'🎪',trending:'Ending soon',trendCls:'ending',
         img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&q=80',
         name:'The Book of Mormon',venue:'Gielgud Theatre, West End',date:'Mon–Sat',
-        price:'From £30',match:84,booked:356,tags:['Musical','Comedy','Award-winning']},
+        price:'From £30',match:84,booked:356,tags:['Musical','Comedy','Award-winning'],venue_status:'active'},
         // WELLNESS
         {id:'wh58',cat:'wellness',gradient:'wh-gradient-wellness',emoji:'🧖',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&q=80',
         name:'AIRE Ancient Baths – Couples',venue:'Porchester Road, Bayswater',date:'Open daily',
-        price:'£95pp',match:94,booked:276,tags:['Candlelit','Thermal','Romantic']},
+        price:'£95pp',match:94,booked:276,tags:['Candlelit','Thermal','Romantic'],venue_status:'active'},
         {id:'wh59',cat:'wellness',gradient:'wh-gradient-wellness',emoji:'🧊',trending:'Rising',trendCls:'rising',
-        img:'https://images.unsplash.com/photo-1540555700478-4be289fbec6d?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&q=80',
         name:'Monk London – Ice Bath & Sauna',venue:'Fulham',date:'Open daily',
-        price:'£45pp',match:82,booked:189,tags:['Cold plunge','Contrast therapy','Trending']},
+        price:'£45pp',match:82,booked:189,tags:['Cold plunge','Contrast therapy','Trending'],venue_status:'active'},
         {id:'wh60',cat:'wellness',gradient:'wh-gradient-wellness',emoji:'💆',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=600&q=80',
         name:'Cowshed Spa – Couples Retreat',venue:'Shoreditch House',date:'Open daily',
-        price:'£120pp',match:91,booked:134,tags:['Spa','Members club','Luxury']},
+        price:'£120pp',match:91,booked:134,tags:['Spa','Members club','Luxury'],venue_status:'active'},
         // LATE NIGHT
         {id:'wh61',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🌙',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1566737236500-c8ac43014a67?w=600&q=80',
         name:'Experimental Cocktail Club',venue:'Chinatown, Soho',date:'Wed–Sun, 6pm–2am',
-        price:'£50pp',match:91,booked:267,tags:['Speakeasy','Inventive cocktails','Moody']},
+        price:'£50pp',match:91,booked:267,tags:['Speakeasy','Inventive cocktails','Moody'],venue_status:'active'},
         {id:'wh62',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🎵',trending:'Rising',trendCls:'rising',
         img:'https://images.unsplash.com/photo-1571204829887-3b8d69e4094d?w=600&q=80',
         name:'Nightjar – Jazz & Cocktails',venue:'Shoreditch',date:'Tue–Sat, 6pm–1am',
-        price:'£55pp',match:93,booked:198,tags:['Prohibition','Live jazz','Hidden bar']},
+        price:'£55pp',match:93,booked:198,tags:['Prohibition','Live jazz','Hidden bar'],venue_status:'active'},
         {id:'wh63',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🍷',trending:'New this week',trendCls:'new',
         img:'https://images.unsplash.com/photo-1572116469696-31de0f17cc34?w=600&q=80',
         name:'Swift – Upstairs & Downstairs',venue:'Soho',date:'Mon–Sat, 3pm–1am',
-        price:'£40pp',match:88,booked:224,tags:['Whisky','Art deco','Intimate']},
+        price:'£40pp',match:88,booked:224,tags:['Whisky','Art deco','Intimate'],venue_status:'active'},
         {id:'wh64',cat:'latenight',gradient:'wh-gradient-latenight',emoji:'🎶',trending:'🔥 Trending',trendCls:'hot',
         img:'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80',
         name:'The Blues Kitchen – Live Music',venue:'Camden, Shoreditch, Brixton',date:'Every night',
-        price:'Free–£15',match:86,booked:312,tags:['Blues','Southern food','Dancing']},
+        price:'Free–£15',match:86,booked:312,tags:['Blues','Southern food','Dancing'],venue_status:'active'},
+        // DINING — Matcha
+        {id:'wh65',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍵',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=600&q=80',
+        name:'Jenki Matcha – Soho',venue:'Lexington Street, Soho',date:'Open daily',
+        price:'£15pp',match:88,booked:234,tags:['Matcha','Aesthetic','Calm'],venue_status:'active'},
+        {id:'wh66',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍵',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1563822249366-3efb23b8e0c9?w=600&q=80',
+        name:'Tsujiri – Kyoto Matcha House',venue:'Wardour Street, Soho',date:'Open daily',
+        price:'£18pp',match:91,booked:167,tags:['Kyoto matcha','Mochi','Soft serve'],venue_status:'active'},
+        {id:'wh67',cat:'activity',gradient:'wh-gradient-activity',emoji:'🍵',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&q=80',
+        name:'Cubo – Matcha Ceremony for Two',venue:'Redchurch Street, Shoreditch',date:'Wed–Sun',
+        price:'£55pp',match:90,booked:143,tags:['Hands-on','Japanese','Intimate'],venue_status:'active'},
+        // SOCIAL — Toca, Crazy Golf, Padel
+        {id:'wh73',cat:'activity',gradient:'wh-gradient-activity',emoji:'⚽',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1511882150382-421056c89033?w=600&q=80',
+        name:'Toca Social – Football Arcade',venue:'The O2, Greenwich',date:'Open daily',
+        price:'£25pp',match:87,booked:342,tags:['Interactive','Cocktails','Competitive'],venue_status:'active'},
+        {id:'wh74',cat:'activity',gradient:'wh-gradient-activity',emoji:'⛳',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&q=80',
+        name:'Swingers – Crazy Golf & Cocktails',venue:'City & West End',date:'Open daily',
+        price:'£28pp',match:89,booked:387,tags:['Crazy golf','Street food','Date night'],venue_status:'active'},
+        {id:'wh75',cat:'activity',gradient:'wh-gradient-activity',emoji:'🎾',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&q=80',
+        name:'Padel – Court Session for Two',venue:'Various London locations',date:'Open daily',
+        price:'£22pp',match:83,booked:178,tags:['Padel','Competitive','Active'],venue_status:'active'},
+        // FITNESS — Boxing, Yoga, Pilates
+        {id:'wh68',cat:'activity',gradient:'wh-gradient-activity',emoji:'🥊',trending:'🔥 Trending',trendCls:'hot',
+        img:'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=600&q=80',
+        name:'Kobox – Boxing Date Night',venue:'King\'s Road, Chelsea',date:'Open daily',
+        price:'£28pp',match:85,booked:198,tags:['Boxing','Competitive','High energy'],venue_status:'active'},
+        {id:'wh69',cat:'activity',gradient:'wh-gradient-activity',emoji:'🧘',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+        name:'Triyoga – Flow & Brunch',venue:'Camden, Shoreditch, Chelsea',date:'Open daily',
+        price:'£30pp',match:88,booked:156,tags:['Yoga','Brunch','Mindful'],venue_status:'active'},
+        {id:'wh70',cat:'activity',gradient:'wh-gradient-activity',emoji:'🤸',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&q=80',
+        name:'Heartcore – Reformer Pilates for Two',venue:'Notting Hill, Fitzrovia',date:'Open daily',
+        price:'£35pp',match:84,booked:134,tags:['Pilates','Reformer','Side-by-side'],venue_status:'active'},
+        {id:'wh71',cat:'activity',gradient:'wh-gradient-activity',emoji:'🥊',trending:'Rising',trendCls:'rising',
+        img:'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=600&q=80',
+        name:'BXR Boxing – Pad Work Session',venue:'Chiltern Street, Marylebone',date:'Open daily',
+        price:'£25pp',match:82,booked:167,tags:['Boxing','Luxury gym','Endorphins'],venue_status:'active'},
+        {id:'wh72',cat:'wellness',gradient:'wh-gradient-wellness',emoji:'🧘',trending:'New this week',trendCls:'new',
+        img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&q=80',
+        name:'Hotpod Yoga – 37° Pod Session',venue:'Various London locations',date:'Open daily',
+        price:'£16pp',match:80,booked:212,tags:['Hot yoga','Intimate','Relaxing'],venue_status:'active'},
       ];
 
       let _whCat='all';
@@ -811,12 +2858,16 @@
       function renderWhatsHot(){
         const feed=document.getElementById('wh-feed');
         if(!feed)return;
-        const items=_whCat==='all'?WHATS_HOT_DATA:WHATS_HOT_DATA.filter(i=>i.cat===_whCat);
+        const items=(_whCat==='all'?WHATS_HOT_DATA:WHATS_HOT_DATA.filter(i=>i.cat===_whCat)).filter(i=>!i.venue_status||i.venue_status==='active');
         const catLabels={concert:'Concert',dining:'Dining',experience:'Experience',activity:'Activity',rooftop:'Rooftop',theatre:'Theatre',wellness:'Wellness',latenight:'Late Night'};
         const pinSVG=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
         const peopleSVG=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
+        if(!items.length){
+          feed.innerHTML='<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.2);font-size:13px">Nothing in this category this week. <span style="color:rgba(201,168,76,0.5);cursor:pointer" onclick="whFilter(\'all\',document.querySelector(\'.wh-chip\'))">Show all</span></div>';
+          return;
+        }
         feed.innerHTML=items.map(item=>`
-          <div class="wh-card">
+          <div class="wh-card" onclick="whOpenDetail(${JSON.stringify(item).replace(/"/g,'&quot;')})">
             <div class="wh-card-top ${item.gradient}">
               <img class="wh-card-img" src="${item.img}" alt="${item.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
               <div class="wh-card-top-inner">${item.emoji}</div>
@@ -833,16 +2884,62 @@
               <div class="wh-tags">${item.tags.map(t=>`<span class="wh-tag">${t}</span>`).join('')}</div>
               <div class="wh-footer">
                 <div>
-                  <div class="wh-booked">${peopleSVG} <span class="wh-booked-count">${item.booked}</span>&nbsp;couples booked this week</div>
+                  <div class="wh-booked">${peopleSVG} <span class="wh-booked-count">${item.booked}</span>&nbsp;people booked this week</div>
                   <div class="wh-price">${item.price}<span class="wh-price-note">av. per person</span></div>
                 </div>
-                <button class="wh-save-btn" onclick="saveToWishlist('${item.name.replace(/'/g,"\\'")}','✦','${item.price.replace(/'/g,"\\'")}','${item.cat}','Trending in London — ${item.match}% match');this.innerHTML='✓ Saved';this.style.background='rgba(74,222,128,0.15)';this.style.borderColor='rgba(74,222,128,0.4)';this.style.color='#4ADE80'">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-                  Save
-                </button>
+                <div style="display:flex;gap:6px;align-items:center">
+                  <button class="wh-save-btn" onclick="event.stopPropagation();shareIdea('${item.name.replace(/'/g,"\\'")}','${item.venue.replace(/'/g,"\\'")}','${item.price.replace(/'/g,"\\'")}')" style="padding:9px 11px;min-width:0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+                  </button>
+                  <button class="wh-save-btn" onclick="event.stopPropagation();saveToWishlist('${item.name.replace(/'/g,"\\'")}','✦','${item.price.replace(/'/g,"\\'")}','${item.cat}','Trending in London — ${item.match}% match');this.innerHTML='✓ Saved';this.style.background='rgba(74,222,128,0.15)';this.style.borderColor='rgba(74,222,128,0.4)';this.style.color='#4ADE80'">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+                    Save
+                  </button>
+                </div>
               </div>
             </div>
           </div>`).join('');
+      }
+
+      function whOpenDetail(item){
+        const catLabels={concert:'Concert',dining:'Dining',experience:'Experience',activity:'Activity',rooftop:'Rooftop',theatre:'Theatre',wellness:'Wellness',latenight:'Late Night'};
+        const catLabel=catLabels[item.cat]||item.cat;
+        const safeName=item.name.replace(/'/g,"\\'");
+        const safeVenue=item.venue.replace(/'/g,"\\'");
+        const safePrice=item.price.replace(/'/g,"\\'");
+        const ov=document.getElementById('bf-overlay');
+        const el=document.getElementById('bf-content');
+        if(!ov||!el)return;
+        el.innerHTML=`
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--rose-dark)">${catLabel} · ${item.match}% match</div>
+            <button class="btn btn-sm" onclick="closeBf()" style="font-size:11px;padding:4px 10px">✕</button>
+          </div>
+          <div style="border-radius:14px;overflow:hidden;margin-bottom:14px;position:relative">
+            <img src="${item.img}" alt="${item.name}" style="width:100%;height:180px;object-fit:cover;display:block" onerror="this.style.display='none'">
+            <div style="position:absolute;top:10px;left:10px" class="wh-trending-pill ${item.trendCls}">${item.trending}</div>
+          </div>
+          <div style="font-size:20px;font-weight:700;color:#fff;margin-bottom:4px;font-family:var(--font-serif)">${item.name}</div>
+          <div style="font-size:12px;color:var(--subtle);margin-bottom:10px;display:flex;align-items:center;gap:5px">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            ${item.venue} · ${item.date}
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">
+            ${item.tags.map(t=>`<span class="wh-tag">${t}</span>`).join('')}
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:10px;border-left:2px solid var(--rose)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <span style="font-size:12px;color:var(--subtle)"><strong style="color:#C9A84C">${item.booked}</strong> people booked this week</span>
+          </div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px">
+            <div style="font-size:18px;font-weight:700;color:#fff">${item.price}<span style="font-size:11px;color:var(--subtle);font-weight:400;margin-left:4px">per person</span></div>
+          </div>
+          <button class="btn btn-rose" style="width:100%;justify-content:center;padding:14px;border-radius:12px;font-size:15px;font-weight:700" onclick="closeBf();initiateBooking('${safeName}','${safePrice}','partner_handoff',null)">Book via partner ↗</button>
+          <div style="display:flex;gap:8px;margin-top:8px">
+            <button class="btn" style="flex:1;justify-content:center;padding:11px;font-size:12px;border-radius:10px" onclick="event.stopPropagation();saveToWishlist('${safeName}','✦','${safePrice}','${item.cat}','Trending in London');closeBf()">Save to wishlist</button>
+            <button class="btn" style="flex:1;justify-content:center;padding:11px;font-size:12px;border-radius:10px" onclick="event.stopPropagation();shareIdea('${safeName}','${safeVenue}','${safePrice}');closeBf()">Share</button>
+          </div>`;
+        ov.style.display='flex';document.body.style.overflow='hidden';
       }
 
       let _currentSuggestions=[];  // stores last 4 ideas shown — needed for Sophie share link
@@ -860,7 +2957,7 @@
       }
 
       function _updateFilterSummary(){
-        const vibeLabels={romantic:'Romantic',fun:'Fun & Flirty',outdoor:'Chill & Cozy',all:'Unique'};
+        const vibeLabels={romantic:'Restaurant',fun:'Nightlife',outdoor:'Outdoors',all:'Activity'};
         const budgetLabels=['Under £50','£50–£150','£150–£300','£300+'];
         const sliderEl=document.getElementById('budget-slider');
         const budgetVal=sliderEl?parseInt(sliderEl.value):1;
@@ -870,334 +2967,268 @@
         if(el)el.textContent=`${vLabel} · ${bLabel}`;
       }
 
+      function setMoodFilter(el,energy){
+        document.querySelectorAll('#mood-chips .occasion-chip').forEach(c=>c.classList.remove('active'));
+        el.classList.add('active');
+        _moodEnergy=energy==='low'?'tired':energy==='high'?'energetic':'moderate';
+        _trackEvent('mood_filter_changed',{energy:energy});
+        // Update stored prefs so generateSuggestions picks it up
+        const profile=_getUserProfile()||{};
+        if(profile.preferences)profile.preferences.energy_level=energy;
+        _saveUserProfile(profile);
+      }
+
       function curateAndCollapse(){
-        // Collapse the filter panel
-        _discoverFilterOpen=false;
-        const panel=document.getElementById('discover-filter-panel');
-        const chevron=document.getElementById('discover-filter-chevron');
-        if(panel){panel.style.display='none';}
-        if(chevron){chevron.style.transform='rotate(0deg)';}
-        // Update summary text
-        _updateFilterSummary();
-        // Show mood check-in then generate
-        showMoodCheckIn();
+        generateSuggestions();
       }
 
       function generateSuggestions(_instant){
+        _trackEvent('refresh_clicked',{instant:!!_instant});
+        const area=document.getElementById('suggestions-area');
+
+        // Gather preferences: onboarding prefs are the foundation
+        const profile=_getUserProfile()||{};
+        const prefs=Object.assign({},profile.preferences||_obPrefs||{});
+
+        // Sync UI controls to match stored prefs (first load)
         const sliderEl=document.getElementById('budget-slider');
-        const sliderVal=sliderEl?parseInt(sliderEl.value):1;
-        const budget=BUDGET_KEYS[sliderVal]||'mid';
+        if(sliderEl&&!sliderEl._synced&&prefs.budget){
+          const budgetIdx={under50:0,'50to150':1,'150to300':2,'300plus':3}[prefs.budget];
+          if(budgetIdx!=null){sliderEl.value=budgetIdx;updateBudgetLabel(budgetIdx);}
+          sliderEl._synced=true;
+        }
+        // Sync mood chips to stored energy
+        if(prefs.energy_level){
+          document.querySelectorAll('#mood-chips .occasion-chip').forEach(c=>{
+            c.classList.toggle('active',c.dataset.energy===prefs.energy_level);
+          });
+        }
+
+        // Budget slider overrides stored pref (user changed it)
+        if(sliderEl){
+          const sv=parseInt(sliderEl.value);
+          const bk=['under50','50to150','150to300','300plus'][isNaN(sv)?1:sv];
+          if(bk)prefs.budget=bk;
+        }
+        // Mood energy from current UI state
+        const activeChip=document.querySelector('#mood-chips .occasion-chip.active');
+        if(activeChip)prefs.energy_level=activeChip.dataset.energy||'moderate';
+        if(!prefs.energy_level)prefs.energy_level='moderate';
+
         const locEl=document.getElementById('loc-select');
         const loc=locEl?locEl.value:'London, UK';
-        let vibe=_vibeType||'all';
-        let activeTags=_vibeTag?[_vibeTag]:[];
-        const occasionLabel={first_date:'First date',partner:'My partner',special:'Special occasion',just_because:'Just because',anniversary:'Anniversary',birthday:'Birthday',valentines:"Valentine's",proposal:'Proposal',celebration:'Celebration',milestone:'Milestone'}[_occasion]||'';
-        const area=document.getElementById('suggestions-area');
-        const loadMsg=_occasion==='proposal'?'Finding the perfect proposal evening ✦...'
-          :_occasion==='anniversary'?'Finding the perfect anniversary for Jamie & Sophie...'
-          :_occasion==='birthday'?'Finding the perfect birthday evening...'
-          :_occasion==='valentines'?"Finding the perfect Valentine's evening..."
-          :_occasion==='first_date'?'Finding the perfect first date ideas for Jamie...'
-          :_occasion==='just_because'?'Finding a great night out — just because ♥...'
-          :['celebration','milestone','special'].includes(_occasion)?'Finding something truly special for Jamie & Sophie...'
-          :'Matching ideas to Jamie & Sophie\'s tastes...';
-        if(!_instant) area.innerHTML=`<div class="card"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">${loadMsg}</div></div></div>`;
-        setTimeout(()=>{
-          let allIdeas=[...(IDEAS[budget]||IDEAS.mid)];
+        const locShort=loc.split(',')[0].trim();
+        const userName=_userName();
 
-          // ── Feature 3: Dietary — push veg-unfriendly to the back ──
-          const vegFiltered=allIdeas.filter(i=>_VEG_UNFRIENDLY.has(i.name));
-          allIdeas.sort((a,b)=>{
-            const aOk=!_VEG_UNFRIENDLY.has(a.name),bOk=!_VEG_UNFRIENDLY.has(b.name);
-            return aOk===bOk?0:(aOk?-1:1);
-          });
+        // Loading skeleton
+        const loadMsg='Building personalised plans for '+userName+'...';
+        if(!_instant) area.innerHTML=`<div style="padding:20px 0">
+          <div style="background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:16px;padding:20px;margin-bottom:12px">
+            <div class="skeleton-text" style="width:55%;height:16px"></div>
+            <div class="skeleton-text" style="width:80%;height:12px"></div>
+            <div style="display:flex;gap:8px;margin-top:14px"><div class="skeleton-text" style="width:70px;height:20px;border-radius:10px;margin:0"></div><div class="skeleton-text" style="width:70px;height:20px;border-radius:10px;margin:0"></div></div>
+            <div class="skeleton" style="height:80px;border-radius:12px;margin-top:14px"></div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:16px;padding:20px">
+            <div class="skeleton-text" style="width:45%;height:16px"></div>
+            <div class="skeleton-text" style="width:70%;height:12px"></div>
+            <div class="skeleton" style="height:80px;border-radius:12px;margin-top:14px"></div>
+          </div>
+          <div style="text-align:center;padding:16px 0;font-size:12px;color:rgba(255,255,255,0.3)">${loadMsg}</div>
+        </div>`;
 
-          let ideas=[...allIdeas];
-          if(vibe!=='all') ideas=ideas.filter(i=>i.type===vibe).concat(ideas.filter(i=>i.type!==vibe)).slice(0,4);
-          if(activeTags.length) ideas.sort((a,b)=>{
-            const sa=activeTags.filter(t=>a.vibes.includes(t)).length;
-            const sb=activeTags.filter(t=>b.vibes.includes(t)).length;
-            return sb-sa;
-          });
-          ideas=ideas.slice(0,4);
-
-          // ── Love language scoring boost ──
-          const sLL=_LL_IDEA_MAP[_sophieLoveLang]||{vibes:[],types:[]};
-          const jLL=_LL_IDEA_MAP[_jamieLoveLang]||{vibes:[],types:[]};
-          function llMatchScore(idea,llMap){
-            const vibeHit=llMap.vibes.some(v=>idea.vibes.includes(v))?1:0;
-            const typeHit=(llMap.types.includes('all')||llMap.types.includes(idea.type))?1:0;
-            return vibeHit+typeHit;
-          }
-          ideas.sort((a,b)=>{
-            const sa=llMatchScore(a,sLL)+llMatchScore(a,jLL);
-            const sb=llMatchScore(b,sLL)+llMatchScore(b,jLL);
-            return sb-sa;
-          });
-
-          // ── Feature 5: Weather-aware sort ──
-          const _RAINY_CODES=[51,53,55,61,63,65,71,73,75,80,81,82,95,96,99];
-          const _isRainy=_RAINY_CODES.includes(_weatherCode);
-          const _isClearWarm=[0,1,2].includes(_weatherCode)&&_weatherTemp>=15;
-          let _weatherBanner='';
-          if(_isRainy){
-            ideas.sort((a,b)=>{
-              const aOut=a.type==='outdoor'||a.vibes.includes('Outdoor seats');
-              const bOut=b.type==='outdoor'||b.vibes.includes('Outdoor seats');
-              return aOut===bOut?0:(aOut?1:-1);
-            });
-            _weatherBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#EFF6FF;border:0.5px solid #93C5FD;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#1e3a5f"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M16 14v6"/><path d="M8 14v6"/><path d="M12 16v6"/></svg><div><span style="font-weight:600;color:#1D4ED8">It's raining (${_weatherTemp}°C)</span> — outdoor options moved to the bottom. Indoor dining & experiences first.</div></div>`;
-          } else if(_isClearWarm){
-            ideas.sort((a,b)=>{
-              const aOut=a.type==='outdoor'||a.vibes.includes('Outdoor seats');
-              const bOut=b.type==='outdoor'||b.vibes.includes('Outdoor seats');
-              return aOut===bOut?0:(aOut?-1:1);
-            });
-            _weatherBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#FFFBEB;border:0.5px solid #FCD34D;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#78350F"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg><div><span style="font-weight:600;color:#B45309">Clear evening (${_weatherTemp}°C)</span> — rooftop, garden & outdoor options moved to the top.</div></div>`;
-          }
-
-          // ── Mood-aware sort ──
-          let _moodBanner='';
-          if(_moodEnergy==='tired'){
-            ideas.sort((a,b)=>{
-              const aCozy=['romantic','foodie'].includes(a.type)||a.vibes.includes('Intimate')||a.vibes.includes('Candlelit');
-              const bCozy=['romantic','foodie'].includes(b.type)||b.vibes.includes('Intimate')||b.vibes.includes('Candlelit');
-              return aCozy===bCozy?0:(aCozy?-1:1);
-            });
-            _moodBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF8FF,#F5F0FA);border:0.5px solid var(--plum-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--plum)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg><div><span style="font-weight:600">Low energy tonight</span> — cosy, intimate & effortless options moved to the top.</div></div>`;
-          } else if(_moodEnergy==='energetic'){
-            ideas.sort((a,b)=>{
-              const aActive=['outdoor','fun','cultural'].includes(a.type);
-              const bActive=['outdoor','fun','cultural'].includes(b.type);
-              return aActive===bActive?0:(aActive?-1:1);
-            });
-            _moodBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border:0.5px solid #FCD34D;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#78350F"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><div><span style="font-weight:600">You've got energy tonight</span> — active, cultural & immersive experiences at the top.</div></div>`;
-          }
-
-          // ── Double-date banner ──
-          let _ddBanner='';
-          if(_doubleDateMode){
-            const n1=document.getElementById('dd-name1')?.value||'Alex';
-            const n2=document.getElementById('dd-name2')?.value||'Jordan';
-            _ddBanner=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#EFF6FF;border:0.5px solid #93C5FD;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#1e3a5f"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><div><span style="font-weight:600">Double-date mode</span> — planning for Jamie, Sophie, ${n1} & ${n2}. Pick an idea all four will love.</div></div>`;
-          }
-
-          const topScore=Math.max(...ideas.map(i=>i.score));
-
-          // ── Popularity boost: popular + preference-matched ideas float to top ──
-          const POP_THRESHOLD=45;
-          ideas.forEach(i=>{i._pop=_bookedCount(i.name,i.score,i.type);});
-          ideas.sort((a,b)=>{
-            const aHot=a._pop>=POP_THRESHOLD&&a.score>=65;
-            const bHot=b._pop>=POP_THRESHOLD&&b.score>=65;
-            return aHot===bHot?0:(aHot?-1:1);
-          });
-
-          const occasionSuffix='';
-          const occasionLine=occasionLabel?`<div style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--primary);margin-top:4px;border-bottom:1px solid rgba(201,168,76,0.3);display:inline-block;padding-bottom:2px">${occasionLabel}</div>`:'';
-
-          // ── Feature 1: both-loved summary ──
-          const bothLoved=Object.entries(_votes).filter(([,v])=>v.j===true&&v.s===true).map(([k])=>k);
-
-          // ── Love language context line ──
-          const sLLLabel=_LL_LABELS[_sophieLoveLang]||'';
-          const jLLLabel=_LL_LABELS[_jamieLoveLang]||'';
-          const sLLIcon=_LL_ICONS[_sophieLoveLang]||'';
-          const jLLIcon=_LL_ICONS[_jamieLoveLang]||'';
-
-          const locShort=loc.split(',')[0].trim();
-          let html=`<div class="section-head" style="flex-wrap:wrap"><div><div class="section-title" style="font-family:var(--font-serif);font-size:17px;letter-spacing:-0.2px">Here's what you're doing in ${locShort}</div>${occasionLine}</div><div class="section-link" onclick="generateSuggestions()">Refresh ↺</div></div>`;
-          html+=`<div id="ll-personalisation-banner" style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:linear-gradient(135deg,#FDF0F3,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft);transition:opacity 0.6s ease">
-            <span style="font-size:15px">♥</span>
-            <div><span style="font-weight:600;color:var(--ink)">Personalised for your love languages</span> · <span style="color:var(--rose-dark)">${jLLIcon} Jamie: ${jLLLabel}</span> &nbsp;·&nbsp; <span style="color:var(--plum)">${sLLIcon} Sophie: ${sLLLabel}</span>
-            <div style="margin-top:2px;color:var(--ink-muted)">Ideas ranked to match how you each feel most loved — <a href="#" onclick="event.preventDefault();go('profiles',document.querySelector('[onclick*=profiles]'))" style="color:var(--rose-dark);text-decoration:none">update in profiles ↗</a></div></div>
-          </div>`;
-          if(_jamieSign||_sophieSign){
-            const jCosmic=_jamieSign?`${_SIGN_EMOJI[_jamieSign]||'✦'} ${_jamieSign}${_jamieLPNum?' · LP'+_jamieLPNum:''}${_jamieZodiac?' · '+_jamieZodiac:''}`:null;
-            const sCosmic=_sophieSign?`${_SIGN_EMOJI[_sophieSign]||'✦'} ${_sophieSign}${_sophieLPNum?' · LP'+_sophieLPNum:''}${_sophieZodiac?' · '+_sophieZodiac:''}`:null;
-            const cosmicParts=[jCosmic?`<span style="color:var(--rose-dark)">Jamie: ${jCosmic}</span>`:'',sCosmic?`<span style="color:var(--plum)">Sophie: ${sCosmic}</span>`:''].filter(Boolean).join(' &nbsp;·&nbsp; ');
-            html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:var(--bg2);border:0.5px solid var(--bdr);border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:var(--ink-soft)">
-              <span style="font-size:15px">✦</span>
-              <div><span style="font-weight:600;color:var(--ink)">Cosmic profile</span> · ${cosmicParts}
-              ${(!_jamieSign||!_sophieSign)?'<div style="margin-top:2px;color:var(--ink-muted)">Add both birthdates to see full cosmic compatibility</div>':''}</div>
+        setTimeout(async()=>{
+          // Generate plans from engine (async — tries DB first)
+          let plans;
+          try{
+            plans=await _generatePlans(prefs);
+          }catch(err){
+            _captureError(err,{context:'plan_generation',source:'generateSuggestions'});
+            area.innerHTML=`<div style="text-align:center;padding:40px 20px">
+              <div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:6px">Couldn't load plans</div>
+              <div style="font-size:12.5px;color:rgba(255,255,255,0.35);margin-bottom:16px;line-height:1.5">Something went wrong on our end. Your preferences are safe — give it another go.</div>
+              <button class="btn btn-rose" style="font-size:13px;padding:10px 20px" onclick="generateSuggestions()">Try again</button>
+              <div style="margin-top:10px"><span style="font-size:10px;color:rgba(255,255,255,0.15);cursor:pointer" onclick="_trackEvent('support_clicked',{});openFeedback()">Report this issue</span></div>
             </div>`;
+            return;
+          }
+          _currentPlans=plans;
+
+          let html='';
+
+          // Hide value prop after first real generation
+          const vpEl=document.getElementById('discover-value-prop');
+          if(vpEl&&plans.length)vpEl.style.display='none';
+
+          // ── Header ──
+          html+=`<div class="section-head" style="flex-wrap:wrap;margin-bottom:14px"><div><div class="section-title" style="font-family:var(--font-serif);font-size:17px;letter-spacing:-0.2px">${plans.length} plan${plans.length!==1?'s':''} for ${locShort}</div><div style="font-size:12px;color:rgba(255,255,255,0.48);margin-top:3px">Tap any plan to see the details</div></div><div class="section-link" onclick="generateSuggestions()">Refresh</div></div>`;
+
+          // ── Weather banner ──
+          if(_weatherCode>=0){
+            const rainy=[51,53,55,61,63,65,71,73,75,80,81,82,95,96,99].includes(_weatherCode);
+            const clearWarm=[0,1,2].includes(_weatherCode)&&_weatherTemp>=15;
+            if(rainy){
+              html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:12px;font-size:11.5px;color:rgba(255,255,255,0.55)"><span>🌧</span><div><span style="font-weight:600;color:rgba(255,255,255,0.75)">Raining (${_weatherTemp}°C)</span> — indoor plans prioritised</div></div>`;
+            }else if(clearWarm){
+              html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;margin-bottom:12px;font-size:11.5px;color:rgba(255,255,255,0.55)"><span>☀️</span><div><span style="font-weight:600;color:rgba(255,255,255,0.75)">Clear evening (${_weatherTemp}°C)</span> — outdoor options boosted</div></div>`;
+            }
           }
 
-          // ── Feature 4: Occasion-aware smart nudges ──
-          const today=new Date();
-          const todayStr=today.toISOString().slice(0,10);
-          // Check for upcoming hotel check-ins (next 7 days) without a cab booked same day
-          const upcomingCheckins=reminders.filter(r=>{
-            if(r.cat!=='Hotel check-in') return false;
-            const diff=Math.round((new Date(r.date+' 12:00')-today)/(1000*60*60*24));
-            return diff>=0&&diff<=7;
-          });
-          upcomingCheckins.forEach(checkin=>{
-            const hasCab=bookings.some(b=>b.type==='cab'&&b.date===checkin.date);
-            if(!hasCab){
-              const daysAway=Math.round((new Date(checkin.date+' 12:00')-today)/(1000*60*60*24));
-              const whenStr=daysAway===0?'today':daysAway===1?'tomorrow':`in ${daysAway} days`;
-              html+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#EFF6FF,#EEF2FF);border:0.5px solid #93C5FD;border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:#1e3a5f">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/><path d="M9 14h6"/><path d="M9 18h6"/></svg>
-                <div style="flex:1"><span style="font-weight:600">${checkin.title}</span> is ${whenStr} — no cab booked yet.
-                <span style="color:#1D4ED8;cursor:pointer;font-weight:500" onclick="go('cabs',document.querySelector('[onclick*=cabs]'))"> Book transport ↗</span></div>
+          // ── How we built these plans ──
+          {
+            const reasons=[];
+            const modeLabel={couple:'you and '+_partnerName(),solo:'a solo outing',friends:'a group'}[prefs.date_mode]||'you';
+            const budgetLabel={under50:'under £50pp','50to150':'£50–150pp','150to300':'£150–300pp','300plus':'£300+pp'}[prefs.budget]||'';
+            const energyLabel={low:'relaxed, low-effort venues',moderate:'a mix of dining and activities',high:'active and adventurous experiences'}[prefs.energy_level]||'';
+            if(prefs.date_mode)reasons.push('Planning for '+modeLabel);
+            if(budgetLabel)reasons.push(budgetLabel+' budget');
+            if(energyLabel)reasons.push('prioritising '+energyLabel);
+            if(prefs.interests&&prefs.interests.length){
+              const intLabels={dining:'restaurants',culture:'cultural venues',outdoors:'outdoor spots',nightlife:'nightlife',wellness:'wellness',active:'activities',music:'live music',cooking:'cooking'};
+              const intStr=prefs.interests.slice(0,3).map(i=>intLabels[i]||i).join(', ');
+              reasons.push('focused on '+intStr);
+            }
+            if(prefs.setting==='indoor')reasons.push('indoor only');
+            else if(prefs.setting==='outdoor')reasons.push('outdoor preferred');
+            // Refine filter labels
+            if(_rfActive&&typeof _rfFilters!=='undefined'){
+              const rf=_rfFilters;
+              const rfLabels={occasion:{first_date:'first date',casual:'casual date',anniversary:'anniversary',friends:'friends night',special:'special occasion'},time:{daytime:'daytime',evening:'evening',late_night:'late night',weekend:'weekend'},setting:{indoor:'indoor',outdoor:'outdoor',both:'indoor or outdoor'},area:{central:'Central London',east:'East London',south:'South London',north:'North London',west:'West London'},food:{dinner:'dinner',drinks:'drinks only',activity_first:'activity first',no_food:'no food',veg_friendly:'vegetarian-friendly'}};
+              if(rf.occasion&&rfLabels.occasion[rf.occasion])reasons.push(rfLabels.occasion[rf.occasion]);
+              if(rf.time&&rfLabels.time[rf.time])reasons.push(rfLabels.time[rf.time]);
+              if(rf.setting&&rfLabels.setting[rf.setting])reasons.push(rfLabels.setting[rf.setting]);
+              if(rf.area&&rfLabels.area[rf.area])reasons.push(rfLabels.area[rf.area]);
+              if(rf.style&&rf.style.length)reasons.push(rf.style.join(', ')+' vibe');
+              if(rf.food&&rfLabels.food[rf.food])reasons.push(rfLabels.food[rf.food]);
+            }
+            if(reasons.length){
+              html+=`<div style="padding:10px 14px;background:rgba(255,255,255,0.02);border:0.5px solid rgba(255,255,255,0.06);border-radius:12px;margin-bottom:14px;font-size:12px;color:rgba(255,255,255,0.5);line-height:1.6">${reasons.join(' · ')}${_rfActive?' · <span style="color:rgba(201,168,76,0.6);cursor:pointer" onclick="openRefineSheet()">edit filters</span>':''}</div>`;
+            }
+          }
+
+          // ── Weak results / limited variety notice ──
+          const avgScore=plans.length?Math.round(plans.reduce((s,p)=>s+p.score,0)/plans.length):0;
+          if(plans.length&&plans._nearDupe&&_shownSlugs.length>1){
+            html+=`<div style="padding:10px 14px;background:rgba(201,168,76,0.04);border:0.5px solid rgba(201,168,76,0.12);border-radius:12px;margin-bottom:14px;font-size:11.5px;color:rgba(201,168,76,0.6);line-height:1.6">You've seen most of the strong options for these filters. <span style="cursor:pointer;text-decoration:underline" onclick="openRefineSheet()">Adjust your filters</span> or <span style="cursor:pointer;text-decoration:underline" onclick="rfClear();generateSuggestions()">clear filters</span> for more variety.</div>`;
+          }else if(plans.length&&avgScore<50){
+            html+=`<div style="padding:10px 14px;background:rgba(250,204,21,0.04);border:0.5px solid rgba(250,204,21,0.12);border-radius:12px;margin-bottom:14px;font-size:11.5px;color:rgba(250,204,21,0.65);line-height:1.6">Stretching a bit to find good plans. <span style="cursor:pointer;text-decoration:underline" onclick="startOnboarding()">Update your preferences</span> for better results.</div>`;
+          }
+
+          // ── Plan cards ──
+          if(plans.length){
+            plans.forEach((plan,idx)=>{
+              const st=(_planStates[plan.id]&&_planStates[plan.id].status)||plan.status;
+              const isFirst=idx===0;
+              const statusLabel={draft:'Draft',generated:'New',viewed:'Viewed',saved:'Saved',active:'Active'}[st]||st;
+              const statusClass='plan-status-'+st;
+
+              html+=`<div class="plan-card${st==='active'?' plan-card-active':''}" data-plan-id="${plan.id}">`;
+
+              // Header — score renamed to "Shared fit"
+              const fitLabel=plan.score>=85?'Strong':plan.score>=70?'Good':'Fair';
+              html+=`<div class="plan-card-header" onclick="togglePlanDetails('${plan.id}')">
+                <div style="flex:1;min-width:0">
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <div class="plan-card-title">${plan.title}</div>
+                    <span class="plan-status-badge ${statusClass}">${statusLabel}</span>
+                  </div>
+                  <div class="plan-card-summary">${plan.summary}</div>
+                  ${plan.fit_reason?`<div class="plan-fit-reason">${plan.fit_reason}</div>`:''}
+                </div>
+                <div class="plan-score-ring" title="Shared fit score — ${plan.score}%">
+                  <div class="plan-score-val">${plan.score}</div>
+                  <div class="plan-score-label">${fitLabel}</div>
+                </div>
               </div>`;
-            }
-          });
-          // Check for anniversary reminders within 14 days
-          const anniversaryRems=reminders.filter(r=>{
-            const titleLower=r.title.toLowerCase();
-            if(!titleLower.includes('anniversary')&&r.cat!=='Personal') return false;
-            if(!titleLower.includes('anniversary')) return false;
-            const diff=Math.round((new Date(r.date+' 12:00')-today)/(1000*60*60*24));
-            return diff>=0&&diff<=14;
-          });
-          anniversaryRems.forEach(ann=>{
-            const annBooking=bookings.find(b=>b.date===ann.date||(b.name||'').toLowerCase().includes('anniversary'));
-            if(!annBooking){
-              const diff=Math.round((new Date(ann.date+' 12:00')-today)/(1000*60*60*24));
-              const daysStr=diff===0?'is today':diff===1?'is tomorrow':`is in ${diff} day${diff!==1?'s':''}`;
-              html+=`<div style="display:flex;align-items:center;gap:10px;padding:11px 14px;background:linear-gradient(135deg,#FDF8F0,#FEF0F3);border:1.5px solid var(--rose-mid);border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:var(--rose-dark)">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>
-                <div style="flex:1"><span style="font-weight:600">Your anniversary ${daysStr}</span> — nothing booked yet.
-                <span style="font-weight:500;cursor:pointer" onclick="_occasion='anniversary';generateSuggestions()"> Plan something special ↗</span></div>
+
+              // Meta
+              html+=`<div class="plan-card-meta" onclick="togglePlanDetails('${plan.id}')">
+                <span>💰 ${plan.estimated_cost}</span>
+                <span>⏱ ${plan.estimated_duration}</span>
+                <span>${plan.items.length} stop${plan.items.length!==1?'s':''}</span>
               </div>`;
-            }
-          });
 
-          // ── Feature 6: Budget nudge ──
-          if(_monthlyBudget>0){
-            const nowStr=new Date().toISOString().slice(0,7);
-            const monthSpend=bookings.reduce((acc,b)=>{
-              if((b.date||'').slice(0,7)!==nowStr) return acc;
-              const n=parseFloat((b.amount||'').replace(/[£,]/g,''));
-              return acc+(isNaN(n)?0:n);
-            },0);
-            const remaining=_monthlyBudget-monthSpend;
-            const avgIdeaPrice=ideas.reduce((acc,i)=>{const n=parseFloat((i.price||'').replace(/[£, a-z]/gi,''));return acc+(isNaN(n)?0:n);},0)/Math.max(ideas.length,1);
-            if(remaining<=0){
-              html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#FEF2F2;border:0.5px solid #FCA5A5;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#991B1B"><span style="font-size:15px">⚠️</span><div><span style="font-weight:600">You've hit your £${_monthlyBudget} date budget this month.</span> Consider a free or low-cost option, or adjust your budget in <span style="cursor:pointer;text-decoration:underline" onclick="go('profiles',document.querySelector('[onclick*=profiles]'))">Profiles</span>.</div></div>`;
-            } else if(avgIdeaPrice>remaining){
-              html+=`<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:#FFFBEB;border:0.5px solid #FCD34D;border-radius:var(--r-md);margin-bottom:12px;font-size:11px;color:#78350F"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg><div><span style="font-weight:600">£${Math.round(remaining)} left in your monthly budget.</span> These ideas may run over — worth checking before you book.</div></div>`;
-            }
-          }
+              // Items (expanded for first plan)
+              html+=`<div class="plan-details" style="display:${isFirst?'block':'none'}">`;
+              plan.items.forEach((item,i)=>{
+                const _itemBi=_getBookingInfo(item.name);
+                const _ils=_itemBi.link_status||'unverified';
+                let itemStatusLabel,itemStatusClass;
+                // For combined-name items (e.g. "Kew Gardens + riverside pub"), make CTA specific to what's actually booked
+                const _isCombo=item.name.includes(' + ')&&_itemBi.provider;
+                const _itemVerified=_isVenueVerifiedLive(item.name);
+                if(item.status==='details_only'){
+                  itemStatusLabel='Free / walk-in';itemStatusClass='pis-details-only';
+                }else if(_itemVerified){
+                  itemStatusLabel=_isCombo?'Book '+_itemBi.provider:_getVenueCta(item.name);itemStatusClass='pis-bookable-now';
+                }else if((_ils==='unverified'||_ils==='needs_review')&&(_itemBi.booking_url||_itemBi.website_url)){
+                  itemStatusLabel=_isCombo?'Check '+_itemBi.provider:'Check availability';itemStatusClass='pis-partner-handoff';
+                }else if(_ils==='website_only'){
+                  itemStatusLabel=_isCombo?'View '+_itemBi.provider:'Visit website';itemStatusClass='pis-partner-handoff';
+                }else{
+                  itemStatusLabel='Save';itemStatusClass='pis-unavailable';
+                }
+                const _itemIsUnavail=_ils==='unavailable';
+                html+=`<div class="plan-item">
+                  <div class="plan-item-num">${item.order}</div>
+                  <div class="plan-item-img-wrap">
+                    <img class="plan-item-img" src="${item.img}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">
+                  </div>
+                  <div class="plan-item-body">
+                    <div class="plan-item-name">${item.name}</div>
+                    <div class="plan-item-loc">${item.loc}</div>
+                    <div class="plan-item-row">
+                      <span class="plan-item-price">${item.price}</span>
+                      <span class="plan-item-dur">${_fmtDuration(item.duration_mins)}</span>
+                      <span class="plan-item-role">${item.role}</span>
+                    </div>
+                    <div class="plan-item-why">✦ ${item.why}</div>
+                    ${_itemIsUnavail
+                      ?`<button class="plan-item-book-btn pis-unavailable" onclick="event.stopPropagation();saveToWishlist('${item.name.replace(/'/g,"\\'")}','✦','${item.price}','experience','Saved from plan')">Save</button>`
+                      :`<button class="plan-item-book-btn ${itemStatusClass}" onclick="event.stopPropagation();bookPlanItem('${plan.id}',${i})">${itemStatusLabel}</button>`}
+                  </div>
+                </div>`;
+              });
+              html+=`</div>`; // end plan-details
 
-          // Mood + double-date + weather banners
-          if(_moodBanner) html+=_moodBanner;
-          if(_ddBanner) html+=_ddBanner;
-          if(_weatherBanner) html+=_weatherBanner;
+              // Reactions — primary 2 visible, rest behind toggle
+              html+=`<div class="plan-reactions" style="padding:0 18px 10px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                <button class="plan-react" onclick="event.stopPropagation();reactToPlan('${plan.id}','love',this)">We'd love this</button>
+                <button class="plan-react" onclick="event.stopPropagation();reactToPlan('${plan.id}','not_my_vibe',this)">Not for us</button>
+                <button class="plan-react plan-react-more" onclick="event.stopPropagation();this.style.display='none';this.parentElement.querySelector('.plan-react-extra').style.display='contents'">More</button>
+                <span class="plan-react-extra" style="display:none">
+                  <button class="plan-react" onclick="event.stopPropagation();reactToPlan('${plan.id}','more_like_this',this)">More like this</button>
+                  <button class="plan-react" onclick="event.stopPropagation();reactToPlan('${plan.id}','too_expensive',this)">Over budget</button>
+                  <button class="plan-react" onclick="event.stopPropagation();reactToPlan('${plan.id}','too_far',this)">Too far out</button>
+                </span>
+              </div>`;
 
-          // Dietary notice
-          if(vegFiltered.length){
-            html+=`<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;background:#F0FDF4;border:0.5px solid #86EFAC;border-radius:var(--r-md);margin-bottom:12px;font-size:12px;color:#166534">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l10 10.5L22 2"/><path d="M12 12.5V22"/></svg><span>Sophie is vegetarian — her-friendly options shown first. <strong>${vegFiltered.length} venue${vegFiltered.length>1?'s':''}</strong> with limited veg options are at the bottom.</span>
-            </div>`;
-          }
+              // Actions
+              html+=`<div class="plan-actions">
+                <button class="plan-btn plan-btn-save" onclick="event.stopPropagation();savePlanToWishlist('${plan.id}')">♥ Save this plan</button>
+                <button class="plan-btn plan-btn-activate" onclick="event.stopPropagation();activatePlan('${plan.id}')">✦ Book each stop</button>
+              </div>`;
 
-          // Both loved banner
-          if(bothLoved.length){
-            html+=`<div style="padding:10px 14px;background:linear-gradient(135deg,#FEF0F3,#FDF4FF);border:1.5px solid var(--rose);border-radius:var(--r-md);margin-bottom:12px;display:flex;align-items:center;gap:10px">
-              <span style="font-size:20px">♥</span>
-              <div><div style="font-size:13px;font-weight:600;color:var(--rose-dark)">You both love ${bothLoved.length} idea${bothLoved.length>1?'s':''}!</div>
-              <div style="font-size:11px;color:var(--ink-muted);margin-top:2px">${bothLoved.join(' · ')}</div></div>
-            </div>`;
-          }
-
-          // ── Build swipe card stack ──
-          html+=`<div class="swipe-section">`;
-          html+=`<div class="swipe-stack" id="swipe-stack">`;
-
-          ideas.forEach((idea,idx)=>{
-            const isTop=idea.score===topScore&&idx===ideas.findIndex(i=>i.score===topScore);
-            const vegOk=!_VEG_UNFRIENDLY.has(idea.name);
-            const safeKey=idea.name.replace(/['"<>&]/g,'_');
-            const v=_votes[idea.name]||{j:null,s:null};
-            const bothLove=v.j===true&&v.s===true;
-
-            // Badge
-            const isPopular=idea._pop>=POP_THRESHOLD&&idea.score>=65;
-            const badge=bothLove?'♥ You both love this':isPopular?'✦ Popular pick':isTop?'✦ Best match':'';
-
-            // Love language badge
-            const sLLMatch=llMatchScore(idea,sLL)>0;
-            const jLLMatch=llMatchScore(idea,jLL)>0;
-            let llBadge='';
-            if(sLLMatch&&jLLMatch) llBadge=`<span class="badge badge-plum">${jLLIcon}${sLLIcon} Both love languages</span>`;
-            else if(sLLMatch) llBadge=`<span class="badge badge-plum">${sLLIcon} For Sophie</span>`;
-            else if(jLLMatch) llBadge=`<span class="badge badge-rose">${jLLIcon} For Jamie</span>`;
-
-            const cardClass=idx===0?'card-active':idx===1?'card-behind-1':idx===2?'card-behind-2':'card-behind-2';
-
-            html+=`<div class="swipe-card ${cardClass}" data-swipe-idx="${idx}" data-idea="${safeKey}">
-              <div class="swipe-card-img-wrap">
-                <img class="swipe-card-img" src="${idea.img}" alt="${idea.name}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-                <div style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;font-size:60px;background:var(--bg2)">${idea.emoji}</div>
-                ${badge?`<div class="swipe-card-top-badge" ${isPopular&&!bothLove?'style="background:rgba(234,88,12,0.92)"':''}>${badge}</div>`:''}
-              </div>
-              <div class="swipe-card-body">
-                <div class="swipe-card-name-row">
-                  <div class="swipe-card-name">${idea.name}</div>
-                  <div class="swipe-card-budget">${idea.price}</div>
-                </div>
-                <div class="swipe-card-loc"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;opacity:0.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${idea.loc}</div>
-                <div class="swipe-card-tags">
-                  ${idea.vibes.map(v=>`<span class="badge badge-rose">${v}</span>`).join('')}
-                  ${vegOk?'<span class="badge" style="background:#F0FDF4;color:#166534;border:0.5px solid #86EFAC">✓ Veg-friendly</span>':'<span class="badge badge-amber">⚠ Limited veg</span>'}
-                  ${llBadge}
-                </div>
-                <div class="swipe-card-why">✦ ${idea.why}</div>
-                <div class="swipe-card-match">
-                  <div class="swipe-card-match-bar-bg"><div class="swipe-card-match-bar" style="width:${idea.score}%"></div></div>
-                  ${idea.score}% match
-                </div>
-                ${isPopular?`<div style="margin-top:7px;display:flex;align-items:center;gap:5px;font-size:11px;color:#F97316;font-weight:600"><span>✦</span>${idea._pop} couples booked this month</div>`:''}
-              </div>
-              <div class="swipe-actions">
-                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
-                  <div class="swipe-btn swipe-btn-x" title="Not for this occasion" onclick="swipeCard(${idx},'skip')">✕</div>
-                  <span style="font-size:9px;font-weight:500;letter-spacing:0.5px;color:rgba(255,255,255,0.3);text-transform:uppercase">Not today</span>
-                </div>
-                <div class="swipe-btn swipe-btn-book" title="Book now" style="width:auto;min-width:130px;padding:0 22px;border-radius:32px;flex-direction:column;gap:2px;height:58px" onclick="swipeCard(${idx},'book','${idea.name.replace(/'/g,"\\'")}','${idea.price}','','${idea.type}')">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
-                  <span style="font-size:9.5px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;opacity:0.92">Book now</span>
-                </div>
-                <div style="display:flex;flex-direction:column;align-items:center;gap:5px">
-                  <div class="swipe-btn swipe-btn-heart" title="Save to wishlist" onclick="swipeCard(${idx},'save','${idea.name.replace(/'/g,"\\'")}','${idea.emoji}','${idea.price}','${idea.type}','${idea.why.replace(/'/g,"\\'")}')">♥</div>
-                  <span style="font-size:9px;font-weight:500;letter-spacing:0.5px;color:rgba(255,255,255,0.3);text-transform:uppercase">Save</span>
-                </div>
-                <div style="display:flex;flex-direction:column;align-items:center;gap:5px;position:absolute;right:14px;bottom:14px">
-                  <div class="swipe-btn" title="Share this idea" style="width:34px;height:34px;border-color:rgba(255,255,255,0.1);color:rgba(255,255,255,0.35);font-size:14px" onclick="event.stopPropagation();shareIdea('${idea.name.replace(/'/g,"\\'")}','${idea.loc.replace(/'/g,"\\'")}','${idea.price}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></div>
-                </div>
+              html+=`</div>`; // end plan-card
+            });
+          }else{
+            // Fallback: no plans
+            html+=`<div style="text-align:center;padding:40px 20px">
+              <div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:6px">Nothing quite right this time</div>
+              <div style="font-size:12.5px;color:rgba(255,255,255,0.35);margin-bottom:16px;line-height:1.5">Your filters might be too narrow. Try a different mood or loosen your preferences.</div>
+              <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                <button class="btn btn-rose" style="font-size:12px;padding:9px 18px" onclick="generateSuggestions()">Try again</button>
+                <button class="btn" style="font-size:12px;padding:9px 18px" onclick="startOnboarding()">Adjust preferences</button>
               </div>
             </div>`;
-          });
+          }
 
-          // Done state (shown when all cards dismissed)
-          html+=`<div class="swipe-card swipe-done" id="swipe-done-state" style="display:none;position:absolute;inset:0;z-index:5;border:0.5px solid var(--bdr)">
-            <div class="swipe-done-icon">✦</div>
-            <div class="swipe-done-title">That's all for now</div>
-            <div class="swipe-done-sub">Saved ideas are in your wishlist. Want to see different options?</div>
-            <button class="btn btn-rose" style="margin-top:8px" onclick="generateSuggestions()">Refresh ideas ↺</button>
-          </div>`;
-
-          html+=`</div>`; // end swipe-stack
-
-          // Progress dots
-          html+=`<div class="swipe-dots" id="swipe-dots">${ideas.map((_,i)=>`<div class="swipe-dot${i===0?' active':''}" data-dot="${i}"></div>`).join('')}</div>`;
-          html+=`<div class="swipe-counter" id="swipe-counter">1 of ${ideas.length}</div>`;
-          html+=`</div>`; // end swipe-section
-
-          _currentSuggestions=ideas;
           area.innerHTML=html;
 
-          // Initialise swipe state
-          window._swipeIdx=0;
-          window._swipeTotal=ideas.length;
+          // Scroll to plans
+          setTimeout(()=>{const fb=document.getElementById('discover-filter-bar');if(fb)fb.scrollIntoView({behavior:'smooth',block:'start'});},100);
 
-          // Auto-dismiss love language banner after 4s (same as personalisation panels)
-          const llBanner=document.getElementById('ll-personalisation-banner');
-          if(llBanner){setTimeout(()=>{llBanner.style.opacity='0';setTimeout(()=>{if(llBanner.parentNode)llBanner.style.display='none';},650);},4000);}
-        },_instant?0:900);
+        },_instant?0:800);
       }
 
       function swipeCard(idx,action,name,priceOrEmoji,price,type,why){
@@ -1327,10 +3358,9 @@
 
       const _BOOKING_ICONS={restaurant:_SVG.restaurant,hotel:_SVG.hotel,airbnb:_SVG.airbnb,cab:_SVG.cab,concert:_SVG.concert,theatre:_SVG.theatre,wellness:_SVG.wellness,rooftop:_SVG.rooftop,latenight:_SVG.latenight,dining:_SVG.dining,activity:_SVG.activity,experience:_SVG.experience};
       function quickBook(name,type,amount){
-        const today=new Date();
-        const date=new Date(today.getFullYear(),today.getMonth()+1,15).toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type,name,date,meta:'Just booked',amount,icon:_BOOKING_ICONS[type]||_SVG.experience});
-        updateStats();renderBookings();toast('✦ Added to your dates — '+name);
+        // Route through honest handoff flow instead of faking a booking
+        const status=type==='restaurant'?'bookable_now':'partner_handoff';
+        initiateBooking(name,amount||'',status,null);
       }
 
       // ── Restaurant availability check flow ──
@@ -1343,9 +3373,9 @@
         {name:'Kiln',area:'Soho',cuisine:'Thai',img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',rating:'4.8',reviews:'1,670',veg:false,vibes:['Vibrant','Counter dining']},
         {name:'Brat',area:'Shoreditch',cuisine:'Modern British',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',rating:'4.9',reviews:'980',veg:false,vibes:['Intimate','Fire-cooked']},
         {name:'Gymkhana',area:'Mayfair',cuisine:'Indian',img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',rating:'4.8',reviews:'1,240',veg:true,vibes:['Refined','Cultural']},
-        {name:'The Ivy',area:'Covent Garden',cuisine:'British',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',rating:'4.5',reviews:'4,200',veg:true,vibes:['Classic','Elegant']},
+        {name:'The Ivy',area:'Covent Garden',cuisine:'British',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',rating:'4.5',reviews:'4,200',veg:true,vibes:['Classic','Elegant']},
         {name:'Hakkasan',area:'Mayfair',cuisine:'Chinese',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',rating:'4.7',reviews:'2,100',veg:true,vibes:['Moody','Romantic']},
-        {name:'Bob Bob Ricard',area:'Soho',cuisine:'Anglo-Russian',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',rating:'4.6',reviews:'1,560',veg:true,vibes:['Glamorous','Fun']},
+        {name:'Bob Bob Ricard',area:'Soho',cuisine:'Anglo-Russian',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',rating:'4.6',reviews:'1,560',veg:true,vibes:['Glamorous','Fun']},
       ];
 
       // Google Places price level → readable label
@@ -1406,24 +3436,27 @@
       function checkRestAvailability(){
         const q=(document.getElementById('rest-q').value||'').trim();
         const loc=(document.getElementById('rest-loc').value||'London').trim();
-        const date=document.getElementById('rest-date').value||new Date().toISOString().slice(0,10);
-        const time=document.getElementById('rest-time').value;
         const covers=document.getElementById('rest-covers').value;
-        if(!q){toast('Please enter a restaurant name or cuisine');return;}
         const area=document.getElementById('rest-results');
         const qLow=q.toLowerCase();
+        const isBrowse=!q;
 
         // Show loading
-        area.innerHTML=`<div class="card" style="margin-top:1rem"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Searching restaurants for "${q}"…</div></div></div>`;
+        area.innerHTML=`<div class="card" style="margin-top:1rem"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">${isBrowse?'Finding restaurants in '+loc+'…':'Searching restaurants for "'+q+'"…'}</div></div></div>`;
 
         // Try Google Places first, fall back to hardcoded DB
-        _searchPlaces(q,loc,(googleResults)=>{
+        _searchPlaces(isBrowse?'restaurants':q,loc,(googleResults)=>{
           let matches;
           let isGoogle=false;
 
           if(googleResults&&googleResults.length){
-            matches=googleResults.slice(0,3);
+            matches=googleResults.slice(0,isBrowse?6:3);
             isGoogle=true;
+          } else if(isBrowse){
+            // No query — show shuffled restaurant list from DB
+            matches=[..._REST_DB];
+            for(let i=matches.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[matches[i],matches[j]]=[matches[j],matches[i]];}
+            matches=matches.slice(0,6);
           } else {
             // Fallback to hardcoded data
             matches=_REST_DB.filter(r=>
@@ -1433,7 +3466,6 @@
             );
             if(!matches.length){
               // Generate a synthetic card using the exact name the user typed
-              // so the demo booking flow works with any restaurant name
               const _synthImgs=[
                 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',
                 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',
@@ -1456,10 +3488,9 @@
             matches=matches.slice(0,3);
           }
 
-          const dateObj=new Date(date+'T12:00:00');
-          const dateStr=dateObj.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
-          const ref='T4T-'+Math.random().toString(36).slice(2,6).toUpperCase();
-          const sourceLabel=isGoogle
+          const sourceLabel=isBrowse
+            ?'<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtle);margin-bottom:12px">Restaurants in '+loc+' · '+covers+' covers</div>'
+            :isGoogle
             ?'<div style="display:flex;align-items:center;gap:6px;margin-bottom:12px"><span style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtle)">Live results for "'+q+'"</span><span class="badge badge-green" style="font-size:9px">Google Places</span></div>'
             :'<div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--subtle);margin-bottom:12px">'+(matches.some(r=>r.name.toLowerCase().includes(qLow))?'Results for "'+q+'"':'We couldn\'t find "'+q+'" — here are some suggestions')+'</div>';
 
@@ -1467,12 +3498,12 @@
             <div style="margin-top:1rem">
               ${sourceLabel}
               ${matches.map((r,i)=>{
-                const avail=Math.random()>0.2;
-                const altTime=avail?time:(parseInt(time)>=20?'19:30':'20:30');
                 const hasImg=r.img&&r.img.length>0;
                 const imgHtml=hasImg
                   ?`<img src="${r.img}" alt="${r.name}" style="width:100%;height:100%;object-fit:cover;display:block;min-height:180px" onerror="this.parentElement.innerHTML='<div style=\\'height:180px;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--primary)\\'>${_svgIcon('restaurant',32).replace(/'/g,"\\'")}</div>'">`
                   :'<div style="height:180px;display:flex;align-items:center;justify-content:center;background:var(--bg2);color:var(--primary)">'+_svgIcon('restaurant',32)+'</div>';
+                const bInfo=_getBookingInfo(r.name);
+                const verifiedBadge=bInfo.verified?'<span class="badge" style="background:rgba(74,222,128,0.08);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.15);font-size:9px">✓ Verified</span>':'';
 
                 return `<div class="card" style="margin-bottom:12px;overflow:hidden">
                   <div style="display:flex;gap:0">
@@ -1489,25 +3520,12 @@
                         ${(r.vibes||[]).map(v=>'<span class="badge badge-rose" style="font-size:10px">'+v+'</span>').join('')}
                         ${r.veg?'<span class="badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.25);font-size:10px">✓ Veg-friendly</span>':''}
                         ${r._source==='google'?'<span class="badge badge-muted" style="font-size:9px">Live data</span>':''}
+                        ${verifiedBadge}
                       </div>
                       <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:4px">${r.price}</div>
                       <div style="margin-top:8px;padding-top:8px;border-top:0.5px solid var(--bdr)">
-                        ${avail?`
-                          <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px">
-                            <div style="width:8px;height:8px;border-radius:50%;background:#4ADE80"></div>
-                            <span style="font-size:12px;font-weight:600;color:#4ADE80">Available</span>
-                            <span style="font-size:11px;color:var(--ink-muted)">${dateStr} · ${time} · ${covers} covers</span>
-                          </div>
-                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area.replace(/'/g,"\\'")}','${date}','${time}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve this table ✦</button>
-                        `:`
-                          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-                            <div style="width:8px;height:8px;border-radius:50%;background:#F59E0B"></div>
-                            <span style="font-size:12px;font-weight:600;color:#F59E0B">Busy at ${time}</span>
-                            <span style="font-size:11px;color:var(--ink-muted)">${dateStr}</span>
-                          </div>
-                          <div style="font-size:11px;color:var(--ink-muted);margin-bottom:8px">Nearest available: <strong style="color:var(--ink)">${altTime}</strong></div>
-                          <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="confirmRestBooking('${r.name.replace(/'/g,"\\'")}','${r.area.replace(/'/g,"\\'")}','${date}','${altTime}','${covers}','${r.price.replace(/'/g,"\\'")}','${ref}')">Reserve at ${altTime} ✦</button>
-                        `}
+                        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:8px">Book via ${bInfo.provider} · opens in new tab</div>
+                        <button class="btn btn-rose btn-sm" style="width:100%;justify-content:center;padding:10px;font-size:13px;border-radius:10px" onclick="initiateBooking('${r.name.replace(/'/g,"\\'")}','${r.price.replace(/'/g,"\\'")}','bookable_now',null)">Book on ${bInfo.provider} ↗</button>
                       </div>
                     </div>
                   </div>
@@ -1518,53 +3536,20 @@
         });
       }
 
-      function confirmRestBooking(name,area,date,time,covers,price,ref){
-        const results=document.getElementById('rest-results');
-        // Show confirming state
-        results.innerHTML=`<div class="card" style="margin-top:1rem"><div class="loading-overlay"><div class="spinner"></div><div class="loading-text">Securing your table at ${name}…</div></div></div>`;
-        setTimeout(()=>{
-          const dateObj=new Date(date+'T12:00:00');
-          const dateStr=dateObj.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-          bookings.push({id:Date.now(),type:'restaurant',name:name+', '+area,date,meta:time+' · '+covers+' covers',amount:price,icon:_SVG.restaurant});
-          updateStats();renderBookings();_saveState();
-          results.innerHTML=`
-            <div class="card" style="margin-top:1rem">
-              <div class="card-body" style="text-align:center;padding:24px 20px">
-                <div class="bf-confirm-success-ring">✓</div>
-                <div style="font-size:19px;font-weight:700;color:var(--ink);margin-bottom:4px">Table reserved!</div>
-                <div style="font-size:13px;color:var(--ink-muted);margin-bottom:16px">Confirmation sent to your email</div>
-                <div class="bf-ref-badge" style="margin-bottom:16px">${ref}</div>
-                <div style="background:var(--bg2);border:0.5px solid var(--bdr);border-radius:14px;padding:14px;text-align:left;margin-bottom:16px">
-                  <div style="font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;gap:6px"><span style="color:var(--primary)">${_svgIcon('restaurant',16)}</span> ${name}</div>
-                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Date</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${dateStr}</div></div>
-                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Time</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${time}</div></div>
-                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Covers</div><div style="font-size:12px;font-weight:600;color:var(--ink)">${covers} guests</div></div>
-                    <div style="background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">Est. total</div><div style="font-size:12px;font-weight:600;color:var(--rose-dark)">${price}</div></div>
-                  </div>
-                  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-                    <span class="bf-otable-badge" style="background:rgba(201,168,76,0.12);color:#D4B86A;border:0.5px solid rgba(201,168,76,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon('card',12)} Deposit taken</span>
-                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon('restaurant',12)} Pay rest at venue</span>
-                    <span class="bf-otable-badge" style="background:rgba(250,200,60,0.1);color:#FBC94A;border:0.5px solid rgba(250,200,60,0.3)">✓ Free cancellation</span>
-                  </div>
-                </div>
-                <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-                  <button class="btn btn-rose btn-sm" onclick="go('cabs',document.querySelector('[onclick*=cabs]'))">Book transport →</button>
-                  <button class="btn btn-sm" onclick="go('planner',document.querySelector('[onclick*=planner]'))">✦ Add to planner</button>
-                  <button class="btn btn-sm" onclick="document.getElementById('rest-results').innerHTML='';document.getElementById('rest-q').value=''">Search again</button>
-                </div>
-              </div>
-            </div>`;
-          toast('✦ Table reserved at '+name);
-        },1800);
+      function confirmRestBooking(name,area,_d,_t,_c,price){
+        // Route through honest handoff flow — no fake in-app booking
+        initiateBooking(name+', '+area,price,'bookable_now',null);
       }
 
       function bookRest(){checkRestAvailability();}
       function bookHotel(){
         const d=document.getElementById('hotel-dest').value||'Hotel';
-        const ci=document.getElementById('hotel-in').value||new Date().toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type:'hotel',name:d,date:ci,meta:'1 night',amount:'£180',icon:_SVG.hotel});
-        updateStats();toast('✦ Room reserved at '+d);
+        const ci=document.getElementById('hotel-in').value||'';
+        const q=encodeURIComponent(d+' hotel London');
+        const url='https://www.booking.com/searchresults.html?ss='+q+(ci?'&checkin='+ci:'');
+        window.open(url,'_blank','noopener');
+        _trackEvent('booking_click',{name:d,provider:'Booking.com',type:'hotel'});
+        toast('✦ Hotel search opened — confirm when booked');
       }
       function switchStayTab(tab){
         document.getElementById('stay-hotel').style.display=tab==='hotel'?'':'none';
@@ -1590,9 +3575,9 @@
       function bookCab(){
         const f=document.getElementById('cab-from').value||'Home';
         const t=document.getElementById('cab-to').value||'Venue';
-        const d=document.getElementById('cab-date').value||new Date().toISOString().slice(0,10);
-        bookings.push({id:Date.now(),type:'cab',name:f+' → '+t,date:d,meta:'2 passengers',amount:'£45',icon:_SVG.cab});
-        updateStats();toast('✦ Cab booked');
+        window.open('https://m.uber.com/looking?drop='+encodeURIComponent(t),'_blank','noopener');
+        _trackEvent('booking_click',{name:f+' → '+t,provider:'Uber',type:'cab'});
+        toast('✦ Uber opened — book your ride there');
       }
 
       // ── Transport planner ──
@@ -1818,7 +3803,7 @@
             } else if(o.type==='bus'||o.type==='tube'){
               html+='<button class="btn btn-sm'+(highlight?' btn-rose':'')+'" onclick="openTfL(\''+encodeURIComponent(fromVal)+'\',\''+encodeURIComponent(toVal)+'\')">Plan →</button>';
             } else {
-              html+='<button class="btn btn-sm'+(highlight?' btn-rose':'')+'" onclick="bookTransportCab('+i+')">Book ✦</button>';
+              html+='<button class="btn btn-sm'+(highlight?' btn-rose':'')+'" onclick="bookTransportCab('+i+')">Book</button>';
             }
             html+='</div>';
           });
@@ -1962,6 +3947,7 @@
                     <div class="bf-confirm-success-ring" style="width:48px;height:48px;font-size:20px;margin:0;flex-shrink:0">✓</div>
                     <div>
                       <div style="font-size:18px;font-weight:700;color:var(--ink)">Ride booked!</div>
+                      <div style="font-size:9px;color:rgba(201,168,76,0.45);font-weight:600;letter-spacing:0.8px;text-transform:uppercase">Simulated</div>
                       <div style="font-size:12px;color:var(--ink-muted);margin-top:2px"><span style="font-weight:700;color:${provColor}">${provider}</span> ${tier}</div>
                     </div>
                   </div>
@@ -2050,7 +4036,7 @@
       function renderBookings(){
         const el=document.getElementById('bookings-list');if(!el)return;
         const list=activeFilter==='all'?bookings:bookings.filter(b=>b.type===activeFilter);
-        if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--ink-muted)">No dates yet — start discovering!</div>';return;}
+        if(!list.length){el.innerHTML='<div style="font-size:13px;color:var(--ink-muted)">No dates planned yet — explore Discover to get started.</div>';return;}
         const today=new Date().toISOString().slice(0,10);
         el.innerHTML=list.map(b=>{
           const isPast=b.date<today;
@@ -2073,7 +4059,7 @@
             <div style="flex:1">
               <div class="booking-name">${b.name}</div>
               <div class="booking-meta">${b.meta} · ${fmtDate(b.date)}</div>
-              <span class="badge ${isPast?'badge-muted':'badge-green'}" style="margin-top:5px">${isPast?'completed':'confirmed'}</span>
+              <span class="badge ${isPast?'badge-muted':'badge-green'}" style="margin-top:5px">${isPast?'completed':b.booking_status==='confirmed_by_user'?'confirmed by you':'confirmed'}</span>${b.provider?`<span style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:3px;display:block">via ${b.provider}</span>`:''}
               ${ratingHtml}
             </div>
             <div class="booking-right">
@@ -2189,7 +4175,7 @@
       function renderCal(){
         const grid=document.getElementById('cal-grid');if(!grid)return;
         const y=calMonth.getFullYear(),m=calMonth.getMonth();
-        document.getElementById('cal-label').textContent=calMonth.toLocaleString('en-GB',{month:'long',year:'numeric'});
+        const calLabel=document.getElementById('cal-label');if(calLabel)calLabel.textContent=calMonth.toLocaleString('en-GB',{month:'long',year:'numeric'});
         const first=new Date(y,m,1);let dow=first.getDay();if(dow===0)dow=7;
         const dim=new Date(y,m+1,0).getDate();
         const today=new Date();let html='';
@@ -2217,7 +4203,7 @@
             <div style="width:8px;height:8px;border-radius:50%;background:${catColors[r.cat]||'#C4687A'};margin-top:4px;flex-shrink:0"></div>
             <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--ink)">${r.title}</div><div style="font-size:11px;color:var(--ink-muted);margin-top:2px">${r.time} · ${r.cat}</div></div>
             <button class="btn btn-sm" style="font-size:10px" onclick="deleteRem(${r.id})">✕</button>
-          </div>`).join(''):`<div style="font-size:13px;color:var(--ink-muted)">Nothing on this day — <span style="color:var(--rose);cursor:pointer" onclick="document.getElementById('rem-date').value='${ds}'">add something?</span></div>`;
+          </div>`).join(''):`<div style="font-size:13px;color:var(--ink-muted)">Nothing planned — <span style="color:var(--rose);cursor:pointer" onclick="document.getElementById('rem-date').value='${ds}'">add something?</span></div>`;
       }
 
       function exportICS(){
@@ -2249,7 +4235,7 @@
         },
         'system':{
           headline:'Great — we\'ll make your system even better.',
-          body:'Table for Two layers in the bits most couples still hate: arguing over options, remembering to book, chasing the cab. We handle all of that.'
+          body:'Table for Two layers in the bits most people still hate: arguing over options, remembering to book, chasing the cab. We handle all of that.'
         }
       };
 
@@ -2264,7 +4250,6 @@
           const box=document.getElementById('lp-survey-reaction');
           box.classList.add('show');
         }
-        setTimeout(()=>document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'}),800);
       }
 
       function castVote(vote, el){
@@ -2278,7 +4263,7 @@
         };
         const result = document.getElementById('lp-vote-result');
         result.textContent = messages[vote];
-        result.style.display = 'block';
+        result.classList.add('show');
 
         // Send vote to Formspree
         const data = new FormData();
@@ -2288,129 +4273,156 @@
           method:'POST', body:data, headers:{'Accept':'application/json'}
         }).catch(()=>{});
 
-        setTimeout(()=>document.getElementById('lp-waitlist').scrollIntoView({behavior:'smooth'}),600);
       }
 
-      async function submitWaitlist(){
-        const name    = document.getElementById('lp-name').value.trim();
-        const email   = document.getElementById('lp-email').value.trim();
-        const partner = document.getElementById('lp-partner').value.trim();
-        const city    = document.getElementById('lp-city').value.trim();
-        const survey  = document.querySelector('.lp-option.selected .lp-option-text')?.textContent.trim() || 'Not answered';
+      // ── Landing page: 3-step beta signup ──
+      // Step 1: email → Step 2: name/partner → Step 3: magic link sent
 
-        // Honeypot check — bots fill hidden fields, real users don't
-        const honeypot = document.getElementById('lp-website');
-        if(honeypot && honeypot.value){return;} // silently reject
+      function startBetaSignup(){
+        const email=document.getElementById('lp-email').value.trim();
+        const honeypot=document.getElementById('lp-website');
+        if(honeypot&&honeypot.value)return;
+        if(!email||!email.includes('@')){
+          document.getElementById('lp-email').style.borderColor='rgba(239,68,68,0.5)';
+          setTimeout(()=>document.getElementById('lp-email').style.borderColor='',2000);
+          return;
+        }
+        // Show step 2
+        document.getElementById('lp-step-email').style.display='none';
+        document.getElementById('lp-step-names').style.display='block';
+        document.getElementById('lp-email-confirm').textContent=email;
+        document.getElementById('lp-name').focus();
+        // Track to Formspree (fire-and-forget)
+        const data=new FormData();
+        data.append('email',email);
+        data.append('_subject','Beta signup started: '+email);
+        fetch('https://formspree.io/f/xreodnbr',{method:'POST',body:data,headers:{'Accept':'application/json'}}).catch(()=>{});
+      }
 
-        if(!name){alert('Please enter your name');return;}
+      async function submitBetaSignup(){
+        const email=document.getElementById('lp-email').value.trim();
+        const name=document.getElementById('lp-name').value.trim();
+        let handle=(document.getElementById('lp-handle')?.value||'').trim().toLowerCase().replace(/[^a-z0-9_]/g,'');
+        const errorEl=document.getElementById('lp-signup-error');
+        const btn=document.getElementById('lp-signup-btn');
+        if(!name){errorEl.textContent='Please enter your name';errorEl.style.display='block';return;}
+        if(!handle)handle=_generateHandle(name);
+        if(handle.length<3){errorEl.textContent='Handle must be at least 3 characters';errorEl.style.display='block';return;}
+        errorEl.style.display='none';
+        btn.textContent='Checking handle...';btn.disabled=true;
+        // Verify handle is unique before proceeding
+        const lpHandleOk=await _checkHandleAvailable(handle);
+        if(!lpHandleOk){
+          errorEl.textContent='@'+handle+' is already taken — please choose another';errorEl.style.display='block';
+          btn.textContent='Create profile & sign in';btn.disabled=false;return;
+        }
+        btn.textContent='Creating profile...';
+        // Save profile locally for immediate use after redirect (single by default, no partner)
+        _handles.jamie='@'+handle;
+        try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}
+        _saveUserProfile({name,partner:'',handle:'@'+handle,account_state:'single',createdAt:new Date().toISOString()});
+        // Send magic link (no partner in metadata)
+        const result=await signInWithMagicLink(email,name,'');
+        if(result.error){
+          errorEl.textContent=result.error;errorEl.style.display='block';
+          btn.textContent='Create profile & sign in';btn.disabled=false;
+          return;
+        }
+        // Show step 3
+        document.getElementById('lp-step-names').style.display='none';
+        document.getElementById('lp-step-sent').style.display='block';
+        document.getElementById('lp-sent-email').textContent=email;
+        _trackEvent('sign_up_started',{email_domain:email.split('@')[1],handle:'@'+handle});
+      }
+
+      function submitLpBetaCode(){
+        const input=document.getElementById('lp-beta-code');
+        const error=document.getElementById('lp-code-error');
+        if(!input)return;
+        const code=input.value.trim().toUpperCase();
+        if(_BETA_CODES.includes(code)){
+          _grantBetaAccess();
+          try{localStorage.setItem('t4t_beta_code',code);}catch(e){}
+          _trackEvent('sign_up_completed',{method:'beta_code',code:code});
+          error.style.display='none';
+          // Save name from the form
+          const name=document.getElementById('lp-name').value.trim()||'';
+          const partner=document.getElementById('lp-partner').value.trim()||'';
+          if(name){
+            _saveUserProfile({name,partner,createdAt:new Date().toISOString()});
+          }
+          // Enter the app
+          const lp=document.getElementById('landing');
+          if(lp){lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';}
+          _applyUserNames();
+          if(!_getUserProfile()?.onboarding_completed){
+            setTimeout(startOnboarding,500);
+          }
+        }else{
+          error.style.display='block';
+          input.value='';input.focus();
+        }
+      }
+
+      // ── Body section waitlist form (fallback) ──
+      async function submitWaitlistBody(){
+        const email = document.getElementById('lp-email2').value.trim();
+        const honeypot = document.getElementById('lp-website2');
+        if(honeypot && honeypot.value) return;
         if(!email||!email.includes('@')){alert('Please enter a valid email address');return;}
 
-        const btn = document.querySelector('.lp-submit');
+        const btn = document.querySelector('#lp-body-form .btn-rose');
         btn.textContent = 'Sending...';
         btn.disabled = true;
 
-        // Build FormData — Formspree reads field names as column headers in the dashboard
         const data = new FormData();
-        data.append('name', name);
         data.append('email', email);
-        data.append('partner', partner || '—');
-        data.append('city', city || '—');
-        data.append('survey_answer', survey);
+        data.append('survey_answer', document.querySelector('.lp-option.selected .lp-option-text')?.textContent.trim() || 'Not answered');
 
         fetch('https://formspree.io/f/xreodnbr', {
-          method: 'POST',
-          body: data,
-          headers: { 'Accept': 'application/json' }
+          method: 'POST', body: data, headers: { 'Accept': 'application/json' }
         })
         .then(function(response){
           if(response.ok){
-            document.getElementById('lp-form-wrap').style.display = 'none';
-            const _suc=document.getElementById('lp-success');
-            _suc.style.display='flex';
-            _suc.style.flexDirection='column';
-            _suc.style.alignItems='center';
-            _suc.style.justifyContent='center';
-            _suc.style.minHeight='70vh';
-            // Hide everything else on the landing page so the success
-            // message is front and center — not buried at the bottom
-            const hero=document.querySelector('.lp-hero');
-            if(hero)hero.style.display='none';
-            // Hide all sections except the waitlist section (which contains the success)
-            document.querySelectorAll('.lp-body > .lp-section, .lp-body > .lp-divider, .lp-body > .lp-survey, .lp-body > .lp-woulduse, .lp-body > .lp-features, .lp-body > img').forEach(el=>{
-              if(!el.id||el.id!=='lp-waitlist')el.style.display='none';
-            });
-            // Also hide the footer
-            const footer=document.querySelector('.lp-footer');
-            if(footer)footer.style.display='none';
-            // Scroll to top so the success message is centered
-            window.scrollTo({top:0,behavior:'smooth'});
+            document.getElementById('lp-body-form').style.display = 'none';
+            document.getElementById('lp-body-success').style.display = 'block';
+            // Also hide hero form if it exists
+            const hf = document.getElementById('lp-hero-form');
+            if(hf) hf.style.display = 'none';
+            const hs = document.getElementById('lp-hero-success');
+            if(hs) hs.style.display = 'block';
           } else {
-            return response.json().then(function(data){
-              const msg = data.errors ? data.errors.map(e=>e.message).join(', ') : 'Something went wrong. Please try again.';
-              alert(msg);
-              btn.textContent = 'Reserve my spot ♥';
-              btn.disabled = false;
-            });
+            btn.textContent = 'Subscribe';
+            btn.disabled = false;
           }
         })
         .catch(function(){
           alert('Could not connect. Please check your internet connection and try again.');
-          btn.textContent = 'Reserve my spot ♥';
+          btn.textContent = 'Subscribe';
           btn.disabled = false;
         });
       }
 
-      // ── Landing page analytics ──
-      const _lpStart = Date.now();
-      let _lpDemoClicked = false;
-      let _lpSessionSent = false;
-
-      function _lpFmt(s){
-        if(s < 60) return s + 's';
-        return Math.floor(s/60) + 'm ' + (s%60) + 's';
-      }
-
-      function _lpSendSession(trigger){
-        if(_lpSessionSent) return;
-        _lpSessionSent = true;
-        const secs = Math.round((Date.now() - _lpStart) / 1000);
-        const survey = document.querySelector('.lp-option.selected .lp-option-text')?.textContent.trim() || 'No answer';
-        const vote   = document.querySelector('.lp-vote.selected .lp-vote-label')?.textContent.trim() || 'No vote';
-        const d = new FormData();
-        d.append('_subject', '[Analytics] Session: ' + _lpFmt(secs) + ' · demo clicked: ' + (_lpDemoClicked ? 'Yes' : 'No'));
-        d.append('event',          'landing_session');
-        d.append('time_on_page',   _lpFmt(secs));
-        d.append('time_seconds',   secs);
-        d.append('demo_clicked',   _lpDemoClicked ? 'Yes' : 'No');
-        d.append('exit_via',       trigger);
-        d.append('survey_answer',  survey);
-        d.append('would_use_vote', vote);
-        navigator.sendBeacon('https://formspree.io/f/xreodnbr', d);
-      }
-
-      // Fire when tab is closed, switched away from, or phone screen locks
-      document.addEventListener('visibilitychange', function(){
-        if(document.visibilityState === 'hidden'){
-          const lp = document.getElementById('landing');
-          if(lp && lp.style.display !== 'none' && lp.style.opacity !== '0'){
-            _lpSendSession('left_page');
-          }
-        }
-      });
-
       function enterApp(){
-        _lpDemoClicked = true;
-        _lpSendSession('clicked_demo');
-        const lp = document.getElementById('landing');
-        if(!lp)return;
-        lp.style.opacity = '0';
-        lp.style.transition = 'opacity 0.35s';
-        setTimeout(()=>{
-          lp.style.display='none';
-          lp.style.visibility='hidden';
-          lp.style.pointerEvents='none';
-          lp.style.zIndex='-1';
-        }, 350);
+        // Require Supabase auth for beta access
+        if(_authUser){
+          const lp=document.getElementById('landing');
+          if(lp){lp.style.opacity='0';lp.style.transition='opacity 0.35s';setTimeout(()=>{lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';},350);}
+          _applyUserNames();
+          return;
+        }
+        // Legacy beta code users who are not yet auth'd — still allow but prompt signup
+        if(_hasBetaAccess()&&_getUserProfile()){
+          const lp=document.getElementById('landing');
+          if(lp){lp.style.opacity='0';lp.style.transition='opacity 0.35s';setTimeout(()=>{lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';},350);}
+          _applyUserNames();
+          // Show gentle prompt to create an account for persistence
+          setTimeout(()=>toast('Sign up to save your preferences across devices'),2000);
+          return;
+        }
+        // Not authenticated — show auth form
+        const form=document.getElementById('lp-step-email')||document.getElementById('lp-step-names');
+        if(form)form.scrollIntoView({behavior:'smooth',block:'center'});
       }
 
       function surpriseUs(){
@@ -2460,7 +4472,7 @@
         if(!encoded){toast('Could not generate link');return;}
         const url=window.location.origin+window.location.pathname+'?sophie='+encoded;
         if(navigator.share){
-          navigator.share({title:"Jamie's asking — what shall we do? ♥",text:"Pick your favourites on Table for Two",url}).catch(()=>{});
+          navigator.share({title:_userName()+"'s asking — what shall we do? ♥",text:"Pick your favourites on Table for Two",url}).catch(()=>{});
         } else if(navigator.clipboard){
           navigator.clipboard.writeText(url).then(()=>toast('✦ Sophie\'s link copied! Send it to her via WhatsApp or text'));
         } else {
@@ -2533,6 +4545,7 @@
       function submitSophieVote(){
         const answered=_svVotes.filter(v=>v!==null).length;
         if(answered===0){toast('Tap yes or no on at least one idea first');return;}
+        _trackEvent('partner_votes_submitted',{total:_svIdeas.length,answered:answered,yes:_svVotes.filter(v=>v===true).length});
         const results={votes:_svIdeas.map((idea,i)=>({n:idea.n,sv:_svVotes[i]}))};
         const encoded=_enc(results);
         const url=window.location.origin+window.location.pathname+'?app&svotes='+encoded;
@@ -2601,12 +4614,20 @@
 
       updateStats();renderBookings();
       setSmartGreeting();
-      // Init occasion context panel for default selection
-      selectOccasion(document.querySelector('#date-occasion .occasion-chip.active'),'first_date');
+      // Apply saved user names if they exist
+      if(_getUserProfile())_applyUserNames();
+      // Show demo banner if user has access
+      if(_hasBetaAccess()){const db=document.getElementById('demo-banner');if(db)db.style.display='block';}
+      // Hide loading screen after a short delay (auth listener will handle the rest)
+      setTimeout(()=>{
+        const ls=document.getElementById('auth-loading-screen');
+        if(ls){ls.style.opacity='0';setTimeout(()=>ls.remove(),350);}
+      },800);
+      // Init occasion context panel for default selection (guard against missing element)
+      const _initChip=document.querySelector('#date-occasion .occasion-chip.active');
+      if(_initChip)selectOccasion(_initChip,'first_date');
       initFromUrl();
       setTimeout(generateSuggestions,400);
-      const _dw=document.getElementById('date-when');
-      if(_dw)_dw.value=new Date().toISOString().slice(0,10);
 
       // ════════════════════════════════════════════════
       // ── MOOD CHECK-IN ──
@@ -2660,7 +4681,7 @@
                 <div style="font-size:12px;color:var(--ink-muted);font-style:italic;margin-bottom:8px">✦ ${picked.why}</div>
                 <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">
                   ${picked.vibes.map(v=>`<span class="badge badge-rose">${v}</span>`).join('')}
-                  ${vegOk?'<span class="badge" style="background:#F0FDF4;color:#166534;border:0.5px solid #86EFAC">✓ Sophie-friendly</span>':''}
+                  ${vegOk?'<span class="badge" style="background:#F0FDF4;color:#166534;border:0.5px solid #86EFAC">✓ Veg-friendly</span>':''}
                 </div>
                 <div class="idea-price">${picked.price}</div>
                 <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
@@ -2754,6 +4775,7 @@
         if(_wishlist.find(w=>w.name===name)){toast('✦ Already on your wishlist!');return;}
         _wishlist.push({id:Date.now(),name,emoji,price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
         _wishBadgeCount++;_updateWishBadge();
+        _trackEvent('wishlist_save',{name});
         toast('✦ Saved to your wishlist — find it under Wishlist');
       }
       function openAddWish(){
@@ -2811,7 +4833,7 @@
             ${w.price?'<div style="font-size:11px;color:var(--ink-muted)">'+w.price+'</div>':''}
             ${w.why?'<div style="font-size:11px;color:var(--ink-muted);margin-top:3px;font-style:italic">✦ '+w.why+'</div>':''}
           </div>
-          <button class="btn btn-sm btn-rose" style="flex-shrink:0;font-size:10px;padding:5px 10px" onclick="quickBook('${w.name.replace(/'/g,"\\'")}','experience','${(w.price||'').replace(/'/g,"\\'")}')">Book ✦</button>
+          <button class="btn btn-sm btn-rose" style="flex-shrink:0;font-size:10px;padding:5px 10px" onclick="quickBook('${w.name.replace(/'/g,"\\'")}','experience','${(w.price||'').replace(/'/g,"\\'")}')">Book</button>
         </div>`).join('')
         +(todo.length>5?'<div style="text-align:center;margin-top:8px"><span style="font-size:12px;color:var(--rose);cursor:pointer" onclick="go(\'wishlist\',document.querySelector(\'[onclick*=wishlist]\'))">+'+(todo.length-5)+' more →</span></div>':'');
       }
@@ -2822,9 +4844,9 @@
         if(_wishFilter==='todo')items=items.filter(w=>!w.done);
         else if(_wishFilter==='done')items=items.filter(w=>w.done);
         if(!items.length){
-          const empty=_wishFilter==='done'?'No completed dates yet — tick an item when you\'ve been!'
-            :_wishFilter==='todo'?'All caught up! Nothing left to do yet.'
-            :'Your wishlist is empty — save ideas from Discover or add your own.';
+          const empty=_wishFilter==='done'?'No completed dates yet — mark one off when you\'ve been.'
+            :_wishFilter==='todo'?'Nothing on the list — you\'re all caught up.'
+            :'Nothing saved yet — tap the heart on any plan to add it here.';
           el.innerHTML=`<div style="text-align:center;padding:36px 20px;color:var(--ink-muted)">
             <div style="margin-bottom:10px"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
             <div style="font-size:13px;font-weight:500;color:var(--ink-soft);margin-bottom:5px">${empty}</div>
@@ -2894,7 +4916,8 @@
         _journal.unshift({id:Date.now(),name,note,date,vibe,rating:_jeStarVal});
         closeJournalOverlay();
         renderJournal();
-        toast('✦ Memory saved to your journal');
+        _trackEvent('journal_entry',{name,vibe});
+        toast('✦ Entry saved to your journal');
       }
       const _VIBE_EMOJIS={romantic:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2c-2 4-4 6-4 10a4 4 0 0 0 8 0c0-4-2-6-4-10Z"/></svg>',fun:'✦',foodie:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="9" x2="7" y2="22"/><path d="M21 2v8a3 3 0 0 1-3 3h0"/><line x1="21" y1="13" x2="21" y2="22"/></svg>',outdoor:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/></svg>',cultural:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10s3-3 10-3 10 3 10 3"/><path d="M2 14s3 3 10 3 10-3 10-3"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/></svg>'};
       function renderJournal(){
@@ -2914,9 +4937,9 @@
         if(!_journal.length){
           el.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--ink-muted)">
             <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 10h6"/><path d="M9 14h4"/></svg></div>
-            <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">No memories yet</div>
-            <div style="font-size:12px;margin-bottom:20px">After each date, add a note and rating — they'll appear here</div>
-            <button class="btn btn-rose btn-sm" onclick="openNewJournalEntry()">Add your first memory ✦</button>
+            <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">Your journal is empty</div>
+            <div style="font-size:12px;margin-bottom:20px">After a date, jot down what you loved — it helps us learn your taste</div>
+            <button class="btn btn-rose btn-sm" onclick="openNewJournalEntry()">Write your first entry ✦</button>
           </div>`;
           return;
         }
@@ -2954,12 +4977,12 @@
           if(noteEl)noteEl.textContent='Tap to set';
         } else if(_paidLast==='jamie'){
           if(valEl)valEl.innerHTML='<span style="font-size:12px">JM</span>';
-          if(noteEl)noteEl.textContent='Jamie paid · Sophie\'s turn';
-          toast('✦ Jamie paid last — Sophie\'s turn next');
+          if(noteEl)noteEl.textContent=_userName()+' paid · '+_partnerName()+'\'s turn';
+          toast('✦ '+_userName()+' paid last — '+_partnerName()+'\'s turn next');
         } else {
-          if(valEl)valEl.innerHTML='<span style="font-size:12px">SP</span>';
-          if(noteEl)noteEl.textContent='Sophie paid · Jamie\'s turn';
-          toast('✦ Sophie paid last — Jamie\'s turn next');
+          if(valEl)valEl.innerHTML='<span style="font-size:12px">'+_partnerInitials()+'</span>';
+          if(noteEl)noteEl.textContent=_partnerName()+' paid · '+_userName()+'\'s turn';
+          toast('✦ '+_partnerName()+' paid last — '+_userName()+'\'s turn next');
         }
       }
 
@@ -3080,7 +5103,7 @@
           priority:{food:'Incredible food is non-negotiable',experience:'It\'s all about the experience',conversation:'Uninterrupted quality time',spontaneity:'You love being surprised'}
         };
         const lines=[profiles.energy[_quizAnswers.energy],profiles.adventure[_quizAnswers.adventure],profiles.tod[_quizAnswers.tod],profiles.crowd[_quizAnswers.crowd],profiles.priority[_quizAnswers.priority]].filter(Boolean);
-        r.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:8px">✦ Your couple profile</div>${lines.map(l=>`<div style="font-size:12px;color:var(--ink-soft);padding:3px 0;border-bottom:0.5px solid rgba(196,104,122,0.15)">· ${l}</div>`).join('')}`;
+        r.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--rose-dark);margin-bottom:8px">✦ Your profile</div>${lines.map(l=>`<div style="font-size:12px;color:var(--ink-soft);padding:3px 0;border-bottom:0.5px solid rgba(196,104,122,0.15)">· ${l}</div>`).join('')}`;
         r.style.display='';
       }
       // Initialise quiz result on page load
@@ -3093,6 +5116,9 @@
       // ── Local persistence ──
       function _saveState(){
         try{localStorage.setItem('t4t_bk',JSON.stringify(bookings));localStorage.setItem('t4t_rm',JSON.stringify(reminders));}catch(e){}
+        // Sync to Supabase
+        _sbSaveState('bookings',bookings);
+        _sbSaveState('reminders',reminders);
       }
       (function _loadState(){
         try{
@@ -3399,6 +5425,7 @@
               <div style="text-align:center;padding:10px 0 16px">
                 <div class="bf-confirm-success-ring">✓</div>
                 <div style="font-size:19px;font-weight:700;color:var(--color-text-primary);margin-bottom:4px">${lang.confirmed}</div>
+                ${_DEMO_LABEL}
                 <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:14px">Confirmation sent to your email</div>
                 <div class="bf-ref-badge">${bookingRef}</div>
               </div>
@@ -3443,7 +5470,7 @@
                   <div style="font-size:13px;font-weight:600;color:var(--ink)">Book a cab to ${v.area}</div>
                   <div style="font-size:12px;color:var(--ink-soft)">~${v.cabMins} min · est. ${v.cabEst} · 2 passengers</div>
                 </div>
-                <button class="btn${v.recommended?' btn-rose':''} btn-sm" style="pointer-events:none">Book ✦</button>
+                <button class="btn${v.recommended?' btn-rose':''} btn-sm" style="pointer-events:none">Book</button>
               </div>
               <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipTransport()">I'll sort transport myself →</button>`;
 
@@ -3478,6 +5505,7 @@
                 <div class="bf-confirm-success-ring" style="width:44px;height:44px;font-size:18px;margin:0;flex-shrink:0">✓</div>
                 <div>
                   <div style="font-size:18px;font-weight:700;color:var(--color-text-primary);line-height:1.2">Ride confirmed!</div>
+                  <div style="font-size:9px;color:rgba(201,168,76,0.45);font-weight:600;letter-spacing:0.8px;text-transform:uppercase">Simulated</div>
                   <div style="font-size:12px;color:var(--subtle);margin-top:2px">Your driver is on the way</div>
                 </div>
               </div>
@@ -3585,7 +5613,7 @@
                   <div style="font-size:13px;font-weight:600;color:var(--ink)">${v.hotel}</div>
                   <div style="font-size:12px;color:var(--ink-soft)">${v.hotelPrice} · 1 night · Breakfast included</div>
                 </div>
-                <button class="btn btn-sm" style="pointer-events:none;background:var(--plum);color:#fff;border-color:var(--plum)">Book ✦</button>
+                <button class="btn btn-sm" style="pointer-events:none;background:var(--plum);color:#fff;border-color:var(--plum)">Book</button>
               </div>
               <button class="btn" style="width:100%;justify-content:center;padding:12px;border-radius:12px;font-size:13px;margin-top:2px" onclick="bfSkipAccom()">Just the evening for us →</button>`;
 
@@ -3602,23 +5630,24 @@
               </div>
               <div class="bf-step-dots">${_bfDots(3)}</div>
               <div style="text-align:center;padding:8px 0 14px">
-                <div style="width:52px;height:52px;border-radius:50%;background:var(--plum-light);border:1px solid var(--plum-mid);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:var(--plum)">${_svgIcon('hotel',26)}</div>
+                <div style="width:52px;height:52px;border-radius:50%;background:rgba(196,104,122,0.12);border:1px solid rgba(196,104,122,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 10px;color:#C4687A">${_svgIcon('hotel',26)}</div>
                 <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:3px">Room reserved!</div>
+                <div style="font-size:9px;color:rgba(201,168,76,0.45);font-weight:600;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:2px">Simulated</div>
                 <div style="font-size:13px;color:var(--ink-soft)">Confirmation on its way to your email</div>
               </div>
-              <div style="background:var(--plum-light);border:1px solid var(--plum-mid);border-radius:14px;padding:16px;margin-bottom:14px">
-                <div style="font-size:14px;font-weight:700;color:var(--plum);margin-bottom:11px">${v.hotel}</div>
+              <div style="background:rgba(196,104,122,0.1);border:1px solid rgba(196,104,122,0.3);border-radius:14px;padding:16px;margin-bottom:14px">
+                <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:11px">${v.hotel}</div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:11px">
-                  <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--plum);opacity:0.8;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Check-in</div><div style="font-size:12px;font-weight:600;color:var(--plum)">${v.date} · 3:00 PM</div></div>
-                  <div style="background:rgba(255,255,255,0.55);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--plum);opacity:0.8;letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Check-out</div><div style="font-size:12px;font-weight:600;color:var(--plum)">Sun 20 Apr · 11 AM</div></div>
+                  <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Check-in</div><div style="font-size:12px;font-weight:600;color:#fff">${v.date} · 3:00 PM</div></div>
+                  <div style="background:rgba(255,255,255,0.06);border-radius:8px;padding:8px 10px"><div style="font-size:10px;color:var(--ink-muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">Check-out</div><div style="font-size:12px;font-weight:600;color:#fff">Sun 20 Apr · 11 AM</div></div>
                 </div>
                 <div style="display:flex;gap:7px;flex-wrap:wrap">
-                  <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid);display:inline-flex;align-items:center;gap:4px">${_svgIcon('breakfast',12)} Breakfast included</span>
-                  <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">✓ Free cancellation</span>
-                  <span class="bf-otable-badge" style="background:rgba(255,255,255,0.55);color:var(--plum);border:0.5px solid var(--plum-mid)">Ref: ${hRef}</span>
+                  <span class="bf-otable-badge" style="background:rgba(196,104,122,0.12);color:#E8A0B0;border:0.5px solid rgba(196,104,122,0.3);display:inline-flex;align-items:center;gap:4px">${_svgIcon('breakfast',12)} Breakfast included</span>
+                  <span class="bf-otable-badge" style="background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.3)">✓ Free cancellation</span>
+                  <span class="bf-otable-badge" style="background:rgba(255,255,255,0.06);color:var(--subtle);border:0.5px solid rgba(255,255,255,0.12)">Ref: ${hRef}</span>
                 </div>
               </div>
-              <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600;background:var(--plum);border-color:var(--plum)" onclick="_bfData.step=4;_bfData.subState='idle';_renderBfStep()">Almost there →</button>`;
+              <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px;font-weight:600" onclick="_bfData.step=4;_bfData.subState='idle';_renderBfStep()">Almost there →</button>`;
           }
 
         // ── Step 4: Timeline + Notifications ──
@@ -3702,7 +5731,6 @@
           const ov=document.getElementById('bf-overlay');
           if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
           _bfData.step=2;_bfData.subState='idle';_renderBfStep();
-          toast('✦ '+deposit+' deposit paid — table secured');
         });
       }
       function bfPayHotelDeposit(){
@@ -3714,7 +5742,6 @@
           const ov=document.getElementById('bf-overlay');
           if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
           _bfData.step=4;_bfData.subState='idle';_renderBfStep();
-          toast('✦ '+deposit+' hotel deposit paid');
         });
       }
       function bfConfirm(){
@@ -3729,7 +5756,7 @@
         setTimeout(()=>{
           const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
           bookings.push({id:Date.now(),type:'cab',name:'Home → '+v.area,date:d.toISOString().slice(0,10),meta:'Cab · Standard · 2 passengers · '+_bfData.driver.car,amount:v.cabEst.split('–')[0],icon:_SVG.cab});
-          updateStats();renderBookings();_saveState();toast('✦ Cab confirmed · '+_bfData.driver.name);
+          updateStats();renderBookings();_saveState();
           _bfData.transportBooked=true;_bfData.subState='assigned';_renderBfStep();
         },4000);
       }
@@ -3740,7 +5767,7 @@
         setTimeout(()=>{
           const d=new Date();d.setDate(d.getDate()+((6-d.getDay()+7)%7||7));
           bookings.push({id:Date.now(),type:'hotel',name:v.hotel,date:d.toISOString().slice(0,10),meta:'1 night · 2 guests · Breakfast included',amount:v.hotelPrice.replace('from ',''),icon:_SVG.hotel});
-          updateStats();renderBookings();_saveState();toast('✦ '+v.hotel+' reserved');
+          updateStats();renderBookings();_saveState();
           _bfData.hotelBooked=true;_bfData.subState='confirmed';_renderBfStep();
         },2400);
       }
@@ -3766,12 +5793,7 @@
         toast('✦ Added to your date planner — check the Planner tab');
       }
 
-      // Wire quickBook to show booking flow after a short delay
-      const _origQuickBook=quickBook;
-      quickBook=function(name,type,amount){
-        _origQuickBook(name,type,amount);
-        if(type!=='cab'){setTimeout(()=>showBookingFlow(name,type,amount),400);}
-      };
+      // quickBook now routes through initiateBooking — no fake booking flow
 
       // Wire updateStats to also call milestone stats
       const _origUpdateStats=updateStats;
@@ -3782,152 +5804,677 @@
       };
 
       // ════════════════════════════════════════════════
-      // ── ONBOARDING WALKTHROUGH ──
+      // ── ONBOARDING FLOW (multi-step preferences) ──
       // ════════════════════════════════════════════════
-      const _OB_STEPS=[
+      const _OB_TOTAL=5;
+      let _obCurrentStep=0;
+      let _obPrefs={date_mode:'',budget:'',travel_radius:'',time_preference:'',setting:'',dietary:[],alcohol:'',energy_level:'',interests:[]};
+
+      function _obChipHTML(group,value,label){
+        return `<div class="ob-chip" data-group="${group}" data-value="${value}" onclick="obToggleChip(this,'${group}','${value}')" style="display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border:1.5px solid rgba(255,255,255,0.1);border-radius:50px;cursor:pointer;font-size:13px;font-weight:500;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.04);transition:all 0.18s;user-select:none;margin:4px">${label}</div>`;
+      }
+
+      function obToggleChip(el,group,value){
+        const isMulti=['dietary','interests'].includes(group);
+        if(isMulti){
+          el.classList.toggle('ob-selected');
+          if(el.classList.contains('ob-selected')){
+            if(!_obPrefs[group].includes(value))_obPrefs[group].push(value);
+          } else {
+            _obPrefs[group]=_obPrefs[group].filter(v=>v!==value);
+          }
+          // Handle "none" for dietary
+          if(group==='dietary'&&value==='none'){
+            document.querySelectorAll(`.ob-chip[data-group="dietary"]`).forEach(c=>{
+              if(c.dataset.value!=='none'){c.classList.remove('ob-selected');}
+            });
+            _obPrefs.dietary=['none'];
+          } else if(group==='dietary'&&value!=='none'){
+            const noneChip=document.querySelector(`.ob-chip[data-group="dietary"][data-value="none"]`);
+            if(noneChip)noneChip.classList.remove('ob-selected');
+            _obPrefs.dietary=_obPrefs.dietary.filter(v=>v!=='none');
+          }
+        } else {
+          document.querySelectorAll(`.ob-chip[data-group="${group}"]`).forEach(c=>{
+            c.classList.remove('ob-selected');
+          });
+          el.classList.add('ob-selected');
+          _obPrefs[group]=value;
+        }
+        // Hide error when user makes a selection
+        const err=document.getElementById('ob-error');if(err)err.style.display='none';
+      }
+
+      const _OB_STEP_DATA=[
         {
-          target:()=>document.querySelector('.couple-pill'),
-          title:'Your couple profile',
-          body:'Tap here to set your preferences — cuisines, vibes, dietary needs and budget. The AI uses both your tastes to personalise every suggestion.',
-          pos:'below'
+          title:'What\'s your budget?',
+          sub:'Per person, per date — we\'ll filter to match',
+          required:'budget',
+          render:()=>`<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+            ${[['under50','Under £50'],['50to150','£50 – £150'],['150to300','£150 – £300'],['300plus','£300+']].map(([v,l])=>
+              _obChipHTML('budget',v,l)
+            ).join('')}
+          </div>
+          <div style="margin-top:20px">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px">Where are you based?</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+              ${[['local','My neighbourhood'],['central','Central London'],['anywhere','Anywhere in London']].map(([v,l])=>
+                _obChipHTML('travel_radius',v,l)
+              ).join('')}
+            </div>
+          </div>`
         },
         {
-          target:()=>document.getElementById('discover-filter-collapsed'),
-          title:'Set the vibe',
-          body:'Tap this bar to open the filter panel. Pick who the date is for, the vibe, your budget and when — then hit Curate to generate ideas.',
-          pos:'below'
+          title:'When do you usually go out?',
+          sub:'We\'ll prioritise the right times',
+          required:'time_preference',
+          render:()=>`<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+            ${[['daytime','Daytime / brunch'],['evening','Evening'],['late_night','Late night'],['any','Anytime']].map(([v,l])=>
+              _obChipHTML('time_preference',v,l)
+            ).join('')}
+          </div>
+          <div style="margin-top:20px">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px">Indoor or outdoor?</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+              ${[['indoor','Indoor'],['outdoor','Outdoor'],['both','Both']].map(([v,l])=>
+                _obChipHTML('setting',v,l)
+              ).join('')}
+            </div>
+          </div>
+          <div style="margin-top:20px">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px">Energy level?</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+              ${[['low','Relaxed & easy'],['moderate','Open to anything'],['high','Active & adventurous']].map(([v,l])=>
+                _obChipHTML('energy_level',v,l)
+              ).join('')}
+            </div>
+          </div>`
         },
         {
-          target:()=>document.querySelector('.swipe-btn-x'),
-          title:'Not for you? Skip it',
-          body:'Tap the X to pass on this idea. It gets swiped away and the next suggestion slides in — no pressure, keep browsing.',
-          pos:'above'
+          title:'Any dietary preferences?',
+          sub:'Select all that apply — we\'ll filter venues accordingly',
+          required:'dietary',
+          render:()=>`<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+            ${[['none','No restrictions'],['vegetarian','Vegetarian'],['vegan','Vegan'],['halal','Halal'],['gluten_free','Gluten free'],['pescatarian','Pescatarian']].map(([v,l])=>
+              _obChipHTML('dietary',v,l)
+            ).join('')}
+          </div>
+          <div style="margin-top:20px">
+            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px">Drinks?</div>
+            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+              ${[['yes','Cocktails & wine'],['sometimes','Occasionally'],['no','Non-drinker']].map(([v,l])=>
+                _obChipHTML('alcohol',v,l)
+              ).join('')}
+            </div>
+          </div>`
         },
         {
-          target:()=>document.querySelector('.swipe-btn-heart'),
-          title:'Save for later',
-          body:'Tap the heart to save this idea to your Wishlist. You can come back to it anytime — great for dates you want to try but aren\'t ready to book yet.',
-          pos:'above'
+          title:'What are you into?',
+          sub:'Pick at least 2 — this shapes every recommendation',
+          required:'interests',
+          render:()=>`<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
+            ${[['dining','Restaurants & food'],['culture','Theatre, art & culture'],['outdoors','Parks, walks & rooftops'],['nightlife','Bars, clubs & late nights'],['wellness','Spa, yoga & wellness'],['active','Sports, games & activities'],['music','Live music & concerts'],['cooking','Cooking classes']].map(([v,l])=>
+              _obChipHTML('interests',v,l)
+            ).join('')}
+          </div>`
         },
         {
-          target:()=>document.querySelector('.swipe-btn-book'),
-          title:'Book it now',
-          body:'Ready to go? Tap Book Now and we\'ll walk you through reserving the table, sorting transport and even finding a hotel — all in one flow.',
-          pos:'above'
+          title:'Are you planning for someone else too?',
+          sub:'You can always add a partner later in Preferences',
+          required:'_optional_date_mode',
+          render:()=>`<div style="display:flex;flex-direction:column;gap:10px">
+            ${[['solo','Just me for now'],['couple','With my partner'],['friends','With friends']].map(([v,l])=>
+              `<div class="ob-chip" data-group="date_mode" data-value="${v}" onclick="obToggleChip(this,'date_mode','${v}')" style="display:flex;align-items:center;gap:12px;padding:16px 18px;border:1.5px solid rgba(255,255,255,0.1);border-radius:16px;cursor:pointer;font-size:14px;font-weight:500;color:rgba(255,255,255,0.55);background:rgba(255,255,255,0.04);transition:all 0.18s">${l}</div>`
+            ).join('')}
+          </div>
+          <div style="text-align:center;margin-top:14px">
+            <span style="font-size:12px;color:rgba(255,255,255,0.25);cursor:pointer;text-decoration:underline" onclick="_obPrefs.date_mode='solo';obNext()">Skip for now</span>
+          </div>`
         }
       ];
-      let _obStep=0;
-      let _obOverlay=null;
-      let _obTooltip=null;
-
-      function _obShouldShow(){
-        return true;
-      }
-      function _obMarkDone(){
-        // No-op — onboarding always shows after landing page
-      }
 
       function startOnboarding(){
-        // Clean up any previous onboarding overlays
-        if(_obOverlay){_obOverlay.remove();_obOverlay=null;}
-        if(_obTooltip){_obTooltip.remove();_obTooltip=null;}
-        document.querySelectorAll('.ob-highlight').forEach(e=>e.classList.remove('ob-highlight'));
-        // Wait for swipe cards to render
-        const check=setInterval(()=>{
-          if(document.querySelector('.swipe-btn-book')){
-            clearInterval(check);
-            _obStep=0;
-            _obOverlay=document.createElement('div');
-            _obOverlay.className='ob-overlay';
-            _obOverlay.onclick=()=>{};
-            document.body.appendChild(_obOverlay);
-            _obTooltip=document.createElement('div');
-            _obTooltip.className='ob-tooltip';
-            document.body.appendChild(_obTooltip);
-            _obShow();
-          }
-        },300);
+        // Check if already completed
+        const profile=_getUserProfile();
+        if(profile?.onboarding_completed)return;
+        _trackEvent('onboarding_started',{});
+        _obCurrentStep=0;
+        const ov=document.getElementById('onboarding-overlay');
+        if(ov){ov.style.display='block';document.body.style.overflow='hidden';}
+        _obRenderStep();
       }
 
-      function _obShow(){
-        if(_obStep>=_OB_STEPS.length){_obEnd();return;}
-        const step=_OB_STEPS[_obStep];
-        const el=step.target();
-        if(!el){_obStep++;_obShow();return;}
-        // Remove previous highlight
-        document.querySelectorAll('.ob-highlight').forEach(e=>e.classList.remove('ob-highlight'));
-        // Add highlight to target
-        el.classList.add('ob-highlight');
-        // Scroll into view
-        el.scrollIntoView({behavior:'smooth',block:'center'});
-        // Build dots
-        const dots=_OB_STEPS.map((_,i)=>`<div class="ob-dot${i===_obStep?' active':''}"></div>`).join('');
-        // Build tooltip content
-        _obTooltip.innerHTML=`
-          <div class="ob-tooltip-step">Step ${_obStep+1} of ${_OB_STEPS.length}</div>
-          <div class="ob-tooltip-title">${step.title}</div>
-          <div class="ob-tooltip-body">${step.body}</div>
-          <div class="ob-tooltip-btns">
-            <button class="ob-next" onclick="_obNext()">${_obStep===_OB_STEPS.length-1?'Got it, let\'s go!':'Next'}</button>
-            <button class="ob-skip" onclick="_obEnd()">Skip tour</button>
-            <div class="ob-dots">${dots}</div>
-          </div>`;
-        // Position tooltip with arrow
-        setTimeout(()=>{
-          const rect=el.getBoundingClientRect();
-          const ttH=_obTooltip.offsetHeight;
-          const ttW=_obTooltip.offsetWidth;
-          let top,left,arrowClass;
-          left=Math.max(20,Math.min(window.innerWidth-ttW-20,rect.left+(rect.width/2)-(ttW/2)));
-          if(step.pos==='above'){
-            top=rect.top-ttH-14;
-            arrowClass='arrow-down';
-            if(top<10){top=rect.bottom+14;arrowClass='arrow-up';}
+      function _obRenderStep(){
+        const step=_OB_STEP_DATA[_obCurrentStep];
+        const content=document.getElementById('ob-step-content');
+        const label=document.getElementById('ob-step-label');
+        const progress=document.getElementById('ob-progress-bar');
+        const backBtn=document.getElementById('ob-back-btn');
+        const nextBtn=document.getElementById('ob-next-btn');
+        const error=document.getElementById('ob-error');
+        if(!content)return;
+        label.textContent=`Step ${_obCurrentStep+1} of ${_OB_TOTAL}`;
+        progress.style.width=(((_obCurrentStep+1)/_OB_TOTAL)*100)+'%';
+        backBtn.style.display=_obCurrentStep>0?'block':'none';
+        nextBtn.textContent=_obCurrentStep===_OB_TOTAL-1?'Finish setup':'Continue';
+        error.style.display='none';
+        content.innerHTML=`
+          <div style="text-align:center;margin-bottom:28px">
+            <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:300;color:rgba(255,255,255,0.92);margin-bottom:8px">${step.title}</h2>
+            <p style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5">${step.sub}</p>
+          </div>
+          ${step.render()}
+        `;
+        // Re-apply existing selections
+        _obApplySelections();
+        // Scroll to top
+        document.getElementById('onboarding-overlay').scrollTo({top:0});
+      }
+
+      function _obApplySelections(){
+        document.querySelectorAll('.ob-chip').forEach(chip=>{
+          const group=chip.dataset.group;
+          const value=chip.dataset.value;
+          const isMulti=['dietary','interests'].includes(group);
+          if(isMulti){
+            chip.classList.toggle('ob-selected',_obPrefs[group].includes(value));
           } else {
-            top=rect.bottom+14;
-            arrowClass='arrow-up';
-            if(top+ttH>window.innerHeight-10){top=rect.top-ttH-14;arrowClass='arrow-down';}
+            chip.classList.toggle('ob-selected',_obPrefs[group]===value);
           }
-          _obTooltip.style.top=Math.max(10,top)+'px';
-          _obTooltip.style.left=left+'px';
-          // Set arrow class and position arrow horizontally to point at target center
-          _obTooltip.classList.remove('arrow-up','arrow-down');
-          _obTooltip.classList.add(arrowClass);
-          const targetCenterX=rect.left+(rect.width/2);
-          const tooltipLeft=parseFloat(_obTooltip.style.left);
-          const arrowLeft=Math.max(20,Math.min(ttW-20,targetCenterX-tooltipLeft));
-          _obTooltip.style.setProperty('--arrow-left',arrowLeft+'px');
-          const arrow=_obTooltip.querySelector('::before')||null;
-          // Use CSS custom property for arrow position
-          _obTooltip.style.cssText+=';';
-          const beforeRule=document.querySelector('.ob-tooltip.'+arrowClass+'::before');
-          // Re-trigger animation
-          _obTooltip.style.animation='none';
-          void _obTooltip.offsetWidth;
-          _obTooltip.style.animation='obPopIn 0.3s cubic-bezier(0.34,1.56,0.64,1)';
-        },100);
+        });
       }
 
-      function _obNext(){
-        _obStep++;
-        _obShow();
+      function obNext(){
+        const step=_OB_STEP_DATA[_obCurrentStep];
+        const error=document.getElementById('ob-error');
+        // Validate required fields for current step
+        const req=step.required;
+        if(req==='interests'){
+          if(_obPrefs.interests.length<2){
+            error.textContent='Please pick at least 2 interests';error.style.display='block';return;
+          }
+        } else if(req==='dietary'){
+          if(_obPrefs.dietary.length===0){
+            error.textContent='Please select at least one option';error.style.display='block';return;
+          }
+          if(!_obPrefs.alcohol){
+            error.textContent='Please select your drink preference';error.style.display='block';return;
+          }
+        } else if(req==='time_preference'){
+          if(!_obPrefs.time_preference){error.textContent='Please select when you usually go out';error.style.display='block';return;}
+          if(!_obPrefs.setting){error.textContent='Please select indoor or outdoor preference';error.style.display='block';return;}
+          if(!_obPrefs.energy_level){error.textContent='Please select your energy level';error.style.display='block';return;}
+        } else if(req==='budget'){
+          if(!_obPrefs.budget){error.textContent='Please select your budget range';error.style.display='block';return;}
+          if(!_obPrefs.travel_radius){error.textContent='Please select your travel preference';error.style.display='block';return;}
+        } else if(req==='_optional_date_mode'){
+          // Optional step — default to solo if nothing selected
+          if(!_obPrefs.date_mode)_obPrefs.date_mode='solo';
+        } else {
+          if(!_obPrefs[req]){
+            error.textContent='Please make a selection to continue';error.style.display='block';return;
+          }
+        }
+        error.style.display='none';
+        if(_obCurrentStep<_OB_TOTAL-1){
+          _obCurrentStep++;
+          _obRenderStep();
+        } else {
+          _obComplete();
+        }
       }
 
-      function _obEnd(){
-        _obMarkDone();
-        document.querySelectorAll('.ob-highlight').forEach(e=>e.classList.remove('ob-highlight'));
-        if(_obOverlay){_obOverlay.remove();_obOverlay=null;}
-        if(_obTooltip){_obTooltip.remove();_obTooltip=null;}
+      function obBack(){
+        if(_obCurrentStep>0){
+          _obCurrentStep--;
+          _obRenderStep();
+        }
       }
 
-      // Trigger onboarding after entering app from waitlist
+      async function _obComplete(){
+        const btn=document.getElementById('ob-next-btn');
+        btn.textContent='Saving...';btn.disabled=true;
+        // Determine account_state from date_mode
+        const accountState=_obPrefs.date_mode==='couple'?'paired':'single';
+        // Save to localStorage
+        const profile=_getUserProfile()||{};
+        profile.onboarding_completed=true;
+        profile.preferences=_obPrefs;
+        profile.account_state=accountState;
+        _saveUserProfile(profile);
+        // Save to Supabase users table
+        if(_sb&&_sbUserId){
+          try{
+            await _sb.from('users').update({
+              onboarding_completed:true,
+              preferences:_obPrefs,
+              account_state:accountState
+            }).eq('id',_sbUserId);
+          }catch(e){_captureError(e,{context:'onboarding_save',source:'_obComplete'});}
+          // Also save to user_state as backup (survives even if users table read fails)
+          _sbSaveState('preferences',_obPrefs);
+        }
+        _trackEvent('onboarding_completed',_obPrefs);
+        // Apply preferences to app state
+        if(_obPrefs.date_mode)_pairingMode=_obPrefs.date_mode==='couple'?'couple':_obPrefs.date_mode;
+        if(_obPrefs.budget){
+          const budgetMap={under50:0,'50to150':1,'150to300':2,'300plus':3};
+          const sl=document.getElementById('budget-slider');
+          if(sl&&budgetMap[_obPrefs.budget]!=null){sl.value=budgetMap[_obPrefs.budget];updateBudgetLabel(sl.value);}
+        }
+        if(_obPrefs.energy_level)_moodEnergy=_obPrefs.energy_level==='low'?'tired':_obPrefs.energy_level==='high'?'energetic':'moderate';
+        // Hide onboarding
+        const ov=document.getElementById('onboarding-overlay');
+        if(ov){ov.style.display='none';document.body.style.overflow='';}
+        // Route to Discover
+        go('discover',null);
+        generateSuggestions();
+        toast('✦ You\'re all set — let\'s find your next date.');
+      }
+
+      // Trigger onboarding after entering app
       const _origEnterApp=enterApp;
       enterApp=function(){
         _origEnterApp();
-        // Wait for landing to fade, then start onboarding on discover page
+        // Check if onboarding is needed
         setTimeout(()=>{
-          go('discover',null);
-          setTimeout(startOnboarding,800);
+          const profile=_getUserProfile();
+          if(!profile?.onboarding_completed){
+            startOnboarding();
+          } else {
+            go('discover',null);
+          }
         },500);
       };
+
+      /* ── Tap-to-scroll-top (mobile) ── */
+      (function(){
+        // 1) Mobile header tap → scroll to top
+        const mh=document.querySelector('.mobile-header');
+        if(mh){
+          mh.style.cursor='pointer';
+          mh.addEventListener('click',function(e){
+            // Don't hijack clicks on buttons/links inside the header
+            if(e.target.closest('.couple-pill')||e.target.closest('button')||e.target.closest('a'))return;
+            const c=document.querySelector('.content');
+            if(c) c.scrollTo({top:0,behavior:'smooth'});
+          });
+        }
+
+        // 2) Floating back-to-top button
+        const btn=document.createElement('button');
+        btn.className='back-to-top';
+        btn.setAttribute('aria-label','Scroll to top');
+        btn.innerHTML='&#8593;';
+        document.body.appendChild(btn);
+
+        btn.addEventListener('click',function(){
+          const c=document.querySelector('.content');
+          if(c) c.scrollTo({top:0,behavior:'smooth'});
+        });
+
+        // Show/hide button based on scroll position
+        const content=document.querySelector('.content');
+        if(content){
+          content.addEventListener('scroll',function(){
+            if(content.scrollTop>400){
+              btn.classList.add('visible');
+            }else{
+              btn.classList.remove('visible');
+            }
+          },{passive:true});
+        }
+      })();
+
+      // ── Partner form ──
+      function openPartnerForm(){
+        const o = document.getElementById('partner-overlay');
+        if(o){ o.style.display='flex'; }
+      }
+      function closePartnerForm(){
+        const o = document.getElementById('partner-overlay');
+        if(o){ o.style.display='none'; }
+        // Reset form
+        const fields = document.getElementById('partner-form-fields');
+        const success = document.getElementById('partner-success');
+        if(fields) fields.style.display='block';
+        if(success) success.style.display='none';
+      }
+      async function submitPartnerForm(){
+        const business = document.getElementById('partner-business').value.trim();
+        const name = document.getElementById('partner-name').value.trim();
+        const email = document.getElementById('partner-email').value.trim();
+        const type = document.getElementById('partner-type').value;
+        const message = document.getElementById('partner-message').value.trim();
+
+        if(!business){alert('Please enter your business name');return;}
+        if(!name){alert('Please enter your name');return;}
+        if(!email||!email.includes('@')){alert('Please enter a valid email');return;}
+
+        const btn = document.querySelector('#partner-form-fields .lp-clean-btn');
+        btn.textContent = 'Sending...';
+        btn.disabled = true;
+
+        const data = new FormData();
+        data.append('_subject', 'Partner enquiry: ' + business);
+        data.append('business_name', business);
+        data.append('contact_name', name);
+        data.append('email', email);
+        data.append('venue_type', type);
+        data.append('message', message);
+
+        try {
+          const response = await fetch('https://formspree.io/f/xreodnbr', {
+            method: 'POST',
+            body: data,
+            headers: { 'Accept': 'application/json' }
+          });
+          if(response.ok){
+            document.getElementById('partner-form-fields').style.display='none';
+            document.getElementById('partner-success').style.display='block';
+          } else {
+            alert('Something went wrong. Please try again.');
+            btn.textContent = 'Submit enquiry';
+            btn.disabled = false;
+          }
+        } catch(e) {
+          alert('Could not connect. Please check your internet and try again.');
+          btn.textContent = 'Submit enquiry';
+          btn.disabled = false;
+        }
+      }
+
+      // ── Pairing mode picker ──
+      let _pairingMode='solo';
+      function openPairingPicker(){
+        document.getElementById('pairing-overlay').style.display='flex';
+      }
+      function closePairingPicker(){
+        document.getElementById('pairing-overlay').style.display='none';
+      }
+      function setPairingMode(mode){
+        _pairingMode=mode;
+        // Update check marks
+        ['solo','couple','friends'].forEach(m=>{
+          const el=document.getElementById('pairing-check-'+m);
+          if(el) el.style.display=m===mode?'inline':'none';
+        });
+        // Update status banner
+        const status=document.getElementById('pairing-status');
+        if(status){
+          if(mode==='solo'){
+            status.innerHTML='<span style="color:var(--primary);font-weight:600">Planning solo</span> · finding things just for you';
+          } else if(mode==='couple'){
+            status.innerHTML='<span style="color:var(--primary);font-weight:600">Currently paired with '+_partnerName()+'</span> · planning together';
+          } else if(mode==='friends'){
+            status.innerHTML='<span style="color:var(--primary);font-weight:600">Planning with friends</span> · group activities & dining';
+          }
+        }
+        // Update couple pill in header
+        const pills=document.querySelectorAll('.couple-name');
+        pills.forEach(p=>{
+          if(mode==='solo') p.textContent='Solo';
+          else if(mode==='couple') p.textContent=p.closest('.mobile-header')?_coupleShort():_userName()+' & '+_partnerName();
+          else if(mode==='friends') p.textContent=p.closest('.mobile-header')?'Group':'Friends';
+        });
+        closePairingPicker();
+        toast('✦ Switched to '+(mode==='solo'?'solo mode':mode==='couple'?'couple mode':'friends mode'));
+      }
+
+      // ── Discover category bar ──
+      function selectDiscoverCat(el,cat){
+        document.querySelectorAll('.dcat').forEach(c=>c.classList.remove('active'));
+        el.classList.add('active');
+        // Map category to vibe type
+        const catMap={all:'all',romantic:'romantic',activity:'all',outdoor:'outdoor',fun:'fun',wellness:'outdoor'};
+        _vibeType=catMap[cat]||'all';
+        _vibeTag='';
+        // Also update the vibe cards in the filter panel to match
+        document.querySelectorAll('.vibe-card').forEach(c=>c.classList.remove('active'));
+        generateSuggestions();
+      }
+
+      // ── Tide-inspired ambient background ──
+      (function setAmbientBackground(){
+        const h=new Date().getHours();
+        const root=document.documentElement;
+        if(h>=6&&h<10){
+          // Morning — warm golden light
+          root.style.setProperty('--ambient-warm','rgba(200,160,80,0.08)');
+          root.style.setProperty('--ambient-cool','rgba(180,140,100,0.04)');
+        } else if(h>=10&&h<16){
+          // Afternoon — soft neutral
+          root.style.setProperty('--ambient-warm','rgba(160,140,100,0.05)');
+          root.style.setProperty('--ambient-cool','rgba(120,130,150,0.04)');
+        } else if(h>=16&&h<20){
+          // Golden hour / evening — warm amber
+          root.style.setProperty('--ambient-warm','rgba(210,150,60,0.09)');
+          root.style.setProperty('--ambient-cool','rgba(180,100,60,0.05)');
+        } else if(h>=20&&h<23){
+          // Night — deep blue-rose
+          root.style.setProperty('--ambient-warm','rgba(160,80,100,0.06)');
+          root.style.setProperty('--ambient-cool','rgba(60,80,140,0.06)');
+        } else {
+          // Late night — minimal, near black
+          root.style.setProperty('--ambient-warm','rgba(100,80,60,0.03)');
+          root.style.setProperty('--ambient-cool','rgba(40,50,80,0.04)');
+        }
+      })();
+
+      // ════════════════════════════════════════════════
+      // ── REFINE DATE BOTTOM SHEET ──
+      // ════════════════════════════════════════════════
+      let _rfFilters={occasion:'',time:'',setting:'',area:'',style:[],food:''};
+      let _rfActive=false; // true when user has applied refined filters
+
+      function openRefineSheet(){
+        const ov=document.getElementById('refine-overlay');
+        const sheet=document.getElementById('refine-sheet');
+        if(!ov||!sheet)return;
+        // Prefill from saved onboarding preferences
+        _rfPrefill();
+        // Restore current selections
+        _rfApplySelections();
+        ov.style.display='block';
+        document.body.style.overflow='hidden';
+        requestAnimationFrame(()=>{sheet.classList.add('rf-open');});
+      }
+
+      function closeRefineSheet(){
+        const ov=document.getElementById('refine-overlay');
+        const sheet=document.getElementById('refine-sheet');
+        if(!sheet)return;
+        sheet.classList.remove('rf-open');
+        setTimeout(()=>{if(ov)ov.style.display='none';document.body.style.overflow='';},300);
+      }
+
+      function rfToggle(el){
+        const g=el.dataset.g;
+        document.querySelectorAll(`.rf-chip[data-g="${g}"]`).forEach(c=>c.classList.remove('rf-on'));
+        if(_rfFilters[g]===el.dataset.v){
+          _rfFilters[g]='';
+        }else{
+          el.classList.add('rf-on');
+          _rfFilters[g]=el.dataset.v;
+        }
+      }
+
+      function rfToggleMulti(el){
+        el.classList.toggle('rf-on');
+        const v=el.dataset.v;
+        if(el.classList.contains('rf-on')){
+          if(!_rfFilters.style.includes(v))_rfFilters.style.push(v);
+        }else{
+          _rfFilters.style=_rfFilters.style.filter(s=>s!==v);
+        }
+      }
+
+      function _rfApplySelections(){
+        document.querySelectorAll('.rf-chip').forEach(c=>{
+          const g=c.dataset.g;const v=c.dataset.v;
+          if(g==='style'){
+            c.classList.toggle('rf-on',_rfFilters.style.includes(v));
+          }else{
+            c.classList.toggle('rf-on',_rfFilters[g]===v);
+          }
+        });
+      }
+
+      function _rfPrefill(){
+        const profile=_getUserProfile()||{};
+        const prefs=profile.preferences||{};
+        // Only prefill empty fields from saved prefs
+        if(!_rfFilters.setting&&prefs.setting)_rfFilters.setting=prefs.setting;
+        if(!_rfFilters.time&&prefs.time_preference&&prefs.time_preference!=='any')_rfFilters.time=prefs.time_preference;
+        if(!_rfFilters.area&&prefs.travel_radius){
+          const m={local:'east',central:'central',anywhere:''};
+          if(m[prefs.travel_radius])_rfFilters.area=m[prefs.travel_radius];
+        }
+        if(!_rfFilters.occasion&&prefs.date_mode){
+          const m={couple:'casual',solo:'',friends:'friends'};
+          if(m[prefs.date_mode])_rfFilters.occasion=m[prefs.date_mode];
+        }
+      }
+
+      function rfClear(){
+        _rfFilters={occasion:'',time:'',setting:'',area:'',style:[],food:''};
+        _rfActive=false;
+        _rfApplySelections();
+        const badge=document.getElementById('refine-active-badge');
+        if(badge)badge.style.display='none';
+      }
+
+      function rfApply(){
+        // Check if any filter is set
+        const hasFilter=_rfFilters.occasion||_rfFilters.time||_rfFilters.setting||_rfFilters.area||_rfFilters.style.length||_rfFilters.food;
+        _rfActive=!!hasFilter;
+        const badge=document.getElementById('refine-active-badge');
+        if(badge)badge.style.display=_rfActive?'inline':'none';
+        closeRefineSheet();
+        _trackEvent('refine_applied',_rfFilters);
+        generateSuggestions();
+      }
+
+      // ════════════════════════════════════════════════
+      // ── AUTO-SYNC WRAPPERS ──
+      // Intercept render calls to sync state to Supabase
+      // ════════════════════════════════════════════════
+      (function _wireSyncHooks(){
+        const _origRB=renderBookings;
+        renderBookings=function(){_origRB();_sbSaveState('bookings',bookings);};
+        if(typeof renderReminders==='function'){const _origRR=renderReminders;renderReminders=function(){_origRR();_sbSaveState('reminders',reminders);};}
+        if(typeof renderWishlist==='function'){const _origRW=renderWishlist;renderWishlist=function(){_origRW();_sbSaveState('wishlist',_wishlist);};}
+        if(typeof renderJournal==='function'){const _origRJ=renderJournal;renderJournal=function(){_origRJ();_sbSaveState('journal',_journal);};}
+        // Track page views
+        const _origGoSync=go;
+        go=function(id,el){_origGoSync(id,el);_trackEvent('page_view',{page:id});};
+      })();
+
+      // ════════════════════════════════════════════════
+      // ── FEEDBACK SYSTEM ──
+      // ════════════════════════════════════════════════
+      let _feedbackType='idea';
+      function openFeedback(){
+        const ov=document.getElementById('feedback-overlay');
+        if(ov){ov.style.display='flex';document.body.style.overflow='hidden';}
+      }
+      function closeFeedback(){
+        const ov=document.getElementById('feedback-overlay');
+        if(ov){ov.style.display='none';document.body.style.overflow='';}
+      }
+      function setFeedbackType(type,btn){
+        _feedbackType=type;
+        document.querySelectorAll('#feedback-type-row .btn').forEach(b=>b.classList.remove('btn-rose'));
+        if(btn)btn.classList.add('btn-rose');
+      }
+      function submitFeedback(){
+        const text=(document.getElementById('feedback-text')?.value||'').trim();
+        if(!text){toast('Please enter your feedback');return;}
+        _trackEvent('feedback_submitted',{type:_feedbackType,text,user:_userName()});
+        // Also send to Formspree as backup
+        const data=new FormData();
+        data.append('_subject','Beta feedback ('+_feedbackType+'): '+text.slice(0,50));
+        data.append('feedback_type',_feedbackType);
+        data.append('feedback_text',text);
+        data.append('user_name',_userName());
+        data.append('user_id',_getLocalUserId());
+        fetch('https://formspree.io/f/xreodnbr',{method:'POST',body:data,headers:{'Accept':'application/json'}}).catch(()=>{});
+        closeFeedback();
+        document.getElementById('feedback-text').value='';
+        toast('✦ Thanks — we read every one');
+      }
+
+      // ════════════════════════════════════════════════
+      // ── ERROR MONITORING (Sentry + Supabase fallback) ──
+      // ════════════════════════════════════════════════
+
+      // PII scrubber — strips emails, names, handles from error data
+      function _scrubPII(str){
+        if(!str||typeof str!=='string')return str;
+        return str
+          .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g,'[email]')
+          .replace(/@[a-zA-Z0-9_]+/g,'@[handle]')
+          .replace(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g,'[jwt]');
+      }
+
+      // Init Sentry if SDK loaded
+      function _initSentry(){
+        if(typeof Sentry==='undefined')return;
+        try{
+          Sentry.init({
+            dsn:'', // Add your Sentry DSN here when ready
+            environment:'beta',
+            release:'t4t-beta-1.0',
+            sampleRate:1.0,
+            beforeSend(event){
+              // Scrub PII from all string values
+              if(event.message)event.message=_scrubPII(event.message);
+              if(event.exception?.values){
+                event.exception.values.forEach(v=>{if(v.value)v.value=_scrubPII(v.value);});
+              }
+              // Remove user email from breadcrumbs
+              if(event.breadcrumbs){
+                event.breadcrumbs.forEach(b=>{if(b.message)b.message=_scrubPII(b.message);});
+              }
+              return event;
+            },
+            beforeBreadcrumb(breadcrumb){
+              // Skip noisy fetch breadcrumbs to Supabase
+              if(breadcrumb.category==='fetch'&&breadcrumb.data?.url?.includes('supabase'))return null;
+              return breadcrumb;
+            }
+          });
+          // Set anonymous user context
+          Sentry.setUser({id:_analytics._getAnonId()});
+          console.log('[T4T] Sentry initialized');
+        }catch(e){console.warn('[T4T] Sentry init failed',e);}
+      }
+      // Try init after a short delay to let the SDK load
+      setTimeout(_initSentry,1000);
+
+      // Capture error to both Sentry and Supabase
+      function _captureError(error,context){
+        const msg=_scrubPII(error?.message||String(error));
+        const ctx=context||{};
+        // Supabase event
+        _trackEvent('error_state_seen',{message:msg,context:ctx.context||null,source:ctx.source||null});
+        // Sentry
+        if(typeof Sentry!=='undefined'){
+          Sentry.withScope(scope=>{
+            if(ctx.context)scope.setTag('context',ctx.context);
+            if(ctx.source)scope.setTag('source',ctx.source);
+            if(ctx.plan_id)scope.setExtra('plan_id',ctx.plan_id);
+            if(ctx.venue)scope.setExtra('venue',ctx.venue);
+            Sentry.captureException(error instanceof Error?error:new Error(msg));
+          });
+        }
+      }
+
+      // Global handlers
+      window.addEventListener('error',function(e){
+        _captureError(e.error||e.message,{context:'global',source:(e.filename||'').split('/').pop()+':'+e.lineno});
+      });
+      window.addEventListener('unhandledrejection',function(e){
+        _captureError(e.reason,{context:'promise',source:'unhandledrejection'});
+      });
 
