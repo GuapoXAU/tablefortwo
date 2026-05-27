@@ -542,7 +542,7 @@
           --rose-mid:rgba(201,168,76,0.25);--rose-dark:#C0983A;
           --plum:var(--accent);--plum-light:rgba(139,105,20,0.1);--plum-mid:rgba(139,105,20,0.22);
           --color-text-primary:var(--text);--color-text-secondary:var(--subtle);
-          --color-text-tertiary:rgba(184,168,128,0.6);
+          --color-text-tertiary:rgba(184,168,128,0.7);
           --ink:var(--text);--ink-soft:var(--subtle);--ink-muted:rgba(184,168,128,0.7);
           --color-background-primary:var(--card);--color-background-secondary:#141210;
           --color-background-tertiary:var(--bg);
@@ -644,7 +644,7 @@
         /* ── Form inputs ── */
         .form-input{background:rgba(255,255,255,0.08)!important;border:0.5px solid rgba(255,255,255,0.15)!important;color:#fff;border-radius:14px}
         .form-input:focus{border-color:rgba(255,255,255,0.15)!important;box-shadow:0 0 0 3px rgba(255,255,255,0.04)!important;outline:none}
-        .form-input::placeholder{color:rgba(255,255,255,0.25)}
+        .form-input::placeholder{color:rgba(255,255,255,0.35)}
         select.form-input{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 5 5-5' stroke='%23555' stroke-width='1.2' fill='none'/%3E%3C/svg%3E")}
         select.form-input option{background:var(--card);color:#fff}
 
@@ -685,7 +685,7 @@
         /* ── Dots: Tide-style pills ── */
         .swipe-dot{background:rgba(255,255,255,0.08)!important;width:6px!important;height:6px!important;transition:all 0.25s}
         .swipe-dot.active{background:rgba(255,255,255,0.45)!important;width:18px!important;border-radius:3px!important}
-        .swipe-counter{color:rgba(255,255,255,0.15)!important;font-size:10px!important}
+        .swipe-counter{color:rgba(255,255,255,0.35)!important;font-size:10px!important}
 
         /* ── Section titles ── */
         .section-title{font-weight:600!important;color:rgba(255,255,255,0.8)!important;letter-spacing:-0.2px!important}
@@ -737,7 +737,7 @@
         .cal-day.today,.cal-day.selected{background:rgba(196,104,122,0.08);border-color:rgba(196,104,122,0.2)}
         .cal-day.has-ev::after{background:rgba(196,104,122,0.6)}
         .cal-day-n{color:rgba(255,255,255,0.5)}
-        .cal-day.other .cal-day-n{color:rgba(255,255,255,0.15)}
+        .cal-day.other .cal-day-n{color:rgba(255,255,255,0.3)}
         .cal-ev{color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.04);border-left-color:rgba(196,104,122,0.4)}
         .cal-daylabel{color:rgba(255,255,255,0.2)}
 
@@ -821,7 +821,7 @@
           transition:border-color 0.2s;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
         }
         .lp-clean-input:focus{border-color:rgba(201,168,76,0.4);box-shadow:0 0 0 3px rgba(201,168,76,0.06)}
-        .lp-clean-input::placeholder{color:rgba(255,255,255,0.25)}
+        .lp-clean-input::placeholder{color:rgba(255,255,255,0.35)}
         .lp-clean-btn{
           padding:14px 24px;border-radius:14px;border:none;
           background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;
@@ -830,10 +830,10 @@
         }
         .lp-clean-btn:hover{opacity:0.9;box-shadow:0 6px 24px rgba(201,168,76,0.3)}
         .lp-clean-btn:active{transform:scale(0.97)}
-        .lp-clean-disclaimer{font-size:12px;color:rgba(255,255,255,0.2);margin-top:12px}
+        .lp-clean-disclaimer{font-size:12px;color:rgba(255,255,255,0.38);margin-top:12px}
         .lp-clean-footer{
           margin-top:auto;padding-top:60px;display:flex;align-items:center;gap:16px;
-          font-size:12px;color:rgba(255,255,255,0.15);
+          font-size:12px;color:rgba(255,255,255,0.35);
         }
         .lp-clean-footer a{color:rgba(201,168,76,0.4);text-decoration:none;transition:color 0.15s}
         .lp-clean-footer a:hover{color:#C9A84C}
@@ -1003,7 +1003,7 @@
         .plan-status-viewed{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border:0.5px solid rgba(255,255,255,0.08)}
         .plan-status-saved{background:rgba(201,168,76,0.1);color:#C9A84C;border:0.5px solid rgba(201,168,76,0.2)}
         .plan-status-active{background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.2)}
-        .plan-status-draft{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.25);border:0.5px solid rgba(255,255,255,0.06)}
+        .plan-status-draft{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.4);border:0.5px solid rgba(255,255,255,0.06)}
 
         .plan-details{border-top:0.5px solid rgba(255,255,255,0.06);padding:14px 18px}
         .plan-item{display:flex;gap:12px;padding:10px 0;border-bottom:0.5px solid rgba(255,255,255,0.04)}

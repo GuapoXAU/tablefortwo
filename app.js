@@ -207,7 +207,7 @@
       }
 
       // Demo label HTML — inserted into confirmation screens
-      const _DEMO_LABEL='<div style="font-size:10px;color:rgba(201,168,76,0.5);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">Demo — not a real booking</div>';
+      const _DEMO_LABEL='<div style="font-size:9px;color:rgba(201,168,76,0.35);font-weight:500;letter-spacing:0.5px;margin-bottom:6px">Beta — booking via partner site</div>';
 
       // Apply user names throughout the UI (handles single + paired modes)
       function _applyUserNames(){
@@ -993,7 +993,7 @@
         mid:[
           {name:'Hakkasan Mayfair dinner',loc:'Mayfair · Chinese',emoji:'✦',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Michelin-starred Cantonese — moody, beautiful and endlessly romantic',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
           {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £33pp',why:'Bold Indian flavours — always unmissable',score:92,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
-          {name:'Secret Cinema evening',loc:'London · Immersive',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',why:'Unique & memorable — live actors, costumes, and a film',score:94,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Punchdrunk immersive theatre',loc:'Woolwich · Immersive experience',emoji:'🎭',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £58pp',why:'Walk through a living world of theatre — completely unique and unforgettable',score:94,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
           {name:'O2 Arena concert night',loc:'Greenwich · Live music',emoji:'🎤',img:'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=320&fit=crop&q=80',price:'avg. £50pp',why:'Nothing beats live music together — electric atmosphere',score:88,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active'},
           {name:'The Crystal Maze LIVE Experience',loc:'Farringdon · Immersive game',emoji:'💎',img:'https://images.unsplash.com/photo-1511882150382-421056c89033?w=600&h=320&fit=crop&q=80',price:'avg. £48pp',why:'The iconic TV experience — team challenges across four zones',score:87,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
           {name:'Kew Gardens + riverside pub',loc:'Richmond · Outdoor',emoji:'🌿',img:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'UNESCO world heritage gardens with a riverside pub',score:81,type:'outdoor',vibes:['Walkable','Outdoor seats'],venue_status:'active'},
@@ -1066,7 +1066,7 @@
           {name:'Chef\'s table at Climpson\'s Arch',loc:'Hackney · Open kitchen',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'Sit at the pass and watch every dish made — intimate, theatrical and delicious',score:88,type:'foodie',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
           {name:'Electric Cinema double bill + dinner',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £110pp',why:'Leather beds, cashmere blankets and wine — cinema elevated to an art form',score:87,type:'fun',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
           {name:'Luxury wine tasting at 67 Pall Mall',loc:'St James · Wine club',emoji:'🍷',img:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'World-class wines in a stunning Victorian townhouse — for serious wine lovers',score:89,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Cocktail masterclass at Lyaness',loc:'South Bank · Award-winning bar',emoji:'🍸',img:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Learn to make drinks from one of the world\'s best bar teams — inventive and fun',score:86,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Cocktail masterclass at Cahoots',loc:'Soho · Speakeasy bar',emoji:'🍸',img:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&h=320&fit=crop&q=80',price:'avg. £65pp',why:'Learn to shake cocktails in a 1940s underground speakeasy — fun, intimate and unforgettable',score:88,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
         ]
       };
 
@@ -1461,7 +1461,9 @@
             if(freshIdx>0)pick=candidates[freshIdx];
             else if(candidates.length>1)pick=candidates[1]; // at least skip the #1 default
           }
-          items.push(Object.assign({},pick,{role:slot.role,status:pick.bookable}));
+          // Resolve booking info at assembly time (not click time) to prevent name collisions
+          const _pickBi=_getBookingInfo(pick.name);
+          items.push(Object.assign({},pick,{role:slot.role,status:pick.bookable,_resolvedUrl:_pickBi.booking_url||_pickBi.website_url||null,_resolvedProvider:_pickBi.provider,_resolvedLinkStatus:_pickBi.link_status}));
         }
         if(items.length<arch.min)return null;
         const avgScore=Math.round(items.reduce((s,i)=>s+i._prefScore,0)/items.length);
@@ -1756,21 +1758,21 @@
         'Bob Bob Ricard':{url:'https://www.bobbobricard.com/',provider:'Bob Bob Ricard',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
         'Kiln restaurant Soho':{url:null,website_url:'https://kilnsoho.com',provider:'Kiln',type:'restaurant',link_status:'needs_review'},
         'Ottolenghi dinner':{url:'https://ottolenghi.co.uk/restaurants',provider:'Ottolenghi',type:'restaurant',link_status:'verified'},
-        'Padella pasta dinner':{url:null,website_url:'https://www.padella.co',provider:'Padella',type:'restaurant',link_status:'needs_review'},
+        'Padella pasta dinner':{url:'https://web.dojo.app/create_booking/vendor/Gbzsvht-JlwuwLjO6nuUO-FvWWsj1wcZRbuK6qbdHkE_restaurant',website_url:'https://www.padella.co',provider:'Dojo',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
         'Brat restaurant':{url:'https://bratrestaurant.com/reservations',provider:'Brat',type:'restaurant',link_status:'verified'},
-        'Core by Clare Smyth':{url:null,website_url:'https://corebyclaresmyth.com',provider:'Core',type:'restaurant',link_status:'needs_review'},
+        'Core by Clare Smyth':{url:'https://corebyclaresmyth.com/reservations/',website_url:'https://corebyclaresmyth.com',provider:'Core by Clare Smyth',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
         'Alain Ducasse at The Dorchester':{url:'https://www.sevenrooms.com/reservations/alainducasseatthedorchester/',website_url:'https://www.dorchestercollection.com/london/the-dorchester/restaurants-bars/alain-ducasse/',provider:'SevenRooms',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
         'Brindisa tapas + Borough Market':{url:'https://www.brindisakitchens.com/book',provider:'Brindisa',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
         'The Savoy afternoon tea + dinner':{url:'https://www.thesavoylondon.com/dining/',provider:'The Savoy',type:'restaurant',link_status:'verified'},
         'Aqua Shard cocktails + dinner':{url:'https://aquashard.co.uk/reservations',provider:'Aqua Shard',type:'restaurant',link_status:'verified'},
         // Experiences — partner handoff
-        'Secret Cinema evening':{url:null,website_url:'https://www.secretcinema.org',provider:'Secret Cinema',type:'experience',link_status:'needs_review'},
+        'Punchdrunk immersive theatre':{url:'https://www.punchdrunk.com/the-burnt-city/',provider:'Punchdrunk',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
         'The Crystal Maze LIVE Experience':{url:'https://the-crystal-maze.com/london/',provider:'Crystal Maze',type:'experience',link_status:'verified'},
         'O2 Arena concert night':{url:'https://www.theo2.co.uk/events',provider:'The O2',type:'experience',link_status:'verified'},
         'Shakespeare\'s Globe Theatre':{url:'https://www.shakespearesglobe.com/whats-on/',provider:'Globe Theatre',type:'experience',link_status:'verified'},
         'National Theatre':{url:'https://www.nationaltheatre.org.uk/whats-on/',provider:'National Theatre',type:'experience',link_status:'verified'},
         'Ronnie Scott\'s jazz night':{url:'https://www.ronniescotts.co.uk/performances',provider:'Ronnie Scott\'s',type:'experience',link_status:'verified'},
-        'Electric Cinema, Notting Hill':{url:null,website_url:'https://www.electriccinema.co.uk',provider:'Electric Cinema',type:'experience',link_status:'needs_review'},
+        'Electric Cinema, Notting Hill':{url:'https://www.electriccinema.co.uk',provider:'Electric Cinema',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
         'Royal Opera House':{url:'https://www.roh.org.uk/tickets-and-events',provider:'Royal Opera House',type:'experience',link_status:'verified'},
         'The Ivy':{url:'https://www.the-ivy.co.uk/book',provider:'The Ivy',type:'restaurant',link_status:'verified'},
         'All Star Lanes bowling + cocktails':{url:'https://www.allstarlanes.co.uk/book',provider:'All Star Lanes',type:'experience',link_status:'verified'},
@@ -1844,17 +1846,64 @@
         'Hollywood Bowl O2':{url:'https://www.hollywoodbowl.co.uk/london-o2',provider:'Hollywood Bowl',type:'experience',link_status:'verified'},
         'Hollywood Bowl Finchley':{url:'https://www.hollywoodbowl.co.uk/finchley',provider:'Hollywood Bowl',type:'experience',link_status:'verified'},
         // New luxury tier venues
-        'Private tasting menu at The Clove Club':{url:null,website_url:'https://thecloveclub.com',provider:'The Clove Club',type:'restaurant',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
-        'Afternoon tea at The Ritz':{url:null,website_url:'https://www.theritzlondon.com/dine-with-us/afternoon-tea/',provider:'The Ritz',type:'restaurant',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Private tasting menu at The Clove Club':{url:'https://thecloveclub.com',provider:'The Clove Club',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Afternoon tea at The Ritz':{url:'https://www.theritzlondon.com/dine-with-us/afternoon-tea/',provider:'The Ritz',type:'restaurant',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
         'Couples spa ritual at ESPA Life':{url:null,website_url:'https://www.espalifeatcorinthia.com',provider:'ESPA Life',type:'experience',link_status:'needs_review',bookingType:'book_treatment',ctaLabel:'Book treatment'},
-        'Rooftop champagne at Shangri-La':{url:null,website_url:'https://www.shangri-la.com/london/shangrila/',provider:'Shangri-La',type:'experience',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
-        'Late opening at the V&A':{url:null,website_url:'https://www.vam.ac.uk/info/friday-late',provider:'V&A',type:'experience',link_status:'needs_review',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
+        'Rooftop champagne at Shangri-La':{url:'https://www.shangri-la.com/restaurants-bars/list/?hotel=SLLN&country=United+Kingdom&city=London',website_url:'https://www.shangri-la.com/london/shangrila/',provider:'Shangri-La',type:'experience',link_status:'verified',bookingType:'reserve_table',ctaLabel:'Reserve table'},
+        'Late opening at the V&A':{url:'https://www.vam.ac.uk/whatson',website_url:'https://www.vam.ac.uk/info/friday-late',provider:'V&A',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
         'Jazz supper at Ronnie Scott\'s':{url:'https://www.ronniescotts.co.uk/performances',provider:'Ronnie Scott\'s',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
         'Chef\'s table at Climpson\'s Arch':{url:null,website_url:'https://climpsonsarch.com',provider:'Climpson\'s Arch',type:'restaurant',link_status:'needs_review',bookingType:'reserve_table',ctaLabel:'Reserve table'},
-        'Electric Cinema double bill + dinner':{url:null,website_url:'https://www.electriccinema.co.uk',provider:'Electric Cinema',type:'experience',link_status:'needs_review',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
-        'Luxury wine tasting at 67 Pall Mall':{url:null,website_url:'https://www.67pallmall.co.uk',provider:'67 Pall Mall',type:'experience',link_status:'needs_review',bookingType:'book_now',ctaLabel:'Book now'},
-        'Cocktail masterclass at Lyaness':{url:null,website_url:'https://lfrg.com/lyaness/',provider:'Lyaness',type:'experience',link_status:'needs_review',bookingType:'book_now',ctaLabel:'Book now'},
+        'Electric Cinema double bill + dinner':{url:'https://www.electriccinema.co.uk',provider:'Electric Cinema',type:'experience',link_status:'verified',bookingType:'buy_tickets',ctaLabel:'Buy tickets'},
+        'Luxury wine tasting at 67 Pall Mall':{url:null,website_url:'https://www.67pallmall.co.uk',provider:'67 Pall Mall',type:'experience',link_status:'unavailable'},
+        'Cocktail masterclass at Cahoots':{url:'https://www.cahoots-london.com/experiences',provider:'Cahoots',type:'experience',link_status:'verified',bookingType:'book_now',ctaLabel:'Book now'},
       };
+
+      // ── Startup URL validation pass ──
+      // Logs warnings for any registry entries with invalid URLs
+      (function _validateBookingRegistry(){
+        let issues=0;
+        // 1. Validate all registry URLs
+        for(const[name,entry] of Object.entries(_VENUE_BOOKING)){
+          if(entry.url&&!_isValidUrl(entry.url)){
+            console.warn('[T4T DATA] Invalid booking URL for "'+name+'":',entry.url);
+            issues++;
+          }
+          if(entry.website_url&&!_isValidUrl(entry.website_url)){
+            console.warn('[T4T DATA] Invalid website URL for "'+name+'":',entry.website_url);
+            issues++;
+          }
+          if(!entry.url&&!entry.website_url&&entry.link_status!=='unavailable'){
+            console.warn('[T4T DATA] No URLs at all for "'+name+'" (status: '+entry.link_status+')');
+            issues++;
+          }
+        }
+        // 2. Check every IDEAS venue has a booking registry entry (exact match)
+        const allTiers=['budget','mid','treat','luxury'];
+        allTiers.forEach(tier=>{
+          (IDEAS[tier]||[]).forEach(v=>{
+            if(!_VENUE_BOOKING[v.name]){
+              console.warn('[T4T DATA] IDEAS venue "'+v.name+'" ('+tier+') has no exact _VENUE_BOOKING match');
+              issues++;
+            }
+          });
+        });
+        // 3. Test for name collisions in fuzzy matching
+        const _testCollisions=[
+          ['Padel court session for two','Padel'],
+          ['Padella pasta dinner','Padella'],
+          ['Toca Social','Toca Social'],
+          ['All Star Lanes bowling + cocktails','All Star Lanes'],
+        ];
+        _testCollisions.forEach(([name,expected])=>{
+          const info=_getBookingInfo(name);
+          if(info.provider&&!info.provider.toLowerCase().includes(expected.toLowerCase().slice(0,4))){
+            console.warn('[T4T DATA] Possible name collision: "'+name+'" resolved to provider "'+info.provider+'" (expected "'+expected+'")');
+            issues++;
+          }
+        });
+        if(issues)console.warn('[T4T DATA] '+issues+' data issue(s) found — check console warnings above');
+        else console.log('[T4T DATA] All '+Object.keys(_VENUE_BOOKING).length+' registry entries validated, no collisions detected');
+      })();
 
       // ── Venue link verification overlay ──
       // Founder-controlled overrides: mark specific venues as verified/unverified
@@ -1904,24 +1953,87 @@
         return'Check availability';
       }
 
+      // ════════════════════════════════════════════════
+      // ── URL VALIDATION & NORMALIZATION ──
+      // Single source of truth for all outbound links
+      // ════════════════════════════════════════════════
+
+      // Validate a URL — returns true only for well-formed http(s) URLs
+      function _isValidUrl(url){
+        if(!url||typeof url!=='string')return false;
+        const trimmed=url.trim();
+        if(!trimmed||trimmed.length<10)return false;
+        // Reject obvious placeholders
+        if(/^(https?:\/\/)?(example\.com|localhost|127\.0|test\.|placeholder|todo|tbd|fixme)/i.test(trimmed))return false;
+        // Reject non-http(s) schemes
+        if(!/^https?:\/\//i.test(trimmed))return false;
+        try{
+          const u=new URL(trimmed);
+          // Must have a real hostname with a dot
+          if(!u.hostname.includes('.'))return false;
+          return true;
+        }catch(e){return false;}
+      }
+
+      // Normalize a URL — trim, clean, standardize
+      function _normalizeUrl(url){
+        if(!url||typeof url!=='string')return null;
+        let s=url.trim();
+        // Remove accidental double wrapping
+        if(s.startsWith('"')&&s.endsWith('"'))s=s.slice(1,-1);
+        if(s.startsWith("'")&&s.endsWith("'"))s=s.slice(1,-1);
+        // Remove trailing slashes from paths (but keep query/fragment)
+        try{
+          const u=new URL(s);
+          // Strip known junk params that don't affect the destination
+          ['fbclid','gclid','mc_cid','mc_eid','_ga','_gl','ref','ref_src'].forEach(p=>u.searchParams.delete(p));
+          return u.toString();
+        }catch(e){return _isValidUrl(s)?s:null;}
+      }
+
+      // Resolve the canonical URL for a venue — single entry point
+      // Priority: booking_url (if valid) > website_url (if valid) > null
+      function _resolveCanonicalUrl(entry){
+        if(!entry)return{canonical_url:null,source:'none'};
+        const bUrl=_normalizeUrl(entry.url);
+        const wUrl=_normalizeUrl(entry.website_url);
+        if(bUrl&&_isValidUrl(bUrl)){
+          return{canonical_url:bUrl,fallback_url:wUrl,source:'booking'};
+        }
+        if(wUrl&&_isValidUrl(wUrl)){
+          return{canonical_url:wUrl,fallback_url:null,source:'website'};
+        }
+        return{canonical_url:null,fallback_url:null,source:'none'};
+      }
+
       // Get booking info — separates booking_url from website_url
       // States: verified, unverified, needs_review, website_only, broken, unavailable
       function _getBookingInfo(venueName){
         let known=_VENUE_BOOKING[venueName];
-        // Fuzzy match: if exact key not found, find registry entry sharing a distinctive word
+        // Fallback match: if exact key not found, match on whole-word boundaries only
+        // Uses word tokenization to prevent substring collisions (e.g. "padel" inside "padella")
         if(!known){
-          const _common=new Set(['the','and','for','with','date','night','london','dinner','lunch','two','from','this','that','evening','morning','class','session','club','bar','restaurant','tour','private','royal','experience','days','open','fire','cooking','press','champagne','cocktails','brunch','walk','market','wine','mochi','picnic','sunset','book','palace','ancient','star','lanes','film','street','arches','modern','city']);
-          const vWords=venueName.toLowerCase().replace(/[–—:+&]/g,' ').match(/[a-z]{4,}/g)||[];
+          const _common=new Set(['the','and','for','with','date','night','london','dinner','lunch','two','from','this','that','evening','morning','class','session','club','bar','restaurant','tour','private','royal','experience','days','open','fire','cooking','press','champagne','cocktails','brunch','walk','market','wine','mochi','picnic','sunset','book','palace','ancient','star','lanes','film','street','arches','modern','city','court']);
+          const vWords=venueName.toLowerCase().replace(/[–—:+&]/g,' ').match(/[a-z]{3,}/g)||[];
           const distinctV=vWords.filter(w=>!_common.has(w));
-          for(const key of Object.keys(_VENUE_BOOKING)){
-            const kLow=key.toLowerCase();
-            if(distinctV.some(w=>kLow.includes(w))){known=_VENUE_BOOKING[key];break;}
+          if(distinctV.length){
+            let bestMatch=null,bestScore=0;
+            for(const key of Object.keys(_VENUE_BOOKING)){
+              // Tokenize the registry key into whole words
+              const kWords=key.toLowerCase().replace(/[–—:+&]/g,' ').match(/[a-z]{3,}/g)||[];
+              // Count exact whole-word matches (not substrings)
+              const matches=distinctV.filter(w=>kWords.includes(w)).length;
+              if(matches>bestScore){bestScore=matches;bestMatch=key;}
+            }
+            // Require at least one whole-word match
+            if(bestMatch&&bestScore>=1)known=_VENUE_BOOKING[bestMatch];
           }
         }
         if(!known)return{booking_url:null,website_url:null,provider:null,verified:false,link_status:'unavailable',has_website:false};
-        const bUrl=known.url||null;
-        const wUrl=known.website_url||null;
         const ls=known.link_status||'unverified';
+        // Validate and normalize URLs
+        const bUrl=_isValidUrl(_normalizeUrl(known.url))?_normalizeUrl(known.url):null;
+        const wUrl=_isValidUrl(_normalizeUrl(known.website_url))?_normalizeUrl(known.website_url):null;
         // Genuinely broken or unavailable — no usable booking URL
         if(ls==='broken'||ls==='unavailable'){
           if(wUrl)return{booking_url:null,website_url:wUrl,provider:known.provider,verified:false,link_status:ls==='broken'?'website_only':'unavailable',has_website:true};
@@ -1931,11 +2043,12 @@
         if(ls==='needs_review'||(!bUrl&&wUrl)){
           return{booking_url:null,website_url:wUrl,provider:known.provider,verified:false,link_status:'website_only',has_website:true};
         }
-        // No URLs at all
+        // No valid URLs at all (even if fields existed, they failed validation)
         if(!bUrl&&!wUrl){
-          return{booking_url:null,website_url:null,provider:null,verified:false,link_status:'unavailable',has_website:false};
+          if(known.url||known.website_url)console.warn('[T4T] Invalid URL detected for:',venueName,known.url,known.website_url);
+          return{booking_url:null,website_url:null,provider:known.provider||null,verified:false,link_status:'unavailable',has_website:false};
         }
-        // Booking URL exists
+        // Booking URL exists and is valid
         return{booking_url:bUrl,website_url:wUrl||bUrl,provider:known.provider,verified:ls==='verified',link_status:ls,has_website:true};
       }
 
@@ -1961,7 +2074,7 @@
               <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','${venuePrice||''}','experience','Saved — awaiting booking link');closeBookingHandoff();toast('✦ Saved to wishlist')">Save to wishlist</button>
               <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
             </div>
-            <div style="text-align:center;margin-top:10px"><span style="font-size:10px;color:rgba(255,255,255,0.15);cursor:pointer" onclick="_trackEvent('support_clicked',{from:'booking_unavailable'});openFeedback();closeBookingHandoff()">Know a booking link? Tell us</span></div>
+            <div style="text-align:center;margin-top:10px"><span style="font-size:11px;color:rgba(255,255,255,0.35);cursor:pointer" onclick="_trackEvent('support_clicked',{from:'booking_unavailable'});openFeedback();closeBookingHandoff()">Know a booking link? Tell us</span></div>
           </div>`;
         ov.style.display='flex';document.body.style.overflow='hidden';
       }
@@ -1971,13 +2084,24 @@
         let info;
         try{
           const planItem=planId?(_currentPlans.find(p=>p.id===planId)?.items||[]).find(i=>i.name===venueName):null;
-          info=planItem?_getBookingInfoFromDB(planItem):_getBookingInfo(venueName);
+          // Use pre-resolved URL from plan assembly if available (avoids name-based lookup collisions)
+          if(planItem&&planItem._resolvedUrl){
+            info=_getBookingInfo(venueName);
+            // Override with assembly-time resolved data
+            info.booking_url=info.booking_url||planItem._resolvedUrl;
+            info.website_url=info.website_url||planItem._resolvedUrl;
+            if(planItem._resolvedProvider)info.provider=planItem._resolvedProvider;
+            if(planItem._resolvedLinkStatus)info.link_status=planItem._resolvedLinkStatus;
+          }else{
+            info=planItem?_getBookingInfoFromDB(planItem):_getBookingInfo(venueName);
+          }
         }catch(err){
           _captureError(err,{context:'booking_lookup',source:'initiateBooking',venue:venueName});
           info={booking_url:null,website_url:null,provider:null,verified:false,link_status:'unavailable',has_website:false};
         }
-        // Use booking_url as the primary URL for the handoff, fall back to website_url
-        const primaryUrl=info.booking_url||info.website_url||null;
+        // Resolve canonical URL — booking_url takes priority, then website_url
+        const rawPrimary=info.booking_url||info.website_url||null;
+        const primaryUrl=rawPrimary?_normalizeUrl(rawPrimary):null;
         // Determine source screen
         const _bkSrc=planId?'plan_card':document.querySelector('.page.active')?.id?.replace('page-','')||'discover';
         _pendingBooking={name:venueName,price:venuePrice,status:venueStatus,planId:planId||null,url:primaryUrl,booking_url:info.booking_url,website_url:info.website_url,provider:info.provider,verified:info.verified,link_status:info.link_status||'unverified',source_screen:_bkSrc,booking_status:'clicked_out',clickedAt:new Date().toISOString()};
@@ -2054,7 +2178,7 @@
             <button class="booking-handoff-cta" onclick="openBookingUrl()">
               ${ctaLabel}
             </button>
-            <div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:8px;text-align:center">You'll book directly with the venue — we never handle payments</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.38);margin-top:8px;text-align:center">You'll book directly with the venue — we never handle payments</div>
           </div>`;
 
         ov.style.display='flex';document.body.style.overflow='hidden';
@@ -2074,10 +2198,10 @@
 
       function openBookingUrl(){
         if(!_pendingBooking)return;
-        const url=_pendingBooking.url;
-        if(!url){showBookingFallback();return;}
-        try{new URL(url);}catch(e){showBookingFallback();return;}
-        const isDirectBooking=_pendingBooking.booking_url&&url===_pendingBooking.booking_url;
+        const rawUrl=_pendingBooking.url;
+        const url=_normalizeUrl(rawUrl);
+        if(!url||!_isValidUrl(url)){showBookingFallback();return;}
+        const isDirectBooking=_pendingBooking.booking_url&&rawUrl===_pendingBooking.booking_url;
         _pendingBooking.booking_status='site_opened';
         _trackEvent(isDirectBooking?'direct_booking_clicked':'official_site_clicked',{name:_pendingBooking.name,provider:_pendingBooking.provider,link_status:_pendingBooking.link_status,url:url,source_screen:_pendingBooking.source_screen});
         window.open(_addUtm(url),'_blank','noopener');
@@ -2105,7 +2229,7 @@
               <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','','experience','Saved — booking link broken');closeBookingHandoff();toast('✦ Saved — we\\'ll fix the link')">Save to wishlist</button>
               <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
             </div>
-            <div style="text-align:center;margin-top:10px"><span style="font-size:10px;color:rgba(255,255,255,0.15);cursor:pointer" onclick="_trackEvent('support_clicked',{from:'booking_fallback'});openFeedback();closeBookingHandoff()">Report this issue</span></div>
+            <div style="text-align:center;margin-top:10px"><span style="font-size:11px;color:rgba(255,255,255,0.35);cursor:pointer" onclick="_trackEvent('support_clicked',{from:'booking_fallback'});openFeedback();closeBookingHandoff()">Report this issue</span></div>
           </div>`;
       }
 
@@ -2676,7 +2800,7 @@
         name:'The Oystermen – Seafood Bar',venue:'Covent Garden',date:'Open now',
         price:'£60pp',match:88,booked:183,tags:['Seafood','Champagne','Intimate'],venue_status:'active'},
         {id:'wh43',cat:'dining',gradient:'wh-gradient-dining',emoji:'🍝',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&q=80',
         name:'Padella – Fresh Pasta Counter',venue:'Borough Market, SE1',date:'Open now',
         price:'£25pp',match:91,booked:412,tags:['Italian','Handmade pasta','Queue-worthy'],venue_status:'active'},
         {id:'wh44',cat:'dining',gradient:'wh-gradient-dining',emoji:'🥩',trending:'New this week',trendCls:'new',
@@ -2812,7 +2936,7 @@
         price:'£55pp',match:90,booked:143,tags:['Hands-on','Japanese','Intimate'],venue_status:'active'},
         // SOCIAL — Toca, Crazy Golf, Padel
         {id:'wh73',cat:'activity',gradient:'wh-gradient-activity',emoji:'⚽',trending:'🔥 Trending',trendCls:'hot',
-        img:'https://images.unsplash.com/photo-1511882150382-421056c89033?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&q=80',
         name:'Toca Social – Football Arcade',venue:'The O2, Greenwich',date:'Open daily',
         price:'£25pp',match:87,booked:342,tags:['Interactive','Cocktails','Competitive'],venue_status:'active'},
         {id:'wh74',cat:'activity',gradient:'wh-gradient-activity',emoji:'⛳',trending:'🔥 Trending',trendCls:'hot',
@@ -2820,7 +2944,7 @@
         name:'Swingers – Crazy Golf & Cocktails',venue:'City & West End',date:'Open daily',
         price:'£28pp',match:89,booked:387,tags:['Crazy golf','Street food','Date night'],venue_status:'active'},
         {id:'wh75',cat:'activity',gradient:'wh-gradient-activity',emoji:'🎾',trending:'Rising',trendCls:'rising',
-        img:'https://images.unsplash.com/photo-1554068865-24cecd4e34b8?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&q=80',
         name:'Padel – Court Session for Two',venue:'Various London locations',date:'Open daily',
         price:'£22pp',match:83,booked:178,tags:['Padel','Competitive','Active'],venue_status:'active'},
         // FITNESS — Boxing, Yoga, Pilates
@@ -2863,7 +2987,7 @@
         const pinSVG=`<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
         const peopleSVG=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`;
         if(!items.length){
-          feed.innerHTML='<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.2);font-size:13px">Nothing in this category this week. <span style="color:rgba(201,168,76,0.5);cursor:pointer" onclick="whFilter(\'all\',document.querySelector(\'.wh-chip\'))">Show all</span></div>';
+          feed.innerHTML='<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.38);font-size:13px">Nothing in this category this week. <span style="color:rgba(201,168,76,0.5);cursor:pointer" onclick="whFilter(\'all\',document.querySelector(\'.wh-chip\'))">Show all</span></div>';
           return;
         }
         feed.innerHTML=items.map(item=>`
@@ -3048,7 +3172,7 @@
               <div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:6px">Couldn't load plans</div>
               <div style="font-size:12.5px;color:rgba(255,255,255,0.35);margin-bottom:16px;line-height:1.5">Something went wrong on our end. Your preferences are safe — give it another go.</div>
               <button class="btn btn-rose" style="font-size:13px;padding:10px 20px" onclick="generateSuggestions()">Try again</button>
-              <div style="margin-top:10px"><span style="font-size:10px;color:rgba(255,255,255,0.15);cursor:pointer" onclick="_trackEvent('support_clicked',{});openFeedback()">Report this issue</span></div>
+              <div style="margin-top:10px"><span style="font-size:11px;color:rgba(255,255,255,0.35);cursor:pointer" onclick="_trackEvent('support_clicked',{});openFeedback()">Report this issue</span></div>
             </div>`;
             return;
           }
@@ -3947,7 +4071,7 @@
                     <div class="bf-confirm-success-ring" style="width:48px;height:48px;font-size:20px;margin:0;flex-shrink:0">✓</div>
                     <div>
                       <div style="font-size:18px;font-weight:700;color:var(--ink)">Ride booked!</div>
-                      <div style="font-size:9px;color:rgba(201,168,76,0.45);font-weight:600;letter-spacing:0.8px;text-transform:uppercase">Simulated</div>
+                      <div style="font-size:9px;color:rgba(201,168,76,0.35);font-weight:500;letter-spacing:0.5px">Preview — coming soon</div>
                       <div style="font-size:12px;color:var(--ink-muted);margin-top:2px"><span style="font-weight:700;color:${provColor}">${provider}</span> ${tier}</div>
                     </div>
                   </div>
@@ -4059,7 +4183,7 @@
             <div style="flex:1">
               <div class="booking-name">${b.name}</div>
               <div class="booking-meta">${b.meta} · ${fmtDate(b.date)}</div>
-              <span class="badge ${isPast?'badge-muted':'badge-green'}" style="margin-top:5px">${isPast?'completed':b.booking_status==='confirmed_by_user'?'confirmed by you':'confirmed'}</span>${b.provider?`<span style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:3px;display:block">via ${b.provider}</span>`:''}
+              <span class="badge ${isPast?'badge-muted':'badge-green'}" style="margin-top:5px">${isPast?'completed':b.booking_status==='confirmed_by_user'?'confirmed by you':'confirmed'}</span>${b.provider?`<span style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;display:block">via ${b.provider}</span>`:''}
               ${ratingHtml}
             </div>
             <div class="booking-right">
@@ -5373,7 +5497,7 @@
               const isSelected=!s.state.includes('unavail')&&s.t===_bfData.selectedTime;
               const cls='bf-slot'+(s.state?' '+s.state:'')+(isSelected?' selected':'');
               const labelColor=s.state==='unavail'?'rgba(255,255,255,0.28)':isSelected?'#fff':s.state==='best'?'#D4B86A':'rgba(255,255,255,0.85)';
-              const sub=s.state==='unavail'?'<div style="font-size:9px;color:rgba(255,255,255,0.22);margin-top:3px">Full</div>':s.state==='best'?'<div style="font-size:9px;font-weight:600;color:#D4B86A;letter-spacing:0.04em;margin-top:3px">BEST</div>':'<div style="font-size:9px;color:rgba(74,222,128,0.75);margin-top:3px">Free</div>';
+              const sub=s.state==='unavail'?'<div style="font-size:9px;color:rgba(255,255,255,0.35);margin-top:3px">Full</div>':s.state==='best'?'<div style="font-size:9px;font-weight:600;color:#D4B86A;letter-spacing:0.04em;margin-top:3px">BEST</div>':'<div style="font-size:9px;color:rgba(74,222,128,0.75);margin-top:3px">Free</div>';
               const click=s.state==='unavail'?'':`onclick="document.querySelectorAll('.bf-slot').forEach(x=>x.classList.remove('selected'));this.classList.add('selected');_bfData.selectedTime=this.dataset.time"`;
               return`<div class="${cls}" data-time="${s.t}" ${click}><div style="font-size:13px;font-weight:700;color:${labelColor}">${s.label}</div>${sub}</div>`;
             }).join('');
@@ -5505,7 +5629,7 @@
                 <div class="bf-confirm-success-ring" style="width:44px;height:44px;font-size:18px;margin:0;flex-shrink:0">✓</div>
                 <div>
                   <div style="font-size:18px;font-weight:700;color:var(--color-text-primary);line-height:1.2">Ride confirmed!</div>
-                  <div style="font-size:9px;color:rgba(201,168,76,0.45);font-weight:600;letter-spacing:0.8px;text-transform:uppercase">Simulated</div>
+                  <div style="font-size:9px;color:rgba(201,168,76,0.35);font-weight:500;letter-spacing:0.5px">Preview — coming soon</div>
                   <div style="font-size:12px;color:var(--subtle);margin-top:2px">Your driver is on the way</div>
                 </div>
               </div>
@@ -5928,7 +6052,7 @@
             ).join('')}
           </div>
           <div style="text-align:center;margin-top:14px">
-            <span style="font-size:12px;color:rgba(255,255,255,0.25);cursor:pointer;text-decoration:underline" onclick="_obPrefs.date_mode='solo';obNext()">Skip for now</span>
+            <span style="font-size:12px;color:rgba(255,255,255,0.4);cursor:pointer;text-decoration:underline" onclick="_obPrefs.date_mode='solo';obNext()">Skip for now</span>
           </div>`
         }
       ];

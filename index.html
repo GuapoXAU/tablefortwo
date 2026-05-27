@@ -314,7 +314,7 @@
 
             <!-- Support link -->
             <div style="text-align:center;padding:20px 0 8px">
-              <span style="font-size:11px;color:rgba(255,255,255,0.15);cursor:pointer" onclick="_trackEvent('support_clicked',{});openFeedback()">Something wrong? Report an issue</span>
+              <span style="font-size:11px;color:rgba(255,255,255,0.38);cursor:pointer" onclick="_trackEvent('support_clicked',{});openFeedback()">Something wrong? Report an issue</span>
             </div>
           </div>
 
@@ -344,7 +344,7 @@
               <div class="card-head">
                 <div>
                   <div class="card-title">Recommendation essentials</div>
-                  <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:2px">These directly shape what we recommend</div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">These directly shape what we recommend</div>
                 </div>
               </div>
               <div class="card-body">
@@ -468,8 +468,8 @@
             <div class="card" style="margin-bottom:14px">
               <div class="card-head" style="cursor:pointer" onclick="document.getElementById('personality-body').style.display=document.getElementById('personality-body').style.display==='none'?'block':'none';this.querySelector('.acc-arrow').textContent=document.getElementById('personality-body').style.display==='none'?'+':'-'">
                 <div>
-                  <div class="card-title">Your personality <span style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.25);text-transform:uppercase;letter-spacing:0.5px;margin-left:6px">Optional</span></div>
-                  <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:2px">Sharpens recommendations but not required</div>
+                  <div class="card-title">Your personality <span style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-left:6px">Optional</span></div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Sharpens recommendations but not required</div>
                 </div>
                 <span class="acc-arrow" style="font-size:18px;color:rgba(255,255,255,0.3);font-weight:300">+</span>
               </div>
@@ -531,7 +531,7 @@
               <div class="card-head">
                 <div>
                   <div class="card-title">What we've learned</div>
-                  <div style="font-size:10px;color:rgba(255,255,255,0.25);margin-top:2px">Based on your activity and preferences</div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Based on your activity and preferences</div>
                 </div>
               </div>
               <div class="card-body">
@@ -587,8 +587,8 @@
 
             <!-- 7. Account / secondary -->
             <div style="margin-top:20px;padding-top:14px;border-top:0.5px solid rgba(255,255,255,0.04)">
-              <div style="font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.15);margin-bottom:10px">Account</div>
-              <div id="auth-status-display" style="font-size:11px;color:rgba(255,255,255,0.25);margin-bottom:10px;line-height:1.5"></div>
+              <div style="font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:10px">Account</div>
+              <div id="auth-status-display" style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:10px;line-height:1.5"></div>
               <div style="display:flex;gap:8px;flex-wrap:wrap">
                 <button class="btn btn-sm" onclick="signOut()" style="color:rgba(255,255,255,0.3);font-size:10px">Sign out</button>
                 <button class="btn btn-sm" onclick="openPrivacySettings()" style="color:rgba(255,255,255,0.3);font-size:10px">Privacy settings</button>
@@ -1496,7 +1496,7 @@
             </div>
             <div id="auth-error" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px;line-height:1.4"></div>
             <button id="auth-submit-btn" onclick="submitMagicLink()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2);transition:all 0.18s">Send magic link</button>
-            <div style="font-size:11px;color:rgba(255,255,255,0.25);margin-top:10px;line-height:1.5;text-align:center">By signing up you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.5)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.5)">Privacy Policy</a>.</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.38);margin-top:10px;line-height:1.5;text-align:center">By signing up you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</div>
             <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid rgba(255,255,255,0.06)">
               <div style="font-size:11px;color:rgba(255,255,255,0.2);margin-bottom:10px">Or enter an invite code</div>
               <div style="display:flex;gap:8px">
@@ -1516,7 +1516,7 @@
             <button onclick="document.getElementById('auth-sent').style.display='none';document.getElementById('auth-form').style.display='block'" style="padding:12px 24px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;cursor:pointer">Try a different email</button>
           </div>
 
-          <p style="font-size:11px;color:rgba(255,255,255,0.15);margin-top:24px;line-height:1.5">This is a demo — no real bookings or payments. Your data is stored securely on Supabase.</p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:24px;line-height:1.5">This is a demo — no real bookings or payments. Your data is stored securely on Supabase.</p>
         </div>
       </div>
 
@@ -1545,9 +1545,9 @@
             <div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:6px">This is how others find and connect with you</div>
           </div>
           <button onclick="submitNameEntry()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2)">Start exploring</button>
-          <button onclick="skipNameEntry()" style="width:100%;padding:12px;border-radius:14px;border:none;background:transparent;color:rgba(255,255,255,0.25);font-size:12px;font-family:inherit;cursor:pointer;margin-top:8px">Skip — use demo names</button>
+          <button onclick="skipNameEntry()" style="width:100%;padding:12px;border-radius:14px;border:none;background:transparent;color:rgba(255,255,255,0.4);font-size:12px;font-family:inherit;cursor:pointer;margin-top:8px">Skip — use demo names</button>
           <div style="text-align:center;margin-top:20px;padding:10px 14px;background:rgba(201,168,76,0.04);border:0.5px solid rgba(201,168,76,0.15);border-radius:10px">
-            <p style="font-size:11px;color:rgba(255,255,255,0.3);line-height:1.5">This is a <span style="color:rgba(201,168,76,0.6);font-weight:600">demo</span> — bookings, payments and transport are simulated. No real money is charged.</p>
+            <p style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5">You're joining the <span style="color:rgba(201,168,76,0.6);font-weight:600">private beta</span> — some features are still being refined.</p>
           </div>
         </div>
       </div>
@@ -1590,11 +1590,11 @@
         <div style="font-size:13px;color:rgba(255,255,255,0.3)">Loading...</div>
       </div>
 
-      <!-- ── DEMO MODE BANNER (persistent) ── -->
-      <div id="demo-banner" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:500;max-width:480px;width:100%;padding:4px 16px;background:rgba(201,168,76,0.12);border-bottom:0.5px solid rgba(201,168,76,0.2);text-align:center;font-size:10px;font-weight:600;letter-spacing:0.5px;color:rgba(201,168,76,0.7);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
-        Demo mode — bookings & payments are simulated
-        <span style="margin-left:6px;cursor:pointer;color:rgba(201,168,76,0.5);text-decoration:underline" onclick="openFeedback()">Give feedback</span>
-        <span style="margin-left:6px;cursor:pointer;color:rgba(255,255,255,0.25)" onclick="this.parentElement.style.display='none'" title="Dismiss">✕</span>
+      <!-- ── BETA BANNER (dismissible) ── -->
+      <div id="demo-banner" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:500;max-width:480px;width:100%;padding:5px 16px;background:rgba(201,168,76,0.08);border-bottom:0.5px solid rgba(201,168,76,0.12);text-align:center;font-size:10px;font-weight:500;letter-spacing:0.3px;color:rgba(201,168,76,0.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+        Private beta — booking availability may vary by venue
+        <span style="margin-left:6px;cursor:pointer;color:rgba(201,168,76,0.45);text-decoration:underline" onclick="openFeedback()">Feedback</span>
+        <span style="margin-left:6px;cursor:pointer;color:rgba(255,255,255,0.4)" onclick="this.parentElement.style.display='none'" title="Dismiss">✕</span>
       </div>
 
       <!-- ── FEEDBACK OVERLAY ── -->
