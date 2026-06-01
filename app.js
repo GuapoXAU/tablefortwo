@@ -1,3 +1,6 @@
+      // Safety: remove loading screen after 4s no matter what (CSS fallback fires at 7s as backup)
+      setTimeout(()=>{const ls=document.getElementById('auth-loading-screen');if(ls){ls.style.opacity='0';setTimeout(()=>{if(ls.parentNode)ls.remove();},400);}},4000);
+
       // ════════════════════════════════════════════════
       // ── AUTH + USER IDENTITY (Supabase Magic Link) ──
       // ════════════════════════════════════════════════
@@ -30,12 +33,12 @@
         try{localStorage.setItem('t4t_user_profile',JSON.stringify(profile));}catch(e){}
       }
 
-      // Get display names (falls back to demo names if not set)
-      function _userName(){const p=_getUserProfile();return p?.name||'Jamie';}
+      // Get display names (falls back to email prefix or generic label)
+      function _userName(){const p=_getUserProfile();if(p?.name&&p.name!=='User')return p.name;if(_authUser?.email)return _authUser.email.split('@')[0];return p?.name||'';}
       function _partnerName(){const p=_getUserProfile();return p?.partner||'';}
-      function _userInitials(){const n=_userName();const parts=n.trim().split(/\s+/);return parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
+      function _userInitials(){const n=_userName();if(!n)return '';const parts=n.trim().split(/\s+/);return parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
       function _partnerInitials(){const n=_partnerName();const parts=n.trim().split(/\s+/);return parts.length>1?(parts[0][0]+parts[parts.length-1][0]).toUpperCase():n.slice(0,2).toUpperCase();}
-      function _coupleShort(){const them=_partnerName();if(!them)return _userName().split(' ')[0];return _userName().split(' ')[0][0]+' & '+them.split(' ')[0][0];}
+      function _coupleShort(){const them=_partnerName();const you=_userName();if(!you)return '';if(!them)return you.split(' ')[0];return you.split(' ')[0][0]+' & '+them.split(' ')[0][0];}
 
       // Show invite code gate
       function _showBetaGate(){
@@ -59,15 +62,16 @@
         if(handle.length<3){errorEl.textContent='Handle must be at least 3 characters';errorEl.style.display='block';return;}
         errorEl.style.display='none';
         btn.textContent='Checking handle...';btn.disabled=true;
-        // Verify handle is unique before proceeding
+        // Quick uniqueness check (5s timeout, fails open — DB constraint is final guard)
         const authHandleOk=await _checkHandleAvailable(handle);
-        if(!authHandleOk){
+        if(authHandleOk===false){
           errorEl.textContent='@'+handle+' is already taken — please choose another';errorEl.style.display='block';
           btn.textContent='Send magic link';btn.disabled=false;return;
         }
+        // authHandleOk===true means available OR check failed/timed out — proceed either way
         btn.textContent='Creating profile...';
         // Save profile locally — single by default, no partner at signup
-        _handles.jamie='@'+handle;
+        _handles.user='@'+handle;
         try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}
         _saveUserProfile({name,partner:'',handle:'@'+handle,account_state:'single',createdAt:new Date().toISOString()});
         const result=await signInWithMagicLink(email,name,'');
@@ -125,13 +129,22 @@
 
       async function _checkHandleAvailable(handle){
         if(!handle||handle.length<3){_handleAvailable=null;return null;}
+        // Client-side format validation first (instant)
+        if(!/^[a-z0-9_]{3,20}$/.test(handle)){_handleAvailable=null;return null;}
         if(!_sb){_handleAvailable=true;return true;} // offline fallback — allow
         try{
-          const{data,error}=await _sb.rpc('check_handle_available',{p_handle:'@'+handle});
+          // Race the RPC against a 5-second timeout to prevent hanging
+          const rpcPromise=_sb.rpc('check_handle_available',{p_handle:'@'+handle});
+          const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Handle check timed out')),5000));
+          const{data,error}=await Promise.race([rpcPromise,timeoutPromise]);
           if(error){console.warn('[T4T] Handle check failed',error);_handleAvailable=true;return true;}
           _handleAvailable=!!data;
           return _handleAvailable;
-        }catch(e){_handleAvailable=true;return true;}
+        }catch(e){
+          console.warn('[T4T] Handle check error/timeout:',e.message);
+          _handleAvailable=true; // fail open — allow signup, DB unique constraint is the real guard
+          return true;
+        }
       }
 
       // Debounced live check — call from oninput on handle fields
@@ -141,19 +154,35 @@
         const feedback=el.parentElement.querySelector('.handle-feedback')||_createHandleFeedback(el);
         // Reset state
         _handleAvailable=null;
+        // Client-side format validation (instant)
+        if(!handle){feedback.textContent='';return;}
         if(handle.length<3){
-          feedback.textContent=handle.length>0?'At least 3 characters':'';
-          feedback.style.color='rgba(255,255,255,0.25)';
+          feedback.textContent='At least 3 characters';
+          feedback.style.color='rgba(255,255,255,0.35)';
+          return;
+        }
+        if(!/^[a-z0-9_]+$/.test(handle)){
+          feedback.textContent='Letters, numbers and underscores only';
+          feedback.style.color='rgba(239,68,68,0.7)';
+          return;
+        }
+        if(handle.length>20){
+          feedback.textContent='Max 20 characters';
+          feedback.style.color='rgba(239,68,68,0.7)';
           return;
         }
         feedback.textContent='Checking...';
-        feedback.style.color='rgba(255,255,255,0.25)';
+        feedback.style.color='rgba(255,255,255,0.35)';
         clearTimeout(_handleCheckTimer);
         _handleCheckTimer=setTimeout(async()=>{
           const available=await _checkHandleAvailable(handle);
           // Only update if the input hasn't changed since we started the check
           if(el.value===handle){
-            if(available){
+            if(available===null){
+              // Format issue caught by _checkHandleAvailable
+              feedback.textContent='Invalid handle format';
+              feedback.style.color='rgba(239,68,68,0.7)';
+            }else if(available){
               feedback.textContent='@'+handle+' is available';
               feedback.style.color='rgba(74,222,128,0.7)';
             }else{
@@ -184,8 +213,8 @@
         if(!handle)handle=_generateHandle(yourName);
         handle='@'+handle;
         // Save handle
-        _handles.jamie=handle;
-        if(partnerName){_handles.sophie='@'+_generateHandle(partnerName);}
+        _handles.user=handle;
+        if(partnerName){_handles.partner='@'+_generateHandle(partnerName);}
         try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}
         _saveUserProfile({name:yourName,partner:partnerName||'',handle:handle,account_state:partnerName?'paired':'single',createdAt:new Date().toISOString()});
         document.getElementById('name-entry-overlay').style.display='none';
@@ -202,8 +231,10 @@
 
       function skipNameEntry(){
         // Save default profile so we don't ask again (single by default)
-        _saveUserProfile({name:'User',partner:'',account_state:'single',createdAt:new Date().toISOString()});
+        const fallbackName=_authUser?.email?.split('@')[0]||'';
+        _saveUserProfile({name:fallbackName,partner:'',account_state:'single',createdAt:new Date().toISOString()});
         document.getElementById('name-entry-overlay').style.display='none';
+        _applyUserNames();
       }
 
       // Demo label HTML — inserted into confirmation screens
@@ -216,19 +247,23 @@
         const hasParter=!!them;
         const pi=hasParter?_partnerInitials():'';
         const profile=_getUserProfile()||{};
-        const handle=profile.handle||_handles.jamie||'';
+        const handle=profile.handle||_handles.user||'';
         // Profile pills — show name + handle
         document.querySelectorAll('.couple-name').forEach(el=>{
-          el.textContent=hasParter?you+' & '+them:you;
+          el.textContent=hasParter?you+' & '+them:(you||'');
         });
         document.querySelectorAll('.profile-handle-display').forEach(el=>{
           el.textContent=handle||'';
         });
         document.querySelectorAll('.avatar-a').forEach(el=>el.textContent=yi);
-        // Greeting
+        // Greeting — update if it still has a stale name
         const titleEl=document.getElementById('page-title');
-        if(titleEl&&(titleEl.textContent.includes('Jamie')||titleEl.textContent.includes('User'))){
-          titleEl.textContent=titleEl.textContent.replace(/Jamie|User/,you);
+        if(titleEl&&you){
+          const txt=titleEl.textContent;
+          const greetingMatch=txt.match(/^(Good morning|Good afternoon|Good evening|Evening|Morning|Afternoon|Hey|Hi),?\s+(.+)/i);
+          if(greetingMatch&&greetingMatch[2]!==you.split(' ')[0]){
+            titleEl.textContent=greetingMatch[1]+', '+you.split(' ')[0];
+          }
         }
         // Profile page names
         document.querySelectorAll('.profile-half').forEach((half,i)=>{
@@ -391,7 +426,7 @@
             const restoredProfile={
               name:data.name||_authUser.email?.split('@')[0]||'User',
               partner:data.partner_name||'',
-              handle:data.handle||_handles.jamie||'',
+              handle:data.handle||_handles.user||'',
               email:data.email||_authUser.email||'',
               account_state:data.account_state||'single',
               city:data.city||'London',
@@ -400,7 +435,7 @@
               createdAt:_authUser.created_at
             };
             // Restore handle into _handles
-            if(data.handle){_handles.jamie=data.handle;try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}}
+            if(data.handle){_handles.user=data.handle;try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}}
             _saveUserProfile(restoredProfile);
             // Restore in-memory preferences for plan engine
             if(data.onboarding_completed&&data.preferences&&typeof data.preferences==='object'){
@@ -419,7 +454,7 @@
             else if(!_obPrefs.date_mode)_pairingMode='solo';
             // Update last_seen + sync handle if not yet in DB (fire and forget)
             const _updateFields={last_seen_at:new Date().toISOString()};
-            const _localHandle=_getUserProfile()?.handle||_handles.jamie||'';
+            const _localHandle=_getUserProfile()?.handle||_handles.user||'';
             if(_localHandle&&!data.handle)_updateFields.handle=_localHandle;
             _sb.from('users').update(_updateFields).eq('id',data.id).then(()=>{});
             console.log('[T4T] Profile restored from DB:',data.account_state,data.onboarding_completed?'onboarded':'not onboarded');
@@ -431,7 +466,7 @@
             auth_id:_authUser.id,
             email:_authUser.email||'',
             name:profile.name,
-            handle:profile.handle||_handles.jamie||'',
+            handle:profile.handle||_handles.user||'',
             partner_name:profile.partner||'',
             account_state:profile.partner?'paired':'single',
             city:'London'
@@ -525,7 +560,12 @@
           if(stateMap.reminders&&Array.isArray(stateMap.reminders)&&stateMap.reminders.length){reminders=stateMap.reminders;}
           if(stateMap.wishlist&&Array.isArray(stateMap.wishlist)&&stateMap.wishlist.length){_wishlist=stateMap.wishlist;}
           if(stateMap.journal&&Array.isArray(stateMap.journal)&&stateMap.journal.length){_journal=stateMap.journal;}
-          if(stateMap.handles&&typeof stateMap.handles==='object'){_handles=Object.assign(_handles,stateMap.handles);}
+          if(stateMap.handles&&typeof stateMap.handles==='object'){
+            const hData=stateMap.handles;
+            if(hData.jamie&&!hData.user){hData.user=hData.jamie;delete hData.jamie;}
+            if(hData.sophie&&!hData.partner){hData.partner=hData.sophie;delete hData.sophie;}
+            _handles=Object.assign(_handles,hData);
+          }
           // Restore preferences from user_state as fallback (belt-and-suspenders with users.preferences)
           if(stateMap.preferences&&typeof stateMap.preferences==='object'){
             const prof=_getUserProfile()||{};
@@ -784,7 +824,7 @@
           <div style="text-align:center;padding:20px 0">
             <div style="font-size:24px;margin-bottom:12px">&#10003;</div>
             <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:6px">Account deleted</div>
-            <div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:20px">Your data has been removed. If anything was missed, email <a href="mailto:privacy@tablefortwo.app" style="color:#C9A84C">privacy@tablefortwo.app</a> and we'll ensure full deletion within 30 days.</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:20px">Your data has been removed. If anything was missed, email <a href="mailto:privacy@tablefortwo.uk" style="color:#C9A84C">privacy@tablefortwo.uk</a> and we'll ensure full deletion within 30 days.</div>
             <button onclick="window.location.href='index.html'" style="padding:12px 24px;background:#C9A84C;color:#0E0D0B;border:none;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Done</button>
           </div>`;
       }
@@ -804,7 +844,7 @@
       let calMonth=new Date(2026,3,1);
       let selectedDay=null;
       let activeFilter='all';
-      let _handles={jamie:'',sophie:''};
+      let _handles={user:'',partner:''};
       let _connectedHandles=[];
 
       const catColors={'Dinner reservation':'#C4687A','Experience / activity':'#6B4C7A','Hotel check-in':'#C4687A','Hotel check-out':'#8B3A4A','Cab pickup':'#3A6A8A','Personal':'#5A7A5A'};
@@ -887,7 +927,7 @@
       };
 
       function _syncHandleDisplays(){
-        ['jamie','sophie'].forEach(p=>{
+        ['user','partner'].forEach(p=>{
           const h=_handles[p];
           ['display','card'].forEach(s=>{
             const el=document.getElementById(`handle-${p}-${s}`);
@@ -922,7 +962,7 @@
         let val=inp.value.trim();
         if(!val){toast('Enter a @handle first');return;}
         if(!val.startsWith('@'))val='@'+val;
-        if(val===_handles.jamie||val===_handles.sophie){toast('That\'s already one of your handles');return;}
+        if(val===_handles.user||val===_handles.partner){toast('That\'s already one of your handles');return;}
         if(_connectedHandles.includes(val)){toast(`${val} already connected`);return;}
         const demo=_DEMO_HANDLES[val.toLowerCase()];
         if(demo){
@@ -964,109 +1004,150 @@
         toast(`${h} disconnected`);
       }
 
-      // Load saved handles
+      // Load saved handles (migrate legacy jamie/sophie keys)
       (function _loadHandles(){
         try{
           const h=localStorage.getItem('t4t_handles');
-          if(h){_handles=Object.assign(_handles,JSON.parse(h));_syncHandleDisplays();}
+          if(h){
+            const parsed=JSON.parse(h);
+            // Migrate legacy keys
+            if(parsed.jamie&&!parsed.user)parsed.user=parsed.jamie;
+            if(parsed.sophie&&!parsed.partner)parsed.partner=parsed.sophie;
+            delete parsed.jamie;delete parsed.sophie;
+            _handles=Object.assign(_handles,parsed);
+            localStorage.setItem('t4t_handles',JSON.stringify(_handles));
+            _syncHandleDisplays();
+          }
         }catch(e){}
       })();
 
+      // ── Budget band definitions (used by pills + filtering) ──
+      const _BUDGET_BANDS=[
+        {id:'under50',label:'Under \u00a350',max:50,tiers:['budget','mid']},
+        {id:'50to100',label:'\u00a350\u2013\u00a3100',max:100,tiers:['mid','treat']},
+        {id:'100to150',label:'\u00a3100\u2013\u00a3150',max:150,tiers:['treat','luxury']},
+        {id:'150to250',label:'\u00a3150\u2013\u00a3250',max:250,tiers:['luxury']},
+        {id:'250to300',label:'\u00a3250\u2013\u00a3300',max:300,tiers:['luxury']},
+        {id:'300plus',label:'\u00a3300+',max:9999,tiers:['luxury']}
+      ];
+
+      function _budgetBandForPrice(priceStr){
+        const m=priceStr.match(/£(\d+)/);
+        const pp=m?parseInt(m[1]):30;
+        if(pp<50)return 'under50';
+        if(pp<100)return '50to100';
+        if(pp<150)return '100to150';
+        if(pp<250)return '150to250';
+        if(pp<300)return '250to300';
+        return '300plus';
+      }
+
+      function _priceMatchesBand(priceStr,bandId){
+        if(!bandId)return true;
+        const band=_BUDGET_BANDS.find(b=>b.id===bandId);
+        if(!band)return true;
+        const m=priceStr.match(/£(\d+)/);
+        const pp=m?parseInt(m[1]):30;
+        const prev=_BUDGET_BANDS[_BUDGET_BANDS.indexOf(band)-1];
+        const min=prev?prev.max:0;
+        return pp>=min&&pp<band.max;
+      }
+
       const IDEAS={
         budget:[
-          {name:'Maltby Street Market brunch',loc:'Bermondsey · Street food',emoji:'🌮',img:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=320&fit=crop&q=80',price:'avg. £13pp',why:'Both love casual food scenes — London\'s best street food market',score:78,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Tate Modern + Thames walk',loc:'South Bank · Art & outdoors',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'Free–avg. £8pp',why:'Free world-class art followed by a Thames-side walk',score:86,type:'outdoor',vibes:['Walkable','Unique / memorable'],venue_status:'active'},
-          {name:'TeamSport Go-Karting',loc:'Stratford · Indoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Thrilling and competitive — guaranteed laughs and bragging rights',score:82,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'BFI Southbank cinema + wine',loc:'South Bank · Film & culture',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Independent cinema right on the river — perfect for culture lovers',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Escape Hunt London',loc:'Holborn · Escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Solve puzzles together — teamwork makes the dream work',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Rooftop Film Club screening',loc:'Peckham / Shoreditch · Outdoor cinema',emoji:'🎥',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'Watching films under the stars with blankets and wine',score:83,type:'outdoor',vibes:['Outdoor seats','Unique / memorable'],venue_status:'active'},
-          {name:'Whistle Punks Axe Throwing',loc:'Shoreditch · Axe throwing',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £19pp',why:'Unexpectedly brilliant fun — loud, silly, weirdly satisfying',score:77,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Battersea Park boating + picnic',loc:'Battersea · Outdoor',emoji:'🚣',img:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=320&fit=crop&q=80',price:'avg. £14pp',why:'Relaxed, romantic London classic on the lake',score:77,type:'outdoor',vibes:['Walkable','Outdoor seats'],venue_status:'active'},
-          {name:'The Comedy Store',loc:'Soho · Live comedy',emoji:'🎭',img:'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'London\'s legendary comedy club — guaranteed laughter',score:74,type:'fun',vibes:['Live music'],venue_status:'active'},
-          {name:'Leake Street Arches street art walk',loc:'Waterloo · Street art',emoji:'🎨',img:'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=600&h=320&fit=crop&q=80',price:'Free',why:'Banksy\'s famous graffiti tunnel — free street art walk',score:70,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Brindisa tapas + Borough Market',loc:'Borough · Spanish',emoji:'🥘',img:'https://images.unsplash.com/photo-1515443961218-a51367888e4b?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Both love bold food — best tapas beside London\'s greatest market',score:79,type:'fun',vibes:['Walkable','Live music'],venue_status:'active'},
-          {name:'Jenki matcha bar',loc:'Soho · Matcha café',emoji:'🍵',img:'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=600&h=320&fit=crop&q=80',price:'avg. £12pp',why:'London\'s best matcha lattes and mochi — calm, aesthetic and delicious',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Puttshack mini golf',loc:'Bank · Tech-infused mini golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'Trackable mini golf with cocktails and street food — proper fun, zero skill required',score:83,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Hotpod Yoga date',loc:'Various London · Hot yoga',emoji:'🧘',img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'37-degree pod, dim lights, deep stretches — weirdly intimate and totally relaxing',score:79,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Toca Social',loc:'The O2 · Interactive football & bar',emoji:'⚽',img:'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Football meets arcade — smash targets, eat street food, drink cocktails at The O2',score:84,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active'},
+          {name:'Maltby Street Market brunch',loc:'Bermondsey · Street food',emoji:'🌮',img:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=320&fit=crop&q=80',price:'avg. £13pp',why:'Both love casual food scenes — London\'s best street food market',score:78,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['casual','outdoors','playful'],t:{tod:['day','afternoon'],env:['outdoor'],soc:['group_friendly'],pace:'relaxed',fmt:['dining','walk'],weather:'summer_friendly'}},
+          {name:'Tate Modern + Thames walk',loc:'South Bank · Art & outdoors',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'Free–avg. £8pp',why:'Free world-class art followed by a Thames-side walk',score:86,type:'outdoor',vibes:['Walkable','Unique / memorable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','outdoors','relaxed'],t:{tod:['day','afternoon'],env:['mixed'],soc:['intimate','quiet'],pace:'relaxed',fmt:['cultural','walk'],weather:'weather_flexible'}},
+          {name:'BFI Southbank cinema + wine',loc:'South Bank · Film & culture',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Independent cinema right on the river — perfect for culture lovers',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','relaxed'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','drinks'],weather:'weather_flexible'}},
+          {name:'Escape Hunt London',loc:'Holborn · Escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Solve puzzles together — teamwork makes the dream work',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Rooftop Film Club screening',loc:'Peckham / Shoreditch · Outdoor cinema',emoji:'🎥',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'Watching films under the stars with blankets and wine',score:83,type:'outdoor',vibes:['Outdoor seats','Unique / memorable'],venue_status:'active',rel:['partner','friends','solo'],mood:['romantic','outdoors','relaxed'],t:{tod:['evening','night'],env:['outdoor'],soc:['intimate','group_friendly'],pace:'extended',fmt:['entertainment'],weather:'summer_friendly'}},
+          {name:'Whistle Punks Axe Throwing',loc:'Shoreditch · Axe throwing',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £19pp',why:'Unexpectedly brilliant fun — loud, silly, weirdly satisfying',score:77,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful','nightlife'],t:{tod:['afternoon','evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Battersea Park boating + picnic',loc:'Battersea · Outdoor',emoji:'🚣',img:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=320&fit=crop&q=80',price:'avg. £14pp',why:'Relaxed, romantic London classic on the lake',score:77,type:'outdoor',vibes:['Walkable','Outdoor seats'],venue_status:'active',rel:['partner','solo'],mood:['romantic','outdoors','relaxed'],t:{tod:['day','afternoon'],env:['outdoor'],soc:['intimate','quiet'],pace:'relaxed',fmt:['activity','walk'],weather:'summer_friendly'}},
+          {name:'The Comedy Store',loc:'Soho · Live comedy',emoji:'🎭',img:'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'London\'s legendary comedy club — guaranteed laughter',score:74,type:'fun',vibes:['Live music'],venue_status:'active',rel:['partner','friends','group'],mood:['nightlife','playful'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['entertainment'],weather:'weather_flexible'}},
+          {name:'Leake Street Arches street art walk',loc:'Waterloo · Street art',emoji:'🎨',img:'https://images.unsplash.com/photo-1499781350541-7783f6c6a0c8?w=600&h=320&fit=crop&q=80',price:'Free',why:'Banksy\'s famous graffiti tunnel — free street art walk',score:70,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','outdoors','casual'],t:{tod:['day','afternoon'],env:['outdoor','mixed'],soc:['intimate','group_friendly'],pace:'quick',fmt:['walk','cultural'],weather:'summer_friendly'}},
+          {name:'Jenki matcha bar',loc:'Soho · Matcha café',emoji:'🍵',img:'https://images.unsplash.com/photo-1515823064-d6e0c04616a7?w=600&h=320&fit=crop&q=80',price:'avg. £12pp',why:'London\'s best matcha lattes and mochi — calm, aesthetic and delicious',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['relaxed','casual'],t:{tod:['day','afternoon'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'quick',fmt:['dining','drinks'],weather:'weather_flexible'}},
+          {name:'Hotpod Yoga date',loc:'Various London · Hot yoga',emoji:'🧘',img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=320&fit=crop&q=80',price:'avg. £16pp',why:'37-degree pod, dim lights, deep stretches — weirdly intimate and totally relaxing',score:79,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','solo'],mood:['wellness','relaxed'],t:{tod:['day','afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'quick',fmt:['wellness'],weather:'weather_flexible'}},
         ],
         mid:[
-          {name:'Hakkasan Mayfair dinner',loc:'Mayfair · Chinese',emoji:'✦',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Michelin-starred Cantonese — moody, beautiful and endlessly romantic',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £33pp',why:'Bold Indian flavours — always unmissable',score:92,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
-          {name:'Punchdrunk immersive theatre',loc:'Woolwich · Immersive experience',emoji:'🎭',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £58pp',why:'Walk through a living world of theatre — completely unique and unforgettable',score:94,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'O2 Arena concert night',loc:'Greenwich · Live music',emoji:'🎤',img:'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=320&fit=crop&q=80',price:'avg. £50pp',why:'Nothing beats live music together — electric atmosphere',score:88,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active'},
-          {name:'The Crystal Maze LIVE Experience',loc:'Farringdon · Immersive game',emoji:'💎',img:'https://images.unsplash.com/photo-1511882150382-421056c89033?w=600&h=320&fit=crop&q=80',price:'avg. £48pp',why:'The iconic TV experience — team challenges across four zones',score:87,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Kew Gardens + riverside pub',loc:'Richmond · Outdoor',emoji:'🌿',img:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'UNESCO world heritage gardens with a riverside pub',score:81,type:'outdoor',vibes:['Walkable','Outdoor seats'],venue_status:'active'},
-          {name:'Kiln restaurant Soho',loc:'Soho · Thai',emoji:'🔥',img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'London\'s most exciting Thai — cooked over wood fire, intense flavours',score:89,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
-          {name:'Ottolenghi dinner',loc:'Islington · Mediterranean',emoji:'🥗',img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Ottolenghi\'s bold Mediterranean flavours never disappoint',score:88,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Shakespeare\'s Globe Theatre',loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £38pp',why:'Iconic open-air theatre on the Thames — utterly memorable',score:87,type:'all',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
-          {name:'All Star Lanes bowling + cocktails',loc:'Holborn · Boutique bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Retro-cool boutique bowling with killer cocktails — great fun',score:81,type:'fun',vibes:['Live music'],venue_status:'active'},
-          {name:'Turning Earth pottery class',loc:'Hoxton · Pottery studio',emoji:'🏺',img:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Make something together — wonderfully silly and surprisingly therapeutic',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Padella pasta dinner',loc:'Borough · Italian',emoji:'🍝',img:'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'London\'s best hand-rolled pasta — simple, romantic, delicious',score:86,type:'outdoor',vibes:['Walkable','Candlelit'],venue_status:'active'},
-          {name:'Barbican Cinema + cocktails',loc:'Barbican · Arts cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Indie film in a stunning brutalist arts centre',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Alexandra Palace sunset terrace',loc:'North London · Views',emoji:'🌇',img:'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Best panoramic views over London — magic at golden hour',score:83,type:'outdoor',vibes:['Outdoor seats','Walkable'],venue_status:'active'},
-          {name:'Ironmonger Row Baths',loc:'Clerkenwell · Turkish baths',emoji:'🧖',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Steam room, sauna and plunge pool — the ultimate wind-down together',score:85,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Frame fitness class for two',loc:'Shoreditch · Fitness',emoji:'💪',img:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Work out together — endorphins, energy and an excuse for brunch after',score:78,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Kobox boxing date',loc:'King\'s Road · Boxing',emoji:'🥊',img:'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Neon-lit boxing studio with music — competitive, sweaty and brilliantly fun',score:83,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Reformer Pilates for two',loc:'Notting Hill · Pilates',emoji:'🤸',img:'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Side-by-side reformer beds — a controlled burn that leaves you both glowing',score:82,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Yoga + brunch at Triyoga',loc:'Camden · Yoga & brunch',emoji:'🧘',img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Flow class then plant-based brunch next door — the perfect slow morning together',score:84,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Swingers crazy golf + cocktails',loc:'City / West End · Crazy golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Two courses of crazy golf, street food vendors and killer cocktails — proper fun',score:86,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active'},
-          {name:'Padel court session for two',loc:'Various London · Padel tennis',emoji:'🎾',img:'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'The fastest-growing sport in the world — easy to pick up, competitive and addictive',score:81,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Tsujiri matcha + mochi',loc:'Wardour Street, Soho · Matcha café',emoji:'🍵',img:'https://images.unsplash.com/photo-1563822249366-3efb23b8e0c9?w=600&h=320&fit=crop&q=80',price:'avg. £18pp',why:'Kyoto\'s famous matcha house — ceremonial lattes, soft serve and handmade mochi',score:84,type:'outdoor',vibes:['Walkable','Candlelit'],venue_status:'active'},
-          {name:'Escape London',loc:'Central London · Live escape game',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Cleverly themed rooms with real puzzles — immersive, playful and properly challenging',score:80,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'clueQuest',loc:'Caledonian Road · Themed escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'One of London\'s top-rated escape rooms — great teamwork test for a date',score:81,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Mission: Breakout',loc:'Camden · Immersive escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £27pp',why:'Quirky Camden escape room with immersive storylines — brilliantly fun together',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'K1 Speed Canary Wharf',loc:'Canary Wharf · Indoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Electric karts, real competition — adrenaline-fuelled and seriously fast',score:82,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Daytona Motorsport London',loc:'Various London · Outdoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'Outdoor track karting — proper speed, proper racing, proper date',score:83,type:'fun',vibes:['Unique / memorable','Outdoor seats'],venue_status:'active'},
-          {name:'Shoreditch Balls',loc:'Shoreditch · Crazy golf & bar',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £18pp',why:'Quirky crazy golf with cocktails in the heart of Shoreditch — playful and social',score:80,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Crazy Putt Greenwich Peninsula',loc:'Greenwich · Adventure golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £14pp',why:'Outdoor adventure golf by the Thames — lighthearted, cheap and cheerful',score:75,type:'outdoor',vibes:['Outdoor seats','Walkable'],venue_status:'active'},
-          {name:'Axeperience London',loc:'Central London · Urban axe throwing',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Throw axes at targets — competitive, quirky and oddly satisfying',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Game of Throwing London',loc:'Central London · Axe throwing bar',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £27pp',why:'Axe throwing with drinks — competitive, social and brilliantly different',score:78,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Boom Battle Bar Liverpool Street',loc:'Liverpool Street · Activity bar',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Axe throwing, shuffleboard and cocktails all under one roof — after-work date gold',score:78,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active'},
-          {name:'Lightroom',loc:'King\'s Cross · Digital art experience',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Immersive digital art projections — walk through light, colour and sound together',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Queens London',loc:'Bayswater · Classic bowling & bar',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'Retro-style bowling with cocktails and street food — classic date night fun',score:79,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Hollywood Bowl O2',loc:'The O2 · Bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Casual bowling at The O2 — easy, affordable and great pre-event date',score:72,type:'fun',vibes:[],venue_status:'active'},
-          {name:'Hollywood Bowl Finchley',loc:'Finchley · Bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Low-key bowling date in North London — casual, fun and no-pressure',score:71,type:'fun',vibes:[],venue_status:'active'},
+          {name:'TeamSport Go-Karting',loc:'Stratford · Indoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Thrilling and competitive — guaranteed laughs and bragging rights',score:82,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Brindisa tapas + Borough Market',loc:'Borough · Spanish',emoji:'🥘',img:'https://images.unsplash.com/photo-1515443961218-a51367888e4b?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Both love bold food — best tapas beside London\'s greatest market',score:79,type:'fun',vibes:['Walkable','Live music'],venue_status:'active',rel:['partner','friends','group'],mood:['casual','outdoors','playful'],t:{tod:['day','afternoon'],env:['outdoor','mixed'],soc:['group_friendly'],pace:'relaxed',fmt:['dining','walk'],weather:'summer_friendly'}},
+          {name:'Puttshack mini golf',loc:'Bank · Tech-infused mini golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'Trackable mini golf with cocktails and street food — proper fun, zero skill required',score:83,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['playful','nightlife'],t:{tod:['afternoon','evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks'],weather:'weather_flexible'}},
+          {name:'Toca Social',loc:'The O2 · Interactive football & bar',emoji:'⚽',img:'https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Football meets arcade — smash targets, eat street food, drink cocktails at The O2',score:84,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful','nightlife'],t:{tod:['afternoon','evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','dining','drinks'],weather:'weather_flexible'}},
+          {name:'National Theatre',loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'World-class productions on the Thames — three stages, always something remarkable',score:88,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','relaxed'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','cultural'],weather:'weather_flexible'}},
+          {name:'Almeida Theatre',loc:'Islington · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'Intimate studio theatre — bold new writing in a 325-seat space',score:84,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active',rel:['partner','solo'],mood:['cultural','relaxed'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','cultural'],weather:'weather_flexible'}},
+          {name:'Kew Gardens + riverside pub',loc:'Richmond · Outdoor',emoji:'🌿',img:'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'UNESCO world heritage gardens with a riverside pub',score:81,type:'outdoor',vibes:['Walkable','Outdoor seats'],venue_status:'active',rel:['partner','friends','solo'],mood:['outdoors','relaxed'],t:{tod:['day','afternoon'],env:['outdoor'],soc:['intimate','group_friendly'],pace:'extended',fmt:['walk','drinks'],weather:'summer_friendly'}},
+          {name:'Ottolenghi dinner',loc:'Islington · Mediterranean',emoji:'🥗',img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Ottolenghi\'s bold Mediterranean flavours never disappoint',score:88,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['casual','relaxed'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Shakespeare\'s Globe Theatre',loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £38pp',why:'Iconic open-air theatre on the Thames — utterly memorable',score:87,type:'all',vibes:['Unique / memorable','Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','outdoors'],t:{tod:['afternoon','evening'],env:['outdoor','mixed'],soc:['intimate','group_friendly'],pace:'extended',fmt:['entertainment','cultural'],weather:'summer_friendly'}},
+          {name:'All Star Lanes bowling + cocktails',loc:'Holborn · Boutique bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Retro-cool boutique bowling with killer cocktails — great fun',score:81,type:'fun',vibes:['Live music'],venue_status:'active',rel:['partner','friends','group'],mood:['playful','nightlife'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks'],weather:'weather_flexible'}},
+          {name:'Padella pasta dinner',loc:'Borough · Italian',emoji:'🍝',img:'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'London\'s best hand-rolled pasta — simple, romantic, delicious',score:86,type:'outdoor',vibes:['Walkable','Candlelit'],venue_status:'active',rel:['partner','solo'],mood:['romantic','casual','relaxed'],t:{tod:['afternoon','evening'],env:['indoor'],soc:['intimate','quiet'],pace:'relaxed',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Barbican Cinema + cocktails',loc:'Barbican · Arts cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Indie film in a stunning brutalist arts centre',score:80,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','relaxed'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','drinks'],weather:'weather_flexible'}},
+          {name:'Alexandra Palace sunset terrace',loc:'North London · Views',emoji:'🌇',img:'https://images.unsplash.com/photo-1470252649378-9c29740c9fa8?w=600&h=320&fit=crop&q=80',price:'avg. £23pp',why:'Best panoramic views over London — magic at golden hour',score:83,type:'outdoor',vibes:['Outdoor seats','Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['romantic','outdoors','relaxed'],t:{tod:['afternoon','evening'],env:['outdoor'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['drinks','walk'],weather:'summer_friendly'}},
+          {name:'Ironmonger Row Baths',loc:'Clerkenwell · Turkish baths',emoji:'🧖',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Steam room, sauna and plunge pool — the ultimate wind-down together',score:85,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','solo'],mood:['wellness','relaxed'],t:{tod:['day','afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['wellness'],weather:'weather_flexible'}},
+          {name:'Frame fitness class for two',loc:'Shoreditch · Fitness',emoji:'💪',img:'https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&h=320&fit=crop&q=80',price:'avg. £20pp',why:'Work out together — endorphins, energy and an excuse for brunch after',score:78,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['active','wellness'],t:{tod:['day','afternoon'],env:['indoor','rain_safe'],soc:['intimate','high_energy'],pace:'quick',fmt:['activity','wellness'],weather:'weather_flexible'}},
+          {name:'Kobox boxing date',loc:'King\'s Road · Boxing',emoji:'🥊',img:'https://images.unsplash.com/photo-1549719386-74dfcbf7dbed?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Neon-lit boxing studio with music — competitive, sweaty and brilliantly fun',score:83,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Reformer Pilates for two',loc:'Notting Hill · Pilates',emoji:'🤸',img:'https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Side-by-side reformer beds — a controlled burn that leaves you both glowing',score:82,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','solo'],mood:['wellness','relaxed'],t:{tod:['day','afternoon'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'quick',fmt:['wellness'],weather:'weather_flexible'}},
+          {name:'Yoga + brunch at Triyoga',loc:'Camden · Yoga & brunch',emoji:'🧘',img:'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'Flow class then plant-based brunch next door — the perfect slow morning together',score:84,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['wellness','relaxed','casual'],t:{tod:['day','afternoon'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['wellness','dining'],weather:'weather_flexible'}},
+          {name:'Swingers crazy golf + cocktails',loc:'City / West End · Crazy golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Two courses of crazy golf, street food vendors and killer cocktails — proper fun',score:86,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active',rel:['partner','friends','group'],mood:['playful','nightlife'],t:{tod:['afternoon','evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks','dining'],weather:'weather_flexible'}},
+          {name:'Padel court session for two',loc:'Various London · Padel tennis',emoji:'🎾',img:'https://images.unsplash.com/photo-1622279457486-62dcc4a431d6?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'The fastest-growing sport in the world — easy to pick up, competitive and addictive',score:81,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['active','playful','outdoors'],t:{tod:['day','afternoon','evening'],env:['outdoor','mixed'],soc:['intimate','high_energy'],pace:'quick',fmt:['activity'],weather:'summer_friendly'}},
+          {name:'Tsujiri matcha + mochi',loc:'Wardour Street, Soho · Matcha café',emoji:'🍵',img:'https://images.unsplash.com/photo-1563822249366-3efb23b8e0c9?w=600&h=320&fit=crop&q=80',price:'avg. £18pp',why:'Kyoto\'s famous matcha house — ceremonial lattes, soft serve and handmade mochi',score:84,type:'outdoor',vibes:['Walkable','Candlelit'],venue_status:'active',rel:['partner','friends','solo'],mood:['relaxed','casual'],t:{tod:['day','afternoon'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'quick',fmt:['dining','drinks'],weather:'weather_flexible'}},
+          {name:'Escape London',loc:'Central London · Live escape game',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £28pp',why:'Cleverly themed rooms with real puzzles — immersive, playful and properly challenging',score:80,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'clueQuest',loc:'Caledonian Road · Themed escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £30pp',why:'One of London\'s top-rated escape rooms — great teamwork test for a date',score:81,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Mission: Breakout',loc:'Camden · Immersive escape room',emoji:'🔐',img:'https://images.unsplash.com/photo-1608501078713-8e445a709b39?w=600&h=320&fit=crop&q=80',price:'avg. £27pp',why:'Quirky Camden escape room with immersive storylines — brilliantly fun together',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'K1 Speed Canary Wharf',loc:'Canary Wharf · Indoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'Electric karts, real competition — adrenaline-fuelled and seriously fast',score:82,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Daytona Motorsport London',loc:'Various London · Outdoor karting',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'Outdoor track karting — proper speed, proper racing, proper date',score:83,type:'fun',vibes:['Unique / memorable','Outdoor seats'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful','outdoors'],t:{tod:['day','afternoon'],env:['outdoor'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'summer_friendly'}},
+          {name:'Shoreditch Balls',loc:'Shoreditch · Crazy golf & bar',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £18pp',why:'Quirky crazy golf with cocktails in the heart of Shoreditch — playful and social',score:80,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['playful','nightlife','casual'],t:{tod:['afternoon','evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks'],weather:'weather_flexible'}},
+          {name:'Crazy Putt Greenwich Peninsula',loc:'Greenwich · Adventure golf',emoji:'⛳',img:'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=600&h=320&fit=crop&q=80',price:'avg. £14pp',why:'Outdoor adventure golf by the Thames — lighthearted, cheap and cheerful',score:75,type:'outdoor',vibes:['Outdoor seats','Walkable'],venue_status:'active',rel:['partner','friends','group'],mood:['playful','outdoors','casual'],t:{tod:['day','afternoon'],env:['outdoor'],soc:['group_friendly'],pace:'quick',fmt:['activity'],weather:'summer_friendly'}},
+          {name:'Axeperience London',loc:'Central London · Urban axe throwing',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Throw axes at targets — competitive, quirky and oddly satisfying',score:79,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Game of Throwing London',loc:'Central London · Axe throwing bar',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £27pp',why:'Axe throwing with drinks — competitive, social and brilliantly different',score:78,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful','nightlife'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks'],weather:'weather_flexible'}},
+          {name:'Boom Battle Bar Liverpool Street',loc:'Liverpool Street · Activity bar',emoji:'🪓',img:'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Axe throwing, shuffleboard and cocktails all under one roof — after-work date gold',score:78,type:'fun',vibes:['Unique / memorable','Live music'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful','nightlife'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks'],weather:'weather_flexible'}},
+          {name:'Lightroom',loc:'King\'s Cross · Digital art experience',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £25pp',why:'Immersive digital art projections — walk through light, colour and sound together',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','relaxed'],t:{tod:['day','afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'relaxed',fmt:['cultural','entertainment'],weather:'weather_flexible'}},
+          {name:'Queens London',loc:'Bayswater · Classic bowling & bar',emoji:'🎳',img:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&h=320&fit=crop&q=80',price:'avg. £22pp',why:'Retro-style bowling with cocktails and street food — classic date night fun',score:79,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['playful','nightlife','casual'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks'],weather:'weather_flexible'}},
+          {name:'Hollywood Bowl O2',loc:'The O2 · Bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Casual bowling at The O2 — easy, affordable and great pre-event date',score:72,type:'fun',vibes:[],venue_status:'active',rel:['partner','friends','group'],mood:['casual','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Hollywood Bowl Finchley',loc:'Finchley · Bowling',emoji:'🎳',img:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&h=320&fit=crop&q=80',price:'avg. £15pp',why:'Low-key bowling date in North London — casual, fun and no-pressure',score:71,type:'fun',vibes:[],venue_status:'active',rel:['partner','friends','group'],mood:['casual','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
         ],
         treat:[
-          {name:'Sketch, Mayfair',loc:'Mayfair · Modern European',emoji:'🎨',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'The egg-pod bathrooms, the pink dining room — truly unforgettable',score:85,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Novikov restaurant',loc:'Mayfair · Italian & Asian',emoji:'🥂',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £100pp',why:'Mayfair\'s most glamorous see-and-be-seen dining room',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Bob Bob Ricard dinner',loc:'Soho · Anglo-Russian',emoji:'🍾',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'Press for champagne buttons at every table — impossibly fun',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Ronnie Scott\'s jazz night',loc:'Soho · Live music',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'London\'s most legendary jazz club — intimate and electric',score:83,type:'cultural',vibes:['Live music','Candlelit'],venue_status:'active'},
-          {name:'National Theatre',loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £35pp',why:'World-class productions on the Thames — three stages, always something remarkable',score:88,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
-          {name:'Aqua Shard cocktails + dinner',loc:'London Bridge · Rooftop views',emoji:'🌆',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'31st-floor views of London — the most romantic skyline in the city',score:87,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Electric Cinema, Notting Hill',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',why:'Leather armchairs, footstools, and wine — cinema reimagined',score:85,type:'fun',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
-          {name:'Brat restaurant',loc:'Shoreditch · Modern British',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'Tomos Parry\'s Michelin-starred Basque grill — outstanding every time',score:90,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Almeida Theatre',loc:'Islington · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'Intimate studio theatre — bold new writing in a 325-seat space',score:84,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
-          {name:'AIRE Ancient Baths couples',loc:'Bayswater · Thermal spa',emoji:'🧖',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'Candlelit thermal baths, salt flotation and massage — deeply romantic',score:92,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
-          {name:'Monk London ice bath & sauna',loc:'Fulham · Wellness',emoji:'🧊',img:'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Cold plunge together — weirdly bonding and incredibly energising',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Cubo matcha ceremony for two',loc:'Shoreditch · Matcha experience',emoji:'🍵',img:'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',why:'Private matcha ceremony with a Japanese tea master — whisking, tasting and desserts',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'F1 Drive London',loc:'Tottenham · Themed karting experience',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £65pp',why:'F1-themed karting at Tottenham Hotspur Stadium — immersive, adrenaline-packed and special',score:87,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Taste Film',loc:'Various London · Immersive dining cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'Multi-course meal synced to a film screening — creative, romantic and utterly unique',score:89,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
+          {name:'Hakkasan Mayfair dinner',loc:'Mayfair · Chinese',emoji:'✦',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Michelin-starred Cantonese — moody, beautiful and endlessly romantic',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £33pp',why:'Bold Indian flavours — always unmissable',score:92,type:'romantic',vibes:['Candlelit'],venue_status:'active',rel:['partner','friends','group'],mood:['casual','romantic'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Kiln restaurant Soho',loc:'Soho · Thai',emoji:'🔥',img:'https://images.unsplash.com/photo-1555126634-323283e090fa?w=600&h=320&fit=crop&q=80',price:'avg. £40pp',why:'London\'s most exciting Thai — cooked over wood fire, intense flavours',score:89,type:'romantic',vibes:['Candlelit'],venue_status:'active',rel:['partner','friends'],mood:['romantic','casual'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate'],pace:'relaxed',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Punchdrunk immersive theatre',loc:'Woolwich · Immersive experience',emoji:'🎭',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £58pp',why:'Walk through a living world of theatre — completely unique and unforgettable',score:94,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','active'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','high_energy'],pace:'extended',fmt:['entertainment','cultural'],weather:'weather_flexible'}},
+          {name:'O2 Arena concert night',loc:'Greenwich · Live music',emoji:'🎤',img:'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=600&h=320&fit=crop&q=80',price:'avg. £50pp',why:'Nothing beats live music together — electric atmosphere',score:88,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['nightlife','active','playful'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'extended',fmt:['entertainment'],weather:'weather_flexible'}},
+          {name:'The Crystal Maze LIVE Experience',loc:'Farringdon · Immersive game',emoji:'💎',img:'https://images.unsplash.com/photo-1511882150382-421056c89033?w=600&h=320&fit=crop&q=80',price:'avg. £48pp',why:'The iconic TV experience — team challenges across four zones',score:87,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','entertainment'],weather:'weather_flexible'}},
+          {name:'Turning Earth pottery class',loc:'Hoxton · Pottery studio',emoji:'🏺',img:'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Make something together — wonderfully silly and surprisingly therapeutic',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['relaxed','playful'],t:{tod:['day','afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate'],pace:'extended',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Ronnie Scott\'s jazz night',loc:'Soho · Live music',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'London\'s most legendary jazz club — intimate and electric',score:83,type:'cultural',vibes:['Live music','Candlelit'],venue_status:'active',rel:['partner','friends','solo'],mood:['romantic','nightlife','cultural'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','drinks'],weather:'weather_flexible'}},
+          {name:'Electric Cinema, Notting Hill',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',why:'Leather armchairs, footstools, and wine — cinema reimagined',score:85,type:'fun',vibes:['Unique / memorable','Candlelit'],venue_status:'active',rel:['partner','solo'],mood:['romantic','relaxed','luxury'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','drinks'],weather:'weather_flexible'}},
+          {name:'Brat restaurant',loc:'Shoreditch · Modern British',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'Tomos Parry\'s Michelin-starred Basque grill — outstanding every time',score:90,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'The Ivy',loc:'Covent Garden · British fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',why:'A classic — the theatre crowd\'s favourite post-show supper spot',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Late opening at the V&A',loc:'Kensington · Private art',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Friday late at the V&A — cocktails, live music and galleries after dark',score:85,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active',rel:['partner','friends','solo'],mood:['cultural','nightlife','relaxed'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['cultural','drinks','entertainment'],weather:'weather_flexible'}},
+          {name:'Cocktail masterclass at Cahoots',loc:'Soho · Speakeasy bar',emoji:'🍸',img:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&h=320&fit=crop&q=80',price:'avg. £65pp',why:'Learn to shake cocktails in a 1940s underground speakeasy — fun, intimate and unforgettable',score:88,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['nightlife','playful'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity','drinks'],weather:'weather_flexible'}},
+          {name:'Monk London ice bath & sauna',loc:'Fulham · Wellness',emoji:'🧊',img:'https://images.unsplash.com/photo-1507652313519-d4e9174996dd?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Cold plunge together — weirdly bonding and incredibly energising',score:84,type:'all',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['wellness','active'],t:{tod:['day','afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','high_energy'],pace:'quick',fmt:['wellness'],weather:'weather_flexible'}},
+          {name:'Cubo matcha ceremony for two',loc:'Shoreditch · Matcha experience',emoji:'🍵',img:'https://images.unsplash.com/photo-1556881286-fc6915169721?w=600&h=320&fit=crop&q=80',price:'avg. £55pp',why:'Private matcha ceremony with a Japanese tea master — whisking, tasting and desserts',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner'],mood:['romantic','relaxed','cultural'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['cultural','dining'],weather:'weather_flexible'}},
+          {name:'F1 Drive London',loc:'Tottenham · Themed karting experience',emoji:'🏎️',img:'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=320&fit=crop&q=80',price:'avg. £65pp',why:'F1-themed karting at Tottenham Hotspur Stadium — immersive, adrenaline-packed and special',score:87,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['partner','friends','group'],mood:['active','playful'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'quick',fmt:['activity'],weather:'weather_flexible'}},
+          {name:'Taste Film',loc:'Various London · Immersive dining cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'Multi-course meal synced to a film screening — creative, romantic and utterly unique',score:89,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner'],mood:['romantic','cultural','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','dining'],weather:'weather_flexible'}},
         ],
         luxury:[
-          {name:'The Savoy afternoon tea + dinner',loc:'Strand · Classic London',emoji:'✦',img:'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'The most iconic hotel in London — impeccable and intimate',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Core by Clare Smyth',loc:'Notting Hill · ★★★ Michelin',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £190pp',why:'Three stars, one of the world\'s best restaurants — truly exceptional',score:88,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active'},
-          {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'✦',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £160pp',why:'Fine dining gliding past the lit-up London skyline — romantic perfection',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Royal Opera House',loc:'Covent Garden · Opera & ballet',emoji:'✦',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'World-class opera and ballet in one of London\'s most iconic buildings',score:94,type:'cultural',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
-          {name:'The Ivy',loc:'Covent Garden · British fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £75pp',why:'A classic — the theatre crowd\'s favourite post-show supper spot',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Helicopter city tour at sunset',loc:'London · Private experience',emoji:'✦',img:'https://images.unsplash.com/photo-1534397860164-120c97f4db0b?w=600&h=320&fit=crop&q=80',price:'avg. £225pp',why:'See all of London from above at golden hour — nothing more memorable',score:96,type:'romantic',vibes:['Unique / memorable'],venue_status:'active'},
-          {name:'Chiltern Firehouse dinner',loc:'Marylebone · Celebrity hotspot',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £150pp',why:'London\'s most glamorous restaurant — the place to see and be seen',score:92,type:'romantic',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
-          {name:'Alain Ducasse at The Dorchester',loc:'Park Lane · French fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £210pp',why:'Three Michelin stars — the absolute pinnacle of London dining',score:92,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active'},
-          {name:'Glyndebourne opera at sunset',loc:'East Sussex · Outdoor opera',emoji:'✦',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £240pp',why:'Champagne picnic in the grounds then world-class opera — utterly magical',score:95,type:'cultural',vibes:['Unique / memorable','Outdoor seats','Candlelit'],venue_status:'active'},
-          {name:'Kensington Palace private tour',loc:'Kensington · Historic',emoji:'✦',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'After-hours royal palace — the most exclusive cultural experience in London',score:97,type:'cultural',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
-          {name:'Cowshed Spa at Soho House',loc:'Shoreditch · Luxury spa',emoji:'💆',img:'https://images.unsplash.com/photo-1540555700478-4be289fbec6d?w=600&h=320&fit=crop&q=80',price:'avg. £180pp',why:'Full couples spa day — massage, facial, pool and rooftop at Soho House',score:93,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
-          {name:'Bamford Wellness Spa retreat',loc:'The Berkshires · Country retreat',emoji:'🌿',img:'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=600&h=320&fit=crop&q=80',price:'avg. £280pp',why:'Escape the city completely — yoga, nature walks and hydrotherapy in the countryside',score:94,type:'outdoor',vibes:['Walkable'],venue_status:'active'},
-          {name:'Private tasting menu at The Clove Club',loc:'Shoreditch · Modern British',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £165pp',why:'Michelin-starred tasting menu in a former town hall — inventive, seasonal, unforgettable',score:91,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active'},
-          {name:'Afternoon tea at The Ritz',loc:'Piccadilly · Iconic luxury',emoji:'✦',img:'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'The most iconic afternoon tea in London — gilded, formal and extraordinary',score:90,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Couples spa ritual at ESPA Life',loc:'Westminster · Luxury spa',emoji:'💆',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £200pp',why:'Full-day couples treatment at the Corinthia — London\'s most indulgent spa',score:93,type:'romantic',vibes:['Candlelit'],venue_status:'active'},
-          {name:'Rooftop champagne at Shangri-La',loc:'The Shard · Sky bar',emoji:'🥂',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'Champagne on the 52nd floor — the highest hotel bar in Western Europe',score:90,type:'romantic',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
-          {name:'Late opening at the V&A',loc:'Kensington · Private art',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £45pp',why:'Friday late at the V&A — cocktails, live music and galleries after dark',score:85,type:'cultural',vibes:['Unique / memorable','Walkable'],venue_status:'active'},
-          {name:'Jazz supper at Ronnie Scott\'s',loc:'Soho · Jazz & dining',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'avg. £130pp',why:'Front-row jazz with a three-course meal — London\'s most legendary music club',score:91,type:'cultural',vibes:['Live music','Candlelit'],venue_status:'active'},
-          {name:'Chef\'s table at Climpson\'s Arch',loc:'Hackney · Open kitchen',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'Sit at the pass and watch every dish made — intimate, theatrical and delicious',score:88,type:'foodie',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
-          {name:'Electric Cinema double bill + dinner',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £110pp',why:'Leather beds, cashmere blankets and wine — cinema elevated to an art form',score:87,type:'fun',vibes:['Unique / memorable','Candlelit'],venue_status:'active'},
-          {name:'Luxury wine tasting at 67 Pall Mall',loc:'St James · Wine club',emoji:'🍷',img:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'World-class wines in a stunning Victorian townhouse — for serious wine lovers',score:89,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active'},
-          {name:'Cocktail masterclass at Cahoots',loc:'Soho · Speakeasy bar',emoji:'🍸',img:'https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&h=320&fit=crop&q=80',price:'avg. £65pp',why:'Learn to shake cocktails in a 1940s underground speakeasy — fun, intimate and unforgettable',score:88,type:'fun',vibes:['Unique / memorable'],venue_status:'active'},
+          {name:'Sketch, Mayfair',loc:'Mayfair · Modern European',emoji:'🎨',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'The egg-pod bathrooms, the pink dining room — truly unforgettable',score:85,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining','drinks'],weather:'weather_flexible'}},
+          {name:'Novikov restaurant',loc:'Mayfair · Italian & Asian',emoji:'🥂',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £100pp',why:'Mayfair\'s most glamorous see-and-be-seen dining room',score:88,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury','nightlife'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Bob Bob Ricard dinner',loc:'Soho · Anglo-Russian',emoji:'🍾',img:'https://images.unsplash.com/photo-1550966871-3ed3cbe818bb?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'Press for champagne buttons at every table — impossibly fun',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury','playful'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining','drinks'],weather:'weather_flexible'}},
+          {name:'Aqua Shard cocktails + dinner',loc:'London Bridge · Rooftop views',emoji:'🌆',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'31st-floor views of London — the most romantic skyline in the city',score:87,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining','drinks'],weather:'weather_flexible'}},
+          {name:'AIRE Ancient Baths couples',loc:'Bayswater · Thermal spa',emoji:'🧖',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'Candlelit thermal baths, salt flotation and massage — deeply romantic',score:92,type:'romantic',vibes:['Candlelit'],venue_status:'active',rel:['partner'],mood:['romantic','wellness','luxury'],t:{tod:['day','afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['wellness'],weather:'weather_flexible'}},
+          {name:'The Savoy afternoon tea + dinner',loc:'Strand · Classic London',emoji:'✦',img:'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'The most iconic hotel in London — impeccable and intimate',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Core by Clare Smyth',loc:'Notting Hill · ★★★ Michelin',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £190pp',why:'Three stars, one of the world\'s best restaurants — truly exceptional',score:88,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'✦',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'avg. £160pp',why:'Fine dining gliding past the lit-up London skyline — romantic perfection',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['evening','night'],env:['mixed'],soc:['intimate','quiet'],pace:'extended',fmt:['dining','entertainment'],weather:'summer_friendly'}},
+          {name:'Royal Opera House',loc:'Covent Garden · Opera & ballet',emoji:'✦',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'World-class opera and ballet in one of London\'s most iconic buildings',score:94,type:'cultural',vibes:['Unique / memorable','Candlelit'],venue_status:'active',rel:['partner','solo'],mood:['cultural','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','cultural'],weather:'weather_flexible'}},
+          {name:'Helicopter city tour at sunset',loc:'London · Private experience',emoji:'✦',img:'https://images.unsplash.com/photo-1534397860164-120c97f4db0b?w=600&h=320&fit=crop&q=80',price:'avg. £225pp',why:'See all of London from above at golden hour — nothing more memorable',score:96,type:'romantic',vibes:['Unique / memorable'],venue_status:'active',rel:['partner'],mood:['romantic','luxury','active'],t:{tod:['afternoon','evening'],env:['outdoor'],soc:['intimate'],pace:'quick',fmt:['activity'],weather:'summer_friendly'}},
+          {name:'Chiltern Firehouse dinner',loc:'Marylebone · Celebrity hotspot',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £150pp',why:'London\'s most glamorous restaurant — the place to see and be seen',score:92,type:'romantic',vibes:['Unique / memorable','Candlelit'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury','nightlife'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining','drinks'],weather:'weather_flexible'}},
+          {name:'Alain Ducasse at The Dorchester',loc:'Park Lane · French fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&h=320&fit=crop&q=80',price:'avg. £210pp',why:'Three Michelin stars — the absolute pinnacle of London dining',score:92,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Glyndebourne opera at sunset',loc:'East Sussex · Outdoor opera',emoji:'✦',img:'https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?w=600&h=320&fit=crop&q=80',price:'avg. £240pp',why:'Champagne picnic in the grounds then world-class opera — utterly magical',score:95,type:'cultural',vibes:['Unique / memorable','Outdoor seats','Candlelit'],venue_status:'active',rel:['partner'],mood:['cultural','luxury','outdoors','romantic'],t:{tod:['afternoon','evening'],env:['outdoor'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','cultural','dining'],weather:'summer_friendly'}},
+          {name:'Kensington Palace private tour',loc:'Kensington · Historic',emoji:'✦',img:'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'After-hours royal palace — the most exclusive cultural experience in London',score:97,type:'cultural',vibes:['Unique / memorable','Candlelit'],venue_status:'active',rel:['partner','solo'],mood:['cultural','luxury'],t:{tod:['evening'],env:['indoor','mixed'],soc:['intimate','quiet'],pace:'extended',fmt:['cultural'],weather:'weather_flexible'}},
+          {name:'Cowshed Spa at Soho House',loc:'Shoreditch · Luxury spa',emoji:'💆',img:'https://images.unsplash.com/photo-1540555700478-4be289fbec6d?w=600&h=320&fit=crop&q=80',price:'avg. £180pp',why:'Full couples spa day — massage, facial, pool and rooftop at Soho House',score:93,type:'romantic',vibes:['Candlelit'],venue_status:'active',rel:['partner'],mood:['wellness','luxury','relaxed'],t:{tod:['day','afternoon'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['wellness'],weather:'weather_flexible'}},
+          {name:'Bamford Wellness Spa retreat',loc:'The Berkshires · Country retreat',emoji:'🌿',img:'https://images.unsplash.com/photo-1600334129128-685c5582fd35?w=600&h=320&fit=crop&q=80',price:'avg. £280pp',why:'Escape the city completely — yoga, nature walks and hydrotherapy in the countryside',score:94,type:'outdoor',vibes:['Walkable'],venue_status:'active',rel:['partner'],mood:['wellness','luxury','outdoors','relaxed'],t:{tod:['day','afternoon'],env:['outdoor','mixed'],soc:['intimate','quiet'],pace:'extended',fmt:['wellness','walk'],weather:'summer_friendly'}},
+          {name:'Private tasting menu at The Clove Club',loc:'Shoreditch · Modern British',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £165pp',why:'Michelin-starred tasting menu in a former town hall — inventive, seasonal, unforgettable',score:91,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Afternoon tea at The Ritz',loc:'Piccadilly · Iconic luxury',emoji:'✦',img:'https://images.unsplash.com/photo-1563865436874-9aef32095fad?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'The most iconic afternoon tea in London — gilded, formal and extraordinary',score:90,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury','relaxed'],t:{tod:['afternoon'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Couples spa ritual at ESPA Life',loc:'Westminster · Luxury spa',emoji:'💆',img:'https://images.unsplash.com/photo-1544161515-4ab6ce6db874?w=600&h=320&fit=crop&q=80',price:'avg. £200pp',why:'Full-day couples treatment at the Corinthia — London\'s most indulgent spa',score:93,type:'romantic',vibes:['Candlelit'],venue_status:'active',rel:['partner'],mood:['wellness','luxury','relaxed'],t:{tod:['day','afternoon'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['wellness'],weather:'weather_flexible'}},
+          {name:'Rooftop champagne at Shangri-La',loc:'The Shard · Sky bar',emoji:'🥂',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'Champagne on the 52nd floor — the highest hotel bar in Western Europe',score:90,type:'romantic',vibes:['Unique / memorable','Candlelit'],venue_status:'active',rel:['partner','friends'],mood:['romantic','luxury','nightlife'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['drinks'],weather:'weather_flexible'}},
+          {name:'Jazz supper at Ronnie Scott\'s',loc:'Soho · Jazz & dining',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'avg. £130pp',why:'Front-row jazz with a three-course meal — London\'s most legendary music club',score:91,type:'cultural',vibes:['Live music','Candlelit'],venue_status:'active',rel:['partner','friends'],mood:['cultural','luxury','nightlife','romantic'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','dining'],weather:'weather_flexible'}},
+          {name:'Chef\'s table at Climpson\'s Arch',loc:'Hackney · Open kitchen',emoji:'🔥',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'avg. £95pp',why:'Sit at the pass and watch every dish made — intimate, theatrical and delicious',score:88,type:'foodie',vibes:['Unique / memorable','Candlelit'],venue_status:'active',rel:['partner'],mood:['romantic','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+          {name:'Electric Cinema double bill + dinner',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'avg. £110pp',why:'Leather beds, cashmere blankets and wine — cinema elevated to an art form',score:87,type:'fun',vibes:['Unique / memorable','Candlelit'],venue_status:'active',rel:['partner'],mood:['romantic','luxury','relaxed'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['entertainment','dining'],weather:'weather_flexible'}},
+          {name:'Luxury wine tasting at 67 Pall Mall',loc:'St James · Wine club',emoji:'🍷',img:'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=600&h=320&fit=crop&q=80',price:'avg. £140pp',why:'World-class wines in a stunning Victorian townhouse — for serious wine lovers',score:89,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],mood:['cultural','luxury'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['drinks','cultural'],weather:'weather_flexible'}},
         ]
       };
 
@@ -1236,28 +1317,69 @@
         let ar='central';
         if(/shoreditch|hoxton|bermondsey|peckham|islington|camden|notting hill|chelsea|king.s road|battersea|fulham|various/.test(lc))ar='local';
         else if(/richmond|kew|greenwich|stratford|o2|north london|berkshire|east sussex/.test(lc))ar='anywhere';
-        return Object.assign({},v,{category:cat,_setting:sett,time_fit:tf,duration_mins:dur,bookable:bk,_area:ar});
+        // Carry through taxonomy tags from venue data
+        const relTags=v.rel||['partner','friends','solo'];
+        const moodTags=v.mood||[];
+        const budgetBand=_budgetBandForPrice(v.price);
+        // Sub-tags: t.tod (time_of_day), t.env (environment), t.soc (social), t.pace, t.fmt (format), t.weather
+        const subTags=v.t||{};
+        // Venue is fully tagged if it has rel, mood, AND sub-tags
+        const isTagged=!!(v.rel&&v.mood&&v.mood.length&&v.t&&v.t.tod&&v.t.env);
+        return Object.assign({},v,{category:cat,_setting:sett,time_fit:tf,duration_mins:dur,bookable:bk,_area:ar,rel:relTags,mood:moodTags,t:subTags,_budgetBand:budgetBand,_isTagged:isTagged});
       }
 
       function _scoreVenue(v,prefs){
         let s=50;
+        const t=v.t||{};
         if(prefs.interests&&prefs.interests.length){
           if(prefs.interests.includes(v.category))s+=15;
           else s+=2;
         }
+        // ── Sub-tag precision: environment ──
         if(prefs.setting&&prefs.setting!=='both'){
-          if(v._setting===prefs.setting||v._setting==='both')s+=10;
-          else s-=8;
+          if(t.env&&t.env.length){
+            if(t.env.includes(prefs.setting)||t.env.includes('mixed'))s+=12;
+            else s-=10;
+          }else{
+            if(v._setting===prefs.setting||v._setting==='both')s+=10;
+            else s-=8;
+          }
         }
+        // ── Sub-tag precision: time of day ──
         if(prefs.time_preference&&prefs.time_preference!=='any'){
-          if(v.time_fit===prefs.time_preference||v.time_fit==='any')s+=10;
-          else s-=5;
+          const todMap={daytime:['day','afternoon'],evening:['evening','afternoon'],late_night:['night','evening']};
+          const wanted=todMap[prefs.time_preference]||[];
+          if(t.tod&&t.tod.length&&wanted.length){
+            if(t.tod.some(x=>wanted.includes(x)))s+=12;
+            else s-=12; // hard mismatch — nighttime venue for daytime filter
+          }else{
+            if(v.time_fit===prefs.time_preference||v.time_fit==='any')s+=10;
+            else s-=5;
+          }
         }
+        // ── Sub-tag precision: social format ──
+        const relCtx=prefs._relContext||_activeRelContext||'partner';
+        if(t.soc&&t.soc.length){
+          const socMap={partner:['intimate','quiet'],friends:['group_friendly','high_energy'],solo:['intimate','quiet'],group:['group_friendly','high_energy']};
+          const wanted=socMap[relCtx]||[];
+          if(t.soc.some(x=>wanted.includes(x)))s+=8;
+          else s-=6;
+        }
+        // ── Sub-tag precision: pace ──
         if(prefs.energy_level==='low'){
+          if(t.pace==='relaxed'||t.pace==='extended')s+=6;
+          if(t.pace==='quick'&&t.soc&&t.soc.includes('high_energy'))s-=6;
           if(['dining','wellness'].includes(v.category))s+=10;
           if(v.category==='active')s-=10;
         }else if(prefs.energy_level==='high'){
+          if(t.pace==='quick'||t.soc&&t.soc.includes('high_energy'))s+=6;
           if(['active','outdoors','nightlife'].includes(v.category))s+=10;
+        }
+        // ── Sub-tag: weather safety ──
+        if(_weatherCode>=0){
+          const rainy=[51,53,55,61,63,65,71,73,75,80,81,82,95,96,99].includes(_weatherCode);
+          if(rainy&&t.weather==='summer_friendly')s-=12;
+          if(rainy&&t.env&&t.env.includes('rain_safe'))s+=6;
         }
         if(prefs.travel_radius==='central'&&v._area==='central')s+=5;
         else if(prefs.travel_radius==='central'&&v._area==='anywhere')s-=8;
@@ -1276,18 +1398,40 @@
           const rf=_rfFilters;
           const nm=v.name.toLowerCase();
           const lc=(v.loc||'').toLowerCase();
-          // Setting filter (strong)
-          if(rf.setting&&rf.setting!=='both'){
-            if(v._setting===rf.setting||v._setting==='both')s+=12;
+          // Setting filter (strong) — uses sub-tags when available
+          if(rf.setting==='rain_safe'){
+            // Rain-safe: boost venues with rain_safe env tag
+            if(t.env&&t.env.includes('rain_safe'))s+=15;
+            else if(t.env&&t.env.includes('indoor'))s+=10;
             else s-=15;
+          }else if(rf.setting&&rf.setting!=='both'){
+            if(t.env&&t.env.length){
+              if(t.env.includes(rf.setting)||t.env.includes('mixed'))s+=12;
+              else s-=15;
+            }else{
+              if(v._setting===rf.setting||v._setting==='both')s+=12;
+              else s-=15;
+            }
           }
-          // Time filter
+          // Pace filter — uses sub-tags
+          if(rf.pace&&t.pace){
+            if(t.pace===rf.pace)s+=10;
+            else s-=8;
+          }
+          // Time filter — uses sub-tags for precision
           if(rf.time){
-            const tfMap={daytime:'daytime',evening:'evening',late_night:'evening',weekend:'any'};
-            const wanted=tfMap[rf.time]||'any';
-            if(wanted!=='any'){
-              if(v.time_fit===wanted||v.time_fit==='any')s+=10;
-              else s-=12;
+            const todMap={daytime:['day','afternoon'],evening:['evening','afternoon'],late_night:['night','evening'],weekend:['day','afternoon','evening']};
+            const wanted=todMap[rf.time]||[];
+            if(t.tod&&t.tod.length&&wanted.length){
+              if(t.tod.some(x=>wanted.includes(x)))s+=12;
+              else s-=15; // hard mismatch
+            }else{
+              const tfMap={daytime:'daytime',evening:'evening',late_night:'evening',weekend:'any'};
+              const w=tfMap[rf.time]||'any';
+              if(w!=='any'){
+                if(v.time_fit===w||v.time_fit==='any')s+=10;
+                else s-=12;
+              }
             }
           }
           // Area filter — match London zones
@@ -1398,8 +1542,11 @@
 
       function _planTitle(arch,items){
         const area=items[0]?.loc?.split('·')[0]?.trim()||'London';
+        const rel=_activeRelContext||'partner';
+        const isSolo=rel==='solo';
+        const isFriends=rel==='friends'||rel==='group';
         switch(arch.id){
-          case'romantic_evening':return(_pairingMode==='solo'?'Evening Out':'Romantic Evening')+' in '+area;
+          case'romantic_evening':return(isSolo?'Evening Out':isFriends?'Night Out':'Romantic Evening')+' in '+area;
           case'dinner_activity':{
             const act=items.find(i=>i.category!=='dining');
             return(act?act.name.split(/[,(]/)[0].trim():'Activity')+' + Dinner';}
@@ -1407,10 +1554,10 @@
             const cult=items.find(i=>i.category==='culture');
             return(cult?cult.name.split(/[,(]/)[0].trim():'Cultural')+' Night';}
           case'outdoor_day':return area+' Day Out';
-          case'wellness_dine':return'Wellness & Dining in '+area;
+          case'wellness_dine':return(isSolo?'Wellness & Dining':'Wellness & Dining')+' in '+area;
           case'group_night':return'Group Night in '+area;
           case'solo_explore':return'Solo '+area+' Exploration';
-          case'full_day':return'Full Day in London';
+          case'full_day':return(isFriends?'Full Day Out':'Full Day in London');
           default:return arch.name;
         }
       }
@@ -1419,19 +1566,44 @@
       function _whyThisFits(arch,items,prefs,score){
         const cats=items.map(i=>i.category);
         const hasDining=cats.includes('dining');
-        const budget=prefs.budget||'mid';
         const energy=prefs.energy_level||'moderate';
-        // Build from archetype + preferences
-        if(arch.id==='romantic_evening')return score>=80?'A strong pairing for an intimate evening within your budget':'A relaxed evening with dinner'+(items.length>1?' and a second stop':'');
-        if(arch.id==='dinner_activity')return 'Balances a great meal with something active — fits your '+energy+' energy';
-        if(arch.id==='cultural_night')return hasDining?'Culture and dining together — matches your shared interests':'A cultural evening tailored to your tastes';
-        if(arch.id==='outdoor_day')return 'An outdoor plan that works for your '+energy+' energy and '+(budget==='budget'?'lighter':'current')+' budget';
-        if(arch.id==='wellness_dine')return 'Wind down together — wellness and dining paired for a low-effort evening';
+        const rel=prefs._relContext||_activeRelContext||'partner';
+        // ── Context-aware copy — tone matches relationship selection ──
+        const isPartner=rel==='partner'||rel==='couple';
+        const isFriends=rel==='friends'||rel==='group';
+        const isSolo=rel==='solo';
+        if(arch.id==='romantic_evening'){
+          if(isSolo)return score>=80?'A well-matched evening out — good food, great vibe':'A relaxed evening with dinner'+(items.length>1?' and a second stop':'');
+          if(isFriends)return 'A strong lineup for a memorable night out together';
+          return score>=80?'A strong pairing for an intimate evening within your budget':'A relaxed evening with dinner'+(items.length>1?' and a second stop':'');
+        }
+        if(arch.id==='dinner_activity'){
+          if(isFriends)return 'Great meal plus something active — the kind of night everyone remembers';
+          if(isSolo)return 'Dinner and an activity — a solid outing shaped to your energy';
+          return 'Balances a great meal with something active — fits your '+energy+' energy';
+        }
+        if(arch.id==='cultural_night'){
+          if(isSolo)return hasDining?'Culture and dining — a thoughtful evening for one':'A cultural evening tailored to your tastes';
+          if(isFriends)return hasDining?'Culture and food — a solid plan for the group':'A cultural night matched to your group\'s interests';
+          return hasDining?'Culture and dining together — matches your shared interests':'A cultural evening tailored to your tastes';
+        }
+        if(arch.id==='outdoor_day'){
+          if(isSolo)return 'An outdoor plan shaped around your '+energy+' energy';
+          if(isFriends)return 'A group-friendly outdoor plan with something for everyone';
+          return 'An outdoor plan that works for your '+energy+' energy';
+        }
+        if(arch.id==='wellness_dine'){
+          if(isSolo)return 'Wind down — wellness and dining paired for a restorative evening';
+          return 'Wind down together — wellness and dining paired for a low-effort evening';
+        }
         if(arch.id==='group_night')return 'Group-friendly picks with enough variety for everyone';
         if(arch.id==='solo_explore')return 'A solo outing shaped around your interests';
-        if(arch.id==='full_day')return 'A full day with variety — morning, lunch and afternoon covered';
-        // Generic fallback based on score
-        if(score>=85)return 'Closely matched to your shared preferences and budget';
+        if(arch.id==='full_day'){
+          if(isFriends)return 'A full day with variety — plenty to keep everyone happy';
+          return 'A full day with variety — morning, lunch and afternoon covered';
+        }
+        // Generic fallback — context-aware
+        if(score>=85)return isPartner?'Closely matched to your shared preferences':'Well-matched to your preferences and budget';
         if(score>=70)return 'A solid option based on your interests and energy level';
         return 'A different angle — worth exploring if you want to try something new';
       }
@@ -1454,12 +1626,19 @@
           );
           if(!candidates.length&&slot.req)return null;
           if(!candidates.length)continue;
-          // On refresh (genCount>1), pick from position 1+ if a fresh candidate exists there
+          // On refresh (genCount>1), prefer unseen venues and randomize among candidates
           let pick=candidates[0];
           if(_genCount>1&&candidates.length>1){
-            const freshIdx=candidates.findIndex(c=>!_allShownSlugs().has(c._slug||_venueSlug(c.name)));
-            if(freshIdx>0)pick=candidates[freshIdx];
-            else if(candidates.length>1)pick=candidates[1]; // at least skip the #1 default
+            // Collect all unseen candidates
+            const fresh=candidates.filter(c=>!_allShownSlugs().has(c._slug||_venueSlug(c.name)));
+            if(fresh.length){
+              // Pick randomly from unseen candidates (not just the first)
+              pick=fresh[Math.floor(Math.random()*fresh.length)];
+            }else{
+              // All seen — pick randomly from lower-ranked candidates to vary combinations
+              const skip=Math.min(1,Math.floor(Math.random()*Math.min(candidates.length,4)));
+              pick=candidates[skip];
+            }
           }
           // Resolve booking info at assembly time (not click time) to prevent name collisions
           const _pickBi=_getBookingInfo(pick.name);
@@ -1497,6 +1676,7 @@
 
       function _constraintKey(prefs){
         return[prefs.budget||'',prefs.energy_level||'',prefs.date_mode||'',
+          prefs._relContext||_activeRelContext||'',
           _rfActive?JSON.stringify(_rfFilters):''].join('|');
       }
 
@@ -1521,8 +1701,13 @@
 
       async function _generatePlans(prefs){
         prefs=prefs||{};
-        const budgetMap={under50:'budget','50to150':'mid','150to300':'treat','300plus':'luxury'};
-        const tier=budgetMap[prefs.budget]||'mid';
+        const budgetBand=prefs.budget||_activeBudgetBand||'under50';
+        const relContext=prefs._relContext||_activeRelContext||'partner';
+
+        // ── Build taxonomy-driven venue pool ──
+        // Pool ALL tiers that could match the selected budget band
+        const band=_BUDGET_BANDS.find(b=>b.id===budgetBand);
+        const eligibleTiers=band?band.tiers:['budget','mid'];
 
         // Reset session memory when constraints change
         const ck=_constraintKey(prefs);
@@ -1532,17 +1717,31 @@
           _genCount=0;
         }
         _genCount++;
+
         // Try DB-backed venues first, fall back to hardcoded IDEAS
-        let venues;
-        const dbVenues=await _loadVenuesFromDB(tier);
-        if(dbVenues&&dbVenues.length>=5){
-          venues=dbVenues;
-        }else{
-          venues=(IDEAS[tier]||IDEAS.mid).map(_classifyVenue);
+        let venues=[];
+        for(const tier of eligibleTiers){
+          const dbVenues=await _loadVenuesFromDB(tier);
+          if(dbVenues&&dbVenues.length>=3){
+            venues=venues.concat(dbVenues);
+          }else{
+            venues=venues.concat((IDEAS[tier]||[]).map(_classifyVenue));
+          }
         }
         // Venue status filter — remove closed/hidden venues
         venues=venues.filter(v=>!v.venue_status||v.venue_status==='active');
-        // Dietary filter
+
+        // ── TAXONOMY HARD FILTERS (deterministic, not scoring) ──
+        // 1. Relationship context: venue must have matching rel tag
+        venues=venues.filter(v=>v.rel&&v.rel.includes(relContext));
+
+        // 2. Budget band: venue price must fall within selected band
+        venues=venues.filter(v=>_priceMatchesBand(v.price,budgetBand));
+
+        // 3. Exclude untagged venues (no rel or mood tags = not ready for live)
+        venues=venues.filter(v=>v._isTagged!==false);
+
+        // 4. Dietary filter
         if(prefs.dietary&&prefs.dietary.length&&!prefs.dietary.includes('none')){
           if(prefs.dietary.includes('vegetarian')||prefs.dietary.includes('vegan')){
             venues=venues.filter(v=>!_VEG_UNFRIENDLY.has(v.name));
@@ -1551,28 +1750,25 @@
         // ── Refine hard filters (exclude clearly wrong venues) ──
         if(_rfActive&&typeof _rfFilters!=='undefined'){
           const rf=_rfFilters;
-          // Food: no_food → exclude pure dining venues
           if(rf.food==='no_food'){
             venues=venues.filter(v=>v.category!=='dining');
           }
-          // Food: veg_friendly → exclude known non-veg
           if(rf.food==='veg_friendly'){
             venues=venues.filter(v=>!_VEG_UNFRIENDLY.has(v.name));
           }
-          // Occasion: friends → set mode
+          // Occasion in Refine overrides rel context
           if(rf.occasion==='friends')prefs.date_mode='friends';
           else if(rf.occasion==='first_date'||rf.occasion==='anniversary'||rf.occasion==='casual')prefs.date_mode='couple';
         }
+        // Set date_mode from relationship context if not overridden by Refine
+        if(!prefs.date_mode)prefs.date_mode=relContext==='partner'?'couple':relContext;
+
         // ── Verified-live filter for beta ──
-        // Only include venues with verified live links in primary plans.
-        // Unverified venues are kept as fallback but heavily penalized in scoring.
         const _verifiedVenues=venues.filter(v=>_isVenueVerifiedLive(v.name));
         const _unverifiedVenues=venues.filter(v=>!_isVenueVerifiedLive(v.name));
-        // Use verified-only pool if it's large enough, otherwise mix in unverified
         if(_verifiedVenues.length>=8){
           venues=_verifiedVenues;
         }else{
-          // Tag unverified so scoring can penalize them
           _unverifiedVenues.forEach(v=>{v._unverifiedLink=true;});
           venues=[..._verifiedVenues,..._unverifiedVenues];
         }
@@ -1582,12 +1778,32 @@
           v._slug=_venueSlug(v.name);
           v._prefScore=_scoreVenue(v,prefs);
           const showCount=_slugShowCount(v._slug);
-          // Penalize shown venues, bonus for never-seen ones
-          if(showCount>0)v._prefScore-=showCount*14;
-          else if(_prevSlugs.size>0)v._prefScore+=6; // fresh venue boost
+          // Escalating penalty: each repeat generation makes shown venues less likely
+          // Gen 2: -18 per show, Gen 3: -22, Gen 4+: -26
+          const penalty=14+Math.min(_genCount-1,3)*4;
+          if(showCount>0)v._prefScore-=showCount*penalty;
+          else if(_prevSlugs.size>0)v._prefScore+=8; // fresh venue boost
+        });
+        // ── Score-band shuffle: randomize order within similar scores ──
+        // This ensures refreshes produce different orderings even with the same pool
+        if(_genCount>1){
+          venues.forEach(v=>{v._prefScore+=Math.random()*6-3;}); // +-3 jitter within bands
+        }
+        // Sort first pass by (jittered) score
+        venues.sort((a,b)=>b._prefScore-a._prefScore);
+        // Then penalize venues that share >60% of fmt tags with a higher-ranked venue
+        const _selectedFmts=new Set();
+        venues.forEach((v,i)=>{
+          if(i===0){(v.t?.fmt||[]).forEach(f=>_selectedFmts.add(f));return;}
+          const vFmt=v.t?.fmt||[];
+          if(vFmt.length){
+            const overlap=vFmt.filter(f=>_selectedFmts.has(f)).length;
+            if(overlap/vFmt.length>0.6)v._prefScore-=4; // mild diversity penalty
+          }
+          vFmt.forEach(f=>_selectedFmts.add(f));
         });
         venues.sort((a,b)=>b._prefScore-a._prefScore);
-        // Weather adjustment — deprioritise outdoor venues when raining
+        // Weather adjustment — deprioritise outdoor venues when raining (legacy fallback)
         if(_weatherCode>=0){
           const rainy=[51,53,55,61,63,65,71,73,75,80,81,82,95,96,99].includes(_weatherCode);
           if(rainy){
@@ -1660,7 +1876,12 @@
           const overlap=[...finalSlugs].filter(s=>prevSet.has(s)).length;
           if(overlap/Math.max(finalSlugs.size,1)>0.7){isNearDupe=true;break;}
         }
-        if(isNearDupe)finalPlans._nearDupe=true;
+        // Count total unique venues available vs used
+        const totalPoolSize=venues.length;
+        const totalUsedEver=_allShownSlugs().size;
+        const poolExhausted=totalUsedEver>=totalPoolSize*0.8;
+        if(isNearDupe&&!poolExhausted)finalPlans._nearDupe=true;
+        if(poolExhausted)finalPlans._poolExhausted=true;
 
         // Record this generation in session memory
         _recordShownSlugs(finalPlans);
@@ -1781,6 +2002,7 @@
         'TeamSport Go-Karting':{url:'https://www.team-sport.co.uk/go-karting-london/',provider:'TeamSport',type:'experience',link_status:'verified'},
         'Swingers crazy golf + cocktails':{url:'https://swingersldn.com',provider:'Swingers',type:'experience',link_status:'verified'},
         'Toca Social':{url:'https://www.toca.social/',provider:'Toca Social',type:'experience',link_status:'verified',bookingType:'book_now',ctaLabel:'Book now'},
+        'Toca Social – Football Arcade':{url:'https://www.toca.social/',provider:'Toca Social',type:'experience',link_status:'verified',bookingType:'book_now',ctaLabel:'Book now'},
         'Whistle Punks Axe Throwing':{url:'https://whistlepunks.com/london/',provider:'Whistle Punks',type:'experience',link_status:'verified'},
         'BFI Southbank cinema + wine':{url:'https://whatson.bfi.org.uk',provider:'BFI',type:'experience',link_status:'verified'},
         'Rooftop Film Club screening':{url:'https://www.rooftopfilmclub.com/london',provider:'Rooftop Film Club',type:'experience',link_status:'verified'},
@@ -2009,6 +2231,17 @@
       // Get booking info — separates booking_url from website_url
       // States: verified, unverified, needs_review, website_only, broken, unavailable
       function _getBookingInfo(venueName){
+        // Check for founder override (set via audit.html)
+        try{
+          const ov=JSON.parse(localStorage.getItem('t4t_audit_overrides')||'{}')[venueName];
+          if(ov&&ov.override_url){
+            const oUrl=_isValidUrl(_normalizeUrl(ov.override_url))?_normalizeUrl(ov.override_url):null;
+            if(oUrl){
+              const entry=_VENUE_BOOKING[venueName]||{};
+              return{booking_url:oUrl,website_url:oUrl,provider:entry.provider||'Override',verified:ov.verified_status==='verified',link_status:ov.verified_status||'verified',has_website:true};
+            }
+          }
+        }catch(e){}
         let known=_VENUE_BOOKING[venueName];
         // Fallback match: if exact key not found, match on whole-word boundaries only
         // Uses word tokenization to prevent substring collisions (e.g. "padel" inside "padella")
@@ -2104,7 +2337,7 @@
         const primaryUrl=rawPrimary?_normalizeUrl(rawPrimary):null;
         // Determine source screen
         const _bkSrc=planId?'plan_card':document.querySelector('.page.active')?.id?.replace('page-','')||'discover';
-        _pendingBooking={name:venueName,price:venuePrice,status:venueStatus,planId:planId||null,url:primaryUrl,booking_url:info.booking_url,website_url:info.website_url,provider:info.provider,verified:info.verified,link_status:info.link_status||'unverified',source_screen:_bkSrc,booking_status:'clicked_out',clickedAt:new Date().toISOString()};
+        _pendingBooking={_sid:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:venueName,price:venuePrice,status:venueStatus,planId:planId||null,url:primaryUrl,booking_url:info.booking_url,website_url:info.website_url,provider:info.provider,verified:info.verified,link_status:info.link_status||'unverified',source_screen:_bkSrc,booking_status:'clicked_out',clickedAt:new Date().toISOString()};
         _trackEvent('booking_click',{name:venueName,provider:info.provider,verified:info.verified,link_status:info.link_status,item_type:venueStatus,plan_id:planId||null,source_screen:_bkSrc,outbound_url:primaryUrl});
 
         // Route unavailable venues to fallback (with website if available)
@@ -2197,10 +2430,19 @@
       }
 
       function openBookingUrl(){
-        if(!_pendingBooking)return;
+        if(!_pendingBooking||!_pendingBooking._sid){
+          console.warn('[T4T] openBookingUrl called with no active booking session');
+          return;
+        }
         const rawUrl=_pendingBooking.url;
         const url=_normalizeUrl(rawUrl);
         if(!url||!_isValidUrl(url)){showBookingFallback();return;}
+        // Verify the overlay content matches the pending booking (entity guard)
+        const overlayTitle=document.querySelector('#booking-handoff-content [style*="font-weight:700"]');
+        if(overlayTitle&&overlayTitle.textContent&&!overlayTitle.textContent.includes(_pendingBooking.name.split(/[,(–]/)[0].trim().slice(0,15))){
+          console.warn('[T4T] Entity mismatch: overlay shows "'+overlayTitle.textContent+'" but pending is "'+_pendingBooking.name+'"');
+          _captureError(new Error('Booking entity mismatch'),{context:'entity_guard',source:'openBookingUrl',venue:_pendingBooking.name});
+        }
         const isDirectBooking=_pendingBooking.booking_url&&rawUrl===_pendingBooking.booking_url;
         _pendingBooking.booking_status='site_opened';
         _trackEvent(isDirectBooking?'direct_booking_clicked':'official_site_clicked',{name:_pendingBooking.name,provider:_pendingBooking.provider,link_status:_pendingBooking.link_status,url:url,source_screen:_pendingBooking.source_screen});
@@ -2239,12 +2481,16 @@
         _trackEvent('booking_returned',{name:_pendingBooking?.name,provider:_pendingBooking?.provider,source_screen:_pendingBooking?.source_screen});
         const content=document.getElementById('booking-handoff-content');
         if(!content)return;
-        const name=_pendingBooking?.name||'this venue';
-        const provider=_pendingBooking?.provider||'the booking site';
+        // Freeze the entity snapshot NOW so reopen always matches what was just opened
+        const frozenName=_pendingBooking?.name||'this venue';
+        const frozenProvider=_pendingBooking?.provider||'the booking site';
+        const frozenUrl=_pendingBooking?.url||null;
+        // Safety: only show reopen if we have a valid URL that matches the current booking
+        const showReopen=!!frozenUrl&&_isValidUrl(frozenUrl);
         content.innerHTML=`
           <div style="padding:8px 0">
             <div style="text-align:center;margin-bottom:16px">
-              <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Did you book ${name}?</div>
+              <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Did you book ${frozenName}?</div>
               <div style="font-size:12px;color:rgba(255,255,255,0.35);line-height:1.5">Let us know so we can keep your plan up to date.</div>
             </div>
             <div style="display:flex;flex-direction:column;gap:8px">
@@ -2269,13 +2515,13 @@
                   <div style="font-size:11px;opacity:0.5;margin-top:1px">Something went wrong on the partner site</div>
                 </div>
               </button>
-              <button class="booking-confirm-btn booking-confirm-retry" onclick="openBookingUrl()">
+              ${showReopen?`<button class="booking-confirm-btn booking-confirm-retry" onclick="openBookingUrl()">
                 <span style="font-size:16px">↗</span>
                 <div style="text-align:left">
-                  <div style="font-size:13px;font-weight:600">Reopen ${provider}</div>
-                  <div style="font-size:11px;opacity:0.5;margin-top:1px">Opens in a new tab again</div>
+                  <div style="font-size:13px;font-weight:600">Reopen ${frozenProvider}</div>
+                  <div style="font-size:11px;opacity:0.5;margin-top:1px">Opens ${frozenName} in a new tab again</div>
                 </div>
-              </button>
+              </button>`:''}
             </div>
           </div>`;
       }
@@ -2408,13 +2654,15 @@
         const h=now.getHours();
         const day=now.getDay(); // 0=Sun,6=Sat
         const name=_userName();
+        const firstName=name?name.split(' ')[0]:'';
+        const namePart=firstName?', '+firstName:'';
 
         // Time-based greeting
         let greet;
-        if(h>=5&&h<12) greet=`Good morning, ${name}`;
-        else if(h>=12&&h<17) greet=`Good afternoon, ${name}`;
-        else if(h>=17&&h<21) greet=`Good evening, ${name}`;
-        else greet=`Hey ${name}`;
+        if(h>=5&&h<12) greet=`Good morning${namePart}`;
+        else if(h>=12&&h<17) greet=`Good afternoon${namePart}`;
+        else if(h>=17&&h<21) greet=`Good evening${namePart}`;
+        else greet=firstName?`Hey ${firstName}`:'Hey';
 
         // Day-based sub
         let sub;
@@ -2854,7 +3102,7 @@
         name:'F1 Arcade – Racing Simulators',venue:'One New Change, City',date:'Open daily',
         price:'£35pp',match:85,booked:198,tags:['Competitive','Fun','High-tech'],venue_status:'active'},
         {id:'wh49',cat:'activity',gradient:'wh-gradient-activity',emoji:'🎳',trending:'Rising',trendCls:'rising',
-        img:'https://images.unsplash.com/photo-1545232979-8bf68ee9b1af?w=600&q=80',
+        img:'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=600&q=80',
         name:'All Star Lanes – Boutique Bowling',venue:'Holborn',date:'Open daily',
         price:'£38pp',match:82,booked:167,tags:['Retro','Cocktails','Playful'],venue_status:'active'},
         // ROOFTOPS
@@ -3026,6 +3274,8 @@
       }
 
       function whOpenDetail(item){
+        // Clear any stale booking state — this overlay reuses bf-overlay
+        _pendingBooking=null;
         const catLabels={concert:'Concert',dining:'Dining',experience:'Experience',activity:'Activity',rooftop:'Rooftop',theatre:'Theatre',wellness:'Wellness',latenight:'Late Night'};
         const catLabel=catLabels[item.cat]||item.cat;
         const safeName=item.name.replace(/'/g,"\\'");
@@ -3091,12 +3341,31 @@
         if(el)el.textContent=`${vLabel} · ${bLabel}`;
       }
 
+      // ── Relationship context state ──
+      let _activeRelContext='partner'; // 'partner'|'friends'|'solo'|'group'
+      let _activeBudgetBand='under50'; // from _BUDGET_BANDS
+
+      function setRelFilter(el,rel){
+        document.querySelectorAll('#rel-chips .occasion-chip').forEach(c=>c.classList.remove('active'));
+        el.classList.add('active');
+        _activeRelContext=rel;
+        // Sync pairing mode for archetype selection
+        _pairingMode=rel==='partner'?'couple':rel;
+        _trackEvent('rel_filter_changed',{rel});
+      }
+
+      function setBudgetPill(el,band){
+        document.querySelectorAll('#budget-pills .occasion-chip').forEach(c=>c.classList.remove('active'));
+        el.classList.add('active');
+        _activeBudgetBand=band;
+        _trackEvent('budget_pill_changed',{band});
+      }
+
       function setMoodFilter(el,energy){
         document.querySelectorAll('#mood-chips .occasion-chip').forEach(c=>c.classList.remove('active'));
         el.classList.add('active');
         _moodEnergy=energy==='low'?'tired':energy==='high'?'energetic':'moderate';
         _trackEvent('mood_filter_changed',{energy:energy});
-        // Update stored prefs so generateSuggestions picks it up
         const profile=_getUserProfile()||{};
         if(profile.preferences)profile.preferences.energy_level=energy;
         _saveUserProfile(profile);
@@ -3110,34 +3379,39 @@
         _trackEvent('refresh_clicked',{instant:!!_instant});
         const area=document.getElementById('suggestions-area');
 
-        // Gather preferences: onboarding prefs are the foundation
+        // ── PREFERENCE PRIORITY CHAIN ──
+        // 1. Saved user defaults (persistent) — from onboarding + profile
+        // 2. Discover pill state (session) — budget, relationship, energy
+        // 3. Refine overrides (session) — time, setting, style, pace, food, area
+        // Refine > Pills > Saved defaults. Refine is checked in _scoreVenue/_generatePlans.
         const profile=_getUserProfile()||{};
         const prefs=Object.assign({},profile.preferences||_obPrefs||{});
 
-        // Sync UI controls to match stored prefs (first load)
-        const sliderEl=document.getElementById('budget-slider');
-        if(sliderEl&&!sliderEl._synced&&prefs.budget){
-          const budgetIdx={under50:0,'50to150':1,'150to300':2,'300plus':3}[prefs.budget];
-          if(budgetIdx!=null){sliderEl.value=budgetIdx;updateBudgetLabel(budgetIdx);}
-          sliderEl._synced=true;
-        }
-        // Sync mood chips to stored energy
-        if(prefs.energy_level){
-          document.querySelectorAll('#mood-chips .occasion-chip').forEach(c=>{
+        // Discover pills override saved defaults for this session
+        const activeRelChip=document.querySelector('#rel-chips .occasion-chip.active');
+        if(activeRelChip)_activeRelContext=activeRelChip.dataset.rel||'partner';
+        prefs.date_mode=_activeRelContext==='partner'?'couple':_activeRelContext;
+
+        const activeBudgetChip=document.querySelector('#budget-pills .occasion-chip.active');
+        if(activeBudgetChip)_activeBudgetBand=activeBudgetChip.dataset.budget||'under50';
+        prefs.budget=_activeBudgetBand;
+
+        // Sync mood chips to saved energy default on first load
+        const _mcEl=document.querySelector('#mood-chips');
+        if(prefs.energy_level&&_mcEl&&!_mcEl._synced){
+          _mcEl.querySelectorAll('.occasion-chip').forEach(c=>{
             c.classList.toggle('active',c.dataset.energy===prefs.energy_level);
           });
+          _mcEl._synced=true;
         }
 
-        // Budget slider overrides stored pref (user changed it)
-        if(sliderEl){
-          const sv=parseInt(sliderEl.value);
-          const bk=['under50','50to150','150to300','300plus'][isNaN(sv)?1:sv];
-          if(bk)prefs.budget=bk;
-        }
-        // Mood energy from current UI state
+        // Mood energy from current pill state (overrides saved default)
         const activeChip=document.querySelector('#mood-chips .occasion-chip.active');
         if(activeChip)prefs.energy_level=activeChip.dataset.energy||'moderate';
         if(!prefs.energy_level)prefs.energy_level='moderate';
+
+        // Relationship context
+        prefs._relContext=_activeRelContext;
 
         const locEl=document.getElementById('loc-select');
         const loc=locEl?locEl.value:'London, UK';
@@ -3179,6 +3453,22 @@
           _currentPlans=plans;
 
           let html='';
+
+          // ── Empty state: no plans matched the filters ──
+          if(!plans||!plans.length){
+            const relLabel={partner:'partner dates',friends:'friend outings',solo:'solo activities',group:'group plans'}[_activeRelContext]||'plans';
+            const bandLabel=(_BUDGET_BANDS.find(b=>b.id===_activeBudgetBand)||{}).label||_activeBudgetBand;
+            area.innerHTML=`<div style="text-align:center;padding:48px 20px">
+              <div style="font-size:32px;margin-bottom:14px;opacity:0.25">&#9673;</div>
+              <div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:8px">No ${relLabel} found for ${bandLabel}</div>
+              <div style="font-size:12.5px;color:rgba(255,255,255,0.35);margin-bottom:20px;line-height:1.5;max-width:320px;margin-left:auto;margin-right:auto">Try broadening your budget, switching the planning context, or clearing your Refine filters.</div>
+              <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+                <button class="btn btn-rose" style="font-size:13px;padding:10px 20px" onclick="generateSuggestions()">Refresh</button>
+                <button class="btn" style="font-size:13px;padding:10px 20px" onclick="rfClear();generateSuggestions()">Clear filters</button>
+              </div>
+            </div>`;
+            return;
+          }
 
           // Hide value prop after first real generation
           const vpEl=document.getElementById('discover-value-prop');
@@ -3232,8 +3522,10 @@
 
           // ── Weak results / limited variety notice ──
           const avgScore=plans.length?Math.round(plans.reduce((s,p)=>s+p.score,0)/plans.length):0;
-          if(plans.length&&plans._nearDupe&&_shownSlugs.length>1){
-            html+=`<div style="padding:10px 14px;background:rgba(201,168,76,0.04);border:0.5px solid rgba(201,168,76,0.12);border-radius:12px;margin-bottom:14px;font-size:11.5px;color:rgba(201,168,76,0.6);line-height:1.6">You've seen most of the strong options for these filters. <span style="cursor:pointer;text-decoration:underline" onclick="openRefineSheet()">Adjust your filters</span> or <span style="cursor:pointer;text-decoration:underline" onclick="rfClear();generateSuggestions()">clear filters</span> for more variety.</div>`;
+          if(plans.length&&plans._poolExhausted){
+            html+=`<div style="padding:10px 14px;background:rgba(201,168,76,0.04);border:0.5px solid rgba(201,168,76,0.12);border-radius:12px;margin-bottom:14px;font-size:11.5px;color:rgba(201,168,76,0.6);line-height:1.6">You've explored most options for these filters. <span style="cursor:pointer;text-decoration:underline" onclick="openRefineSheet()">Broaden your filters</span> or try a different <span style="cursor:pointer;text-decoration:underline" onclick="document.querySelector('#budget-pills .occasion-chip:nth-child(2)').click();generateSuggestions()">budget range</span> for more variety.</div>`;
+          }else if(plans.length&&plans._nearDupe&&_shownSlugs.length>1){
+            html+=`<div style="padding:10px 14px;background:rgba(201,168,76,0.04);border:0.5px solid rgba(201,168,76,0.12);border-radius:12px;margin-bottom:14px;font-size:11.5px;color:rgba(201,168,76,0.6);line-height:1.6">Some familiar faces in this set — tap Refresh for more variation, or <span style="cursor:pointer;text-decoration:underline" onclick="openRefineSheet()">adjust your filters</span>.</div>`;
           }else if(plans.length&&avgScore<50){
             html+=`<div style="padding:10px 14px;background:rgba(250,204,21,0.04);border:0.5px solid rgba(250,204,21,0.12);border-radius:12px;margin-bottom:14px;font-size:11.5px;color:rgba(250,204,21,0.65);line-height:1.6">Stretching a bit to find good plans. <span style="cursor:pointer;text-decoration:underline" onclick="startOnboarding()">Update your preferences</span> for better results.</div>`;
           }
@@ -4434,15 +4726,16 @@
         if(handle.length<3){errorEl.textContent='Handle must be at least 3 characters';errorEl.style.display='block';return;}
         errorEl.style.display='none';
         btn.textContent='Checking handle...';btn.disabled=true;
-        // Verify handle is unique before proceeding
+        // Quick uniqueness check (5s timeout, fails open — DB constraint is final guard)
         const lpHandleOk=await _checkHandleAvailable(handle);
-        if(!lpHandleOk){
+        if(lpHandleOk===false){
           errorEl.textContent='@'+handle+' is already taken — please choose another';errorEl.style.display='block';
           btn.textContent='Create profile & sign in';btn.disabled=false;return;
         }
+        // lpHandleOk===true means available OR check failed/timed out — proceed either way
         btn.textContent='Creating profile...';
         // Save profile locally for immediate use after redirect (single by default, no partner)
-        _handles.jamie='@'+handle;
+        _handles.user='@'+handle;
         try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}
         _saveUserProfile({name,partner:'',handle:'@'+handle,account_state:'single',createdAt:new Date().toISOString()});
         // Send magic link (no partner in metadata)
@@ -4740,13 +5033,24 @@
       setSmartGreeting();
       // Apply saved user names if they exist
       if(_getUserProfile())_applyUserNames();
+      // Sync relationship pill from pairing mode
+      if(_pairingMode==='couple')_activeRelContext='partner';
+      else if(_pairingMode)_activeRelContext=_pairingMode;
+      document.querySelectorAll('#rel-chips .occasion-chip').forEach(c=>{
+        c.classList.toggle('active',c.dataset.rel===_activeRelContext);
+      });
       // Show demo banner if user has access
       if(_hasBetaAccess()){const db=document.getElementById('demo-banner');if(db)db.style.display='block';}
-      // Hide loading screen after a short delay (auth listener will handle the rest)
+      // Hide loading screen — two fallbacks to ensure it never stays stuck
       setTimeout(()=>{
         const ls=document.getElementById('auth-loading-screen');
         if(ls){ls.style.opacity='0';setTimeout(()=>ls.remove(),350);}
       },800);
+      // Hard fallback: if still present after 4s, force remove (covers slow Supabase / network issues)
+      setTimeout(()=>{
+        const ls=document.getElementById('auth-loading-screen');
+        if(ls)ls.remove();
+      },4000);
       // Init occasion context panel for default selection (guard against missing element)
       const _initChip=document.querySelector('#date-occasion .occasion-chip.active');
       if(_initChip)selectOccasion(_initChip,'first_date');
@@ -5350,6 +5654,9 @@
       function closeBf(){
         const ov=document.getElementById('bf-overlay');
         if(ov){ov.style.display='none';document.body.style.overflow='';}
+        // Clear stale booking state when generic overlay closes
+        // (bf-overlay is shared between What's Hot detail, booking flow, privacy settings, etc.)
+        _pendingBooking=null;
       }
       // ════════════════════════════════════════════════
       // ── PAYMENT SIMULATION ──
@@ -5989,29 +6296,16 @@
           </div>`
         },
         {
-          title:'When do you usually go out?',
-          sub:'We\'ll prioritise the right times',
-          required:'time_preference',
+          title:'What\'s your energy like?',
+          sub:'This shapes the kinds of plans we suggest — you can tailor each outing in Refine',
+          required:'energy_level',
           render:()=>`<div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
-            ${[['daytime','Daytime / brunch'],['evening','Evening'],['late_night','Late night'],['any','Anytime']].map(([v,l])=>
-              _obChipHTML('time_preference',v,l)
+            ${[['low','Relaxed & easy'],['moderate','Open to anything'],['high','Active & adventurous']].map(([v,l])=>
+              _obChipHTML('energy_level',v,l)
             ).join('')}
           </div>
-          <div style="margin-top:20px">
-            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px">Indoor or outdoor?</div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
-              ${[['indoor','Indoor'],['outdoor','Outdoor'],['both','Both']].map(([v,l])=>
-                _obChipHTML('setting',v,l)
-              ).join('')}
-            </div>
-          </div>
-          <div style="margin-top:20px">
-            <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:8px">Energy level?</div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center">
-              ${[['low','Relaxed & easy'],['moderate','Open to anything'],['high','Active & adventurous']].map(([v,l])=>
-                _obChipHTML('energy_level',v,l)
-              ).join('')}
-            </div>
+          <div style="margin-top:24px;padding:12px 16px;background:rgba(201,168,76,0.04);border:0.5px solid rgba(201,168,76,0.12);border-radius:12px;text-align:center">
+            <div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5">Time of day, indoor vs outdoor, and date style can be set per outing using <strong style="color:rgba(201,168,76,0.6)">Refine your date</strong> on the Discover page.</div>
           </div>`
         },
         {
@@ -6388,7 +6682,7 @@
       // ════════════════════════════════════════════════
       // ── REFINE DATE BOTTOM SHEET ──
       // ════════════════════════════════════════════════
-      let _rfFilters={occasion:'',time:'',setting:'',area:'',style:[],food:''};
+      let _rfFilters={occasion:'',time:'',setting:'',area:'',style:[],food:'',pace:''};
       let _rfActive=false; // true when user has applied refined filters
 
       function openRefineSheet(){
@@ -6445,23 +6739,27 @@
       }
 
       function _rfPrefill(){
+        // Inherit persistent defaults into Refine as pre-selections.
+        // Only fills empty Refine fields — user overrides are preserved.
+        // This is the Preferences → Refine inheritance bridge.
         const profile=_getUserProfile()||{};
         const prefs=profile.preferences||{};
-        // Only prefill empty fields from saved prefs
+        // Legacy: setting and time_preference may exist from older onboarding
         if(!_rfFilters.setting&&prefs.setting)_rfFilters.setting=prefs.setting;
         if(!_rfFilters.time&&prefs.time_preference&&prefs.time_preference!=='any')_rfFilters.time=prefs.time_preference;
         if(!_rfFilters.area&&prefs.travel_radius){
           const m={local:'east',central:'central',anywhere:''};
           if(m[prefs.travel_radius])_rfFilters.area=m[prefs.travel_radius];
         }
-        if(!_rfFilters.occasion&&prefs.date_mode){
-          const m={couple:'casual',solo:'',friends:'friends'};
-          if(m[prefs.date_mode])_rfFilters.occasion=m[prefs.date_mode];
+        // Energy → pace inference (persistent default informs session pace)
+        if(!_rfFilters.pace&&prefs.energy_level){
+          const m={low:'relaxed',moderate:'',high:'quick'};
+          if(m[prefs.energy_level])_rfFilters.pace=m[prefs.energy_level];
         }
       }
 
       function rfClear(){
-        _rfFilters={occasion:'',time:'',setting:'',area:'',style:[],food:''};
+        _rfFilters={occasion:'',time:'',setting:'',area:'',style:[],food:'',pace:''};
         _rfActive=false;
         _rfApplySelections();
         const badge=document.getElementById('refine-active-badge');
