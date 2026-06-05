@@ -109,21 +109,37 @@
 
         async function _checkHandleAvailable(handle){
           if(!handle||handle.length<3){_handleAvailable=null;return null;}
-          // Client-side format validation first (instant)
           if(!/^[a-z0-9_]{3,20}$/.test(handle)){_handleAvailable=null;return null;}
-          if(!_sb){_handleAvailable=true;return true;} // offline fallback — allow
+          if(!_sb){_handleAvailable=false;return false;}
           try{
-            // Race the RPC against a 5-second timeout to prevent hanging
             const rpcPromise=_sb.rpc('check_handle_available',{p_handle:'@'+handle});
             const timeoutPromise=new Promise((_,reject)=>setTimeout(()=>reject(new Error('Handle check timed out')),5000));
             const{data,error}=await Promise.race([rpcPromise,timeoutPromise]);
-            if(error){console.warn('[T4T] Handle check failed',error);_handleAvailable=true;return true;}
+            if(error){
+              console.warn('[T4T] RPC failed, falling back to direct query',error);
+              try{
+                const{data:existing}=await _sb.from('users').select('id').eq('handle','@'+handle).maybeSingle();
+                const available=!existing;
+                _handleAvailable=available;
+                return available;
+              }catch(e2){
+                _handleAvailable=false;
+                return false;
+              }
+            }
             _handleAvailable=!!data;
             return _handleAvailable;
           }catch(e){
             console.warn('[T4T] Handle check error/timeout:',e.message);
-            _handleAvailable=true; // fail open — allow signup, DB unique constraint is the real guard
-            return true;
+            try{
+              const{data:existing}=await _sb.from('users').select('id').eq('handle','@'+handle).maybeSingle();
+              const available=!existing;
+              _handleAvailable=available;
+              return available;
+            }catch(e2){
+              _handleAvailable=false;
+              return false;
+            }
           }
         }
 
