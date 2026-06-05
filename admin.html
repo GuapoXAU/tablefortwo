@@ -38,6 +38,35 @@ tr:hover td{background:rgba(255,255,255,0.02)}
 .handle-pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-family:monospace;color:rgba(201,168,76,0.7);background:rgba(201,168,76,0.06);border:0.5px solid rgba(201,168,76,0.15)}
 .empty{text-align:center;padding:32px 20px;color:rgba(255,255,255,0.25);font-size:13px}
 .loading{text-align:center;padding:20px;color:rgba(255,255,255,0.25);font-size:12px}
+.funnel{display:flex;gap:0;align-items:stretch;border-radius:12px;overflow:hidden;border:0.5px solid rgba(255,255,255,0.06)}
+.funnel-step{flex:1;padding:14px 12px;text-align:center;position:relative;background:rgba(255,255,255,0.02)}
+.funnel-step+.funnel-step{border-left:0.5px solid rgba(255,255,255,0.06)}
+.funnel-step .f-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:4px}
+.funnel-step .f-val{font-size:22px;font-weight:700;color:#fff}
+.funnel-step .f-pct{font-size:10px;color:rgba(201,168,76,0.6);margin-top:3px}
+.pref-row{display:flex;gap:12px;flex-wrap:wrap}
+.pref-block{flex:1;min-width:200px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:12px;padding:14px}
+.pref-block .pb-label{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:8px}
+.pref-block .pb-val{font-size:16px;font-weight:700;color:#C9A84C;margin-bottom:4px}
+.pref-block .pb-note{font-size:10px;color:rgba(255,255,255,0.2)}
+.pct-bar-wrap{margin-top:6px}
+.pct-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.pct-bar-label{font-size:10px;color:rgba(255,255,255,0.4);width:60px;text-align:right}
+.pct-bar-track{flex:1;height:8px;background:rgba(255,255,255,0.04);border-radius:4px;overflow:hidden}
+.pct-bar-fill{height:8px;border-radius:4px;transition:width 0.4s}
+.pct-bar-val{font-size:10px;color:rgba(255,255,255,0.3);width:36px}
+.flag-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,0.02);border:0.5px solid rgba(255,255,255,0.06);border-radius:10px;margin-bottom:8px;cursor:pointer}
+.flag-row:hover{background:rgba(255,255,255,0.04)}
+.flag-icon{font-size:16px;flex-shrink:0}
+.flag-label{flex:1;font-size:12px;color:rgba(255,255,255,0.6)}
+.flag-count{font-size:14px;font-weight:700;color:#C9A84C}
+.flag-detail{display:none;padding:8px 14px 12px 40px;font-size:11px;color:rgba(255,255,255,0.35);line-height:1.6}
+.flag-detail.show{display:block}
+.b-r{background:rgba(248,113,113,0.1);color:#F87171;border:0.5px solid rgba(248,113,113,0.2)}
+.visit-bars{display:flex;align-items:flex-end;gap:4px;height:80px;padding:8px 0}
+.visit-bar{flex:1;background:rgba(201,168,76,0.3);border-radius:3px 3px 0 0;min-width:12px;position:relative}
+.visit-bar:hover{background:rgba(201,168,76,0.5)}
+.visit-bar-label{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);font-size:8px;color:rgba(255,255,255,0.2);white-space:nowrap}
 </style>
 </head>
 <body>
@@ -80,6 +109,49 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <div class="section-title">All handles</div>
     <div id="handles-list" class="loading">Loading...</div>
   </div>
+
+  <!-- User funnel -->
+  <div class="section">
+    <div class="section-title">User funnel</div>
+    <div id="funnel" class="loading">Loading...</div>
+  </div>
+
+  <!-- Drop-off list -->
+  <div class="section">
+    <div class="section-title">Drop-off list</div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.2);margin-bottom:10px">Users who signed up but never completed onboarding — may need a nudge</div>
+    <div id="dropoff-table" class="loading">Loading...</div>
+  </div>
+
+  <!-- Preference breakdown -->
+  <div class="section">
+    <div class="section-title">Preference breakdown</div>
+    <div id="pref-breakdown" class="loading">Loading...</div>
+  </div>
+
+  <!-- Duplicate handles -->
+  <div class="section">
+    <div class="section-title">Duplicate handles</div>
+    <div id="dup-handles" class="loading">Loading...</div>
+  </div>
+
+  <!-- Venue engagement -->
+  <div class="section" id="venue-engagement-section" style="display:none">
+    <div class="section-title">Venue engagement</div>
+    <div id="venue-engagement" class="loading">Loading...</div>
+  </div>
+
+  <!-- Beta health flags -->
+  <div class="section">
+    <div class="section-title">Beta health flags</div>
+    <div id="health-flags" class="loading">Loading...</div>
+  </div>
+
+  <!-- Website visits -->
+  <div class="section" id="visits-section" style="display:none">
+    <div class="section-title">Website visits</div>
+    <div id="visits-stats" class="loading">Loading...</div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -109,43 +181,183 @@ function show(){
 }
 if(localStorage.getItem('t4t_admin_auth')==='granted')login();
 
+function daysAgo(d){const ms=Date.now()-new Date(d).getTime();const days=Math.floor(ms/86400000);if(days===0)return'today';if(days===1)return'1 day ago';return days+' days ago';}
+function pct(n,total){return total?Math.round(n/total*100):0;}
+
 async function loadData(){
   try{
-    const{data:users,error}=await sb.from('users').select('id,email,name,handle,account_state,onboarding_completed,created_at,preferences').order('created_at',{ascending:false});
+    const{data:users,error}=await sb.from('users').select('id,email,name,handle,account_state,onboarding_completed,created_at,last_seen_at,preferences').order('created_at',{ascending:false});
     if(error){console.warn('Fetch failed',error);document.getElementById('signups-table').innerHTML='<div class="empty">Failed to load data</div>';return;}
     if(!users||!users.length){
-      document.getElementById('stat-total').textContent='0';
-      document.getElementById('stat-onboarded').textContent='0';
-      document.getElementById('stat-paired').textContent='0';
-      document.getElementById('stat-solo').textContent='0';
-      document.getElementById('signups-table').innerHTML='<div class="empty">No users yet</div>';
-      document.getElementById('handles-list').innerHTML='<div class="empty">No handles yet</div>';
+      ['stat-total','stat-onboarded','stat-paired','stat-solo'].forEach(id=>document.getElementById(id).textContent='0');
+      ['signups-table','handles-list','funnel','dropoff-table','pref-breakdown','dup-handles','health-flags'].forEach(id=>document.getElementById(id).innerHTML='<div class="empty">No data yet</div>');
       return;
     }
 
-    document.getElementById('stat-total').textContent=users.length;
-    document.getElementById('stat-onboarded').textContent=users.filter(u=>u.onboarding_completed).length;
-    document.getElementById('stat-paired').textContent=users.filter(u=>u.account_state==='paired').length;
-    document.getElementById('stat-solo').textContent=users.filter(u=>u.account_state==='solo'||(u.preferences&&u.preferences.date_mode==='solo')).length;
+    const total=users.length;
+    const onboarded=users.filter(u=>u.onboarding_completed);
+    const paired=users.filter(u=>u.account_state==='paired');
+    const soloUsers=users.filter(u=>u.account_state==='solo'||(u.preferences&&u.preferences.date_mode==='solo'));
+    const now=Date.now();
+    const sevenDaysAgo=now-7*86400000;
+    const active7d=users.filter(u=>u.last_seen_at&&new Date(u.last_seen_at).getTime()>sevenDaysAgo);
 
+    // Overview cards
+    document.getElementById('stat-total').textContent=total;
+    document.getElementById('stat-onboarded').textContent=onboarded.length;
+    document.getElementById('stat-paired').textContent=paired.length;
+    document.getElementById('stat-solo').textContent=soloUsers.length;
+
+    // Recent signups table
     const recent=users.slice(0,20);
     let html='<div class="tbl-wrap"><table><thead><tr><th>Email</th><th>Name</th><th>Handle</th><th>State</th><th>Onboarded</th><th>Created</th></tr></thead><tbody>';
     recent.forEach(u=>{
       const state=u.account_state||'--';
       const stateBadge=state==='paired'?'<span class="badge b-g">paired</span>':state==='solo'?'<span class="badge b-y">solo</span>':'<span class="badge b-m">'+state+'</span>';
-      const onboarded=u.onboarding_completed?'<span class="badge b-g">yes</span>':'<span class="badge b-m">no</span>';
+      const ob=u.onboarding_completed?'<span class="badge b-g">yes</span>':'<span class="badge b-m">no</span>';
       const created=u.created_at?new Date(u.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'--';
-      html+='<tr><td>'+(u.email||'--')+'</td><td>'+(u.name||'--')+'</td><td style="font-family:monospace;color:rgba(201,168,76,0.6)">'+(u.handle||'--')+'</td><td>'+stateBadge+'</td><td>'+onboarded+'</td><td>'+created+'</td></tr>';
+      html+='<tr><td>'+(u.email||'--')+'</td><td>'+(u.name||'--')+'</td><td style="font-family:monospace;color:rgba(201,168,76,0.6)">'+(u.handle||'--')+'</td><td>'+stateBadge+'</td><td>'+ob+'</td><td>'+created+'</td></tr>';
     });
     html+='</tbody></table></div>';
     document.getElementById('signups-table').innerHTML=html;
 
+    // Handles
     const handles=users.map(u=>u.handle).filter(Boolean).sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
-    if(handles.length){
-      document.getElementById('handles-list').innerHTML='<div class="handle-list">'+handles.map(h=>'<span class="handle-pill">'+h+'</span>').join('')+'</div>';
+    document.getElementById('handles-list').innerHTML=handles.length?'<div class="handle-list">'+handles.map(h=>'<span class="handle-pill">'+h+'</span>').join('')+'</div>':'<div class="empty">No handles yet</div>';
+
+    // Funnel
+    document.getElementById('funnel').innerHTML='<div class="funnel">'
+      +'<div class="funnel-step"><div class="f-label">Signed up</div><div class="f-val">'+total+'</div><div class="f-pct">100%</div></div>'
+      +'<div class="funnel-step"><div class="f-label">Onboarded</div><div class="f-val">'+onboarded.length+'</div><div class="f-pct">'+pct(onboarded.length,total)+'%</div></div>'
+      +'<div class="funnel-step"><div class="f-label">Paired</div><div class="f-val">'+paired.length+'</div><div class="f-pct">'+pct(paired.length,onboarded.length||1)+'% of onboarded</div></div>'
+      +'<div class="funnel-step"><div class="f-label">Active 7d</div><div class="f-val">'+active7d.length+'</div><div class="f-pct">'+pct(active7d.length,total)+'%</div></div>'
+      +'</div>';
+
+    // Drop-off list
+    const dropoffs=users.filter(u=>!u.onboarding_completed);
+    if(dropoffs.length){
+      let dhtml='<div class="tbl-wrap"><table><thead><tr><th>Email</th><th>Name</th><th>Created</th><th>Days since signup</th></tr></thead><tbody>';
+      dropoffs.forEach(u=>{
+        const created=u.created_at?new Date(u.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'--';
+        dhtml+='<tr><td>'+(u.email||'--')+'</td><td>'+(u.name||'--')+'</td><td>'+created+'</td><td>'+daysAgo(u.created_at)+'</td></tr>';
+      });
+      dhtml+='</tbody></table></div>';
+      document.getElementById('dropoff-table').innerHTML=dhtml;
     }else{
-      document.getElementById('handles-list').innerHTML='<div class="empty">No handles yet</div>';
+      document.getElementById('dropoff-table').innerHTML='<div class="empty" style="color:#4ADE80">All users have completed onboarding</div>';
     }
+
+    // Preference breakdown
+    const withPrefs=users.filter(u=>u.preferences&&typeof u.preferences==='object');
+    const budgets={};const moods={};let pPartner=0,pSolo=0,pFriends=0;
+    withPrefs.forEach(u=>{
+      const p=u.preferences;
+      if(p.budget){budgets[p.budget]=(budgets[p.budget]||0)+1;}
+      if(p.energy_level){moods[p.energy_level]=(moods[p.energy_level]||0)+1;}
+      if(p.date_mode==='couple')pPartner++;
+      else if(p.date_mode==='solo')pSolo++;
+      else if(p.date_mode==='friends')pFriends++;
+    });
+    const topBudget=Object.entries(budgets).sort((a,b)=>b[1]-a[1])[0];
+    const topMood=Object.entries(moods).sort((a,b)=>b[1]-a[1])[0];
+    const modeTotal=pPartner+pSolo+pFriends||1;
+    document.getElementById('pref-breakdown').innerHTML='<div class="pref-row">'
+      +'<div class="pref-block"><div class="pb-label">Top budget</div><div class="pb-val">'+(topBudget?topBudget[0]:'--')+'</div><div class="pb-note">'+(topBudget?topBudget[1]+' users':'No data')+'</div></div>'
+      +'<div class="pref-block"><div class="pb-label">Top mood</div><div class="pb-val">'+(topMood?topMood[0]:'--')+'</div><div class="pb-note">'+(topMood?topMood[1]+' users':'No data')+'</div></div>'
+      +'<div class="pref-block"><div class="pb-label">Planning mode</div><div class="pct-bar-wrap">'
+      +'<div class="pct-bar-row"><div class="pct-bar-label">Partner</div><div class="pct-bar-track"><div class="pct-bar-fill" style="width:'+pct(pPartner,modeTotal)+'%;background:rgba(196,104,122,0.6)"></div></div><div class="pct-bar-val">'+pct(pPartner,modeTotal)+'%</div></div>'
+      +'<div class="pct-bar-row"><div class="pct-bar-label">Solo</div><div class="pct-bar-track"><div class="pct-bar-fill" style="width:'+pct(pSolo,modeTotal)+'%;background:rgba(201,168,76,0.6)"></div></div><div class="pct-bar-val">'+pct(pSolo,modeTotal)+'%</div></div>'
+      +'<div class="pct-bar-row"><div class="pct-bar-label">Friends</div><div class="pct-bar-track"><div class="pct-bar-fill" style="width:'+pct(pFriends,modeTotal)+'%;background:rgba(96,165,250,0.6)"></div></div><div class="pct-bar-val">'+pct(pFriends,modeTotal)+'%</div></div>'
+      +'</div></div></div>';
+
+    // Duplicate handles
+    const handleCount={};
+    handles.forEach(h=>{const k=h.toLowerCase();handleCount[k]=(handleCount[k]||0)+1;});
+    const dupes=Object.entries(handleCount).filter(([,c])=>c>1);
+    if(dupes.length){
+      let dupHtml='<div class="tbl-wrap"><table><thead><tr><th>Handle</th><th>Count</th></tr></thead><tbody>';
+      dupes.forEach(([h,c])=>{dupHtml+='<tr style="border-left:3px solid #F87171"><td style="font-family:monospace;color:#F87171">'+h+'</td><td><span class="badge b-r">'+c+' users</span></td></tr>';});
+      dupHtml+='</tbody></table></div>';
+      document.getElementById('dup-handles').innerHTML=dupHtml;
+    }else{
+      document.getElementById('dup-handles').innerHTML='<div style="padding:14px;background:rgba(74,222,128,0.04);border:0.5px solid rgba(74,222,128,0.15);border-radius:10px;font-size:12px;color:#4ADE80">No duplicate handles found</div>';
+    }
+
+    // Health flags
+    const noHandle=users.filter(u=>!u.handle);
+    const noPrefs=users.filter(u=>!u.preferences||!Object.keys(u.preferences).length);
+    const noName=users.filter(u=>u.email&&(!u.name||u.name==='User'));
+    function flagRow(icon,label,list,id){
+      const emails=list.map(u=>u.email||u.name||'unknown').join(', ');
+      return'<div class="flag-row" onclick="var d=document.getElementById(\''+id+'\');d.classList.toggle(\'show\')"><span class="flag-icon">'+icon+'</span><span class="flag-label">'+label+'</span><span class="flag-count">'+list.length+'</span></div><div class="flag-detail" id="'+id+'">'+emails+'</div>';
+    }
+    document.getElementById('health-flags').innerHTML=flagRow('🏷','No handle set',noHandle,'hf-handle')+flagRow('⚙','No preferences saved',noPrefs,'hf-prefs')+flagRow('👤','Email but no name',noName,'hf-name');
+
+    // Venue engagement (events table)
+    try{
+      const{data:evts,error:evtErr}=await sb.from('events').select('event_type,event_data').limit(1);
+      if(!evtErr&&evts){
+        document.getElementById('venue-engagement-section').style.display='block';
+        const{data:clicks}=await sb.from('events').select('event_data').eq('event_type','booking_click');
+        const{data:saves}=await sb.from('events').select('event_data').eq('event_type','wishlist_save');
+        const clickCounts={};
+        (clicks||[]).forEach(e=>{const n=e.event_data?.name;if(n){clickCounts[n]=(clickCounts[n]||0)+1;}});
+        const saveCounts={};
+        (saves||[]).forEach(e=>{const n=e.event_data?.name;if(n){saveCounts[n]=(saveCounts[n]||0)+1;}});
+        const topClicks=Object.entries(clickCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+        const topSaves=Object.entries(saveCounts).sort((a,b)=>b[1]-a[1]).slice(0,10);
+        let veHtml='<div style="display:flex;gap:16px;flex-wrap:wrap">';
+        veHtml+='<div style="flex:1;min-width:280px"><div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Top clicked</div>';
+        if(topClicks.length){topClicks.forEach(([n,c],i)=>{veHtml+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;color:rgba(255,255,255,0.5);border-bottom:0.5px solid rgba(255,255,255,0.03)"><span>'+(i+1)+'. '+n+'</span><span style="color:#C9A84C">'+c+'</span></div>';});}
+        else{veHtml+='<div class="empty" style="padding:12px">No click data yet</div>';}
+        veHtml+='</div><div style="flex:1;min-width:280px"><div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Top saved</div>';
+        if(topSaves.length){topSaves.forEach(([n,c],i)=>{veHtml+='<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:11px;color:rgba(255,255,255,0.5);border-bottom:0.5px solid rgba(255,255,255,0.03)"><span>'+(i+1)+'. '+n+'</span><span style="color:#C9A84C">'+c+'</span></div>';});}
+        else{veHtml+='<div class="empty" style="padding:12px">No save data yet</div>';}
+        veHtml+='</div></div>';
+        document.getElementById('venue-engagement').innerHTML=veHtml;
+      }
+    }catch(e){console.warn('Events table not available',e);}
+
+    // Website visits
+    try{
+      const{data:testEvt,error:testErr}=await sb.from('events').select('id').limit(1);
+      if(!testErr){
+        document.getElementById('visits-section').style.display='block';
+        const{data:allVisits}=await sb.from('events').select('created_at,event_type').or('event_type.eq.page_view,event_type.eq.refresh_clicked');
+        const visits=allVisits||[];
+        const eventLabel=visits.some(v=>v.event_type==='page_view')?'Page views':'Refresh events (proxy)';
+        const now=new Date();
+        const d24h=new Date(now-86400000);
+        const d7d=new Date(now-7*86400000);
+        const d14d=new Date(now-14*86400000);
+        const total=visits.length;
+        const last7=visits.filter(v=>new Date(v.created_at)>d7d).length;
+        const last24=visits.filter(v=>new Date(v.created_at)>d24h).length;
+        // Day-by-day for last 14 days
+        const dayCounts={};
+        for(let i=13;i>=0;i--){
+          const d=new Date(now);d.setDate(d.getDate()-i);
+          dayCounts[d.toISOString().slice(0,10)]=0;
+        }
+        visits.forEach(v=>{const d=v.created_at?.slice(0,10);if(d&&dayCounts.hasOwnProperty(d))dayCounts[d]++;});
+        const maxDay=Math.max(1,...Object.values(dayCounts));
+        let barsHtml='<div class="visit-bars">';
+        Object.entries(dayCounts).forEach(([d,c])=>{
+          const h=Math.max(2,Math.round(c/maxDay*70));
+          const label=d.slice(5);
+          barsHtml+='<div class="visit-bar" style="height:'+h+'px" title="'+d+': '+c+'"><div class="visit-bar-label">'+label+'</div></div>';
+        });
+        barsHtml+='</div>';
+        document.getElementById('visits-stats').innerHTML='<div class="cards" style="margin-bottom:16px">'
+          +'<div class="card"><div class="card-label">All time</div><div class="card-val">'+total+'</div><div style="font-size:9px;color:rgba(255,255,255,0.2);margin-top:2px">'+eventLabel+'</div></div>'
+          +'<div class="card"><div class="card-label">Last 7 days</div><div class="card-val">'+last7+'</div></div>'
+          +'<div class="card"><div class="card-label">Last 24 hours</div><div class="card-val">'+last24+'</div></div>'
+          +'</div>'
+          +'<div style="font-size:10px;color:rgba(255,255,255,0.2);margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">Last 14 days</div>'
+          +barsHtml;
+      }
+    }catch(e){console.warn('Visits section skipped',e);}
+
   }catch(e){
     console.error('Admin load error',e);
     document.getElementById('signups-table').innerHTML='<div class="empty">Error loading data</div>';
