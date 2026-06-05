@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Table for Two</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Cormorant Garamond',Georgia,serif;background:#0A0A0A;color:#fff;min-height:100vh}
+.gate{display:flex;align-items:center;justify-content:center;min-height:100vh;text-align:center}
+.gate input{padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#fff;font-size:15px;font-family:monospace;width:260px;text-align:center;outline:none;letter-spacing:1px}
+.gate input:focus{border-color:rgba(201,168,76,0.4)}
+.gate button{padding:12px 28px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:14px;font-family:inherit}
+.gate-err{display:none;font-size:12px;color:#F87171;margin-top:10px}
+.dash{display:none;max-width:900px;margin:0 auto;padding:24px 20px 60px}
+.dash.show{display:block}
+.header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px}
+h1{font-size:22px;font-weight:700;color:#C9A84C;letter-spacing:-0.3px}
+.signout{background:none;border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.5);padding:6px 14px;border-radius:10px;font-size:11px;cursor:pointer;font-family:inherit}
+.signout:hover{color:#fff;border-color:rgba(255,255,255,0.25)}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:28px}
+@media(max-width:640px){.cards{grid-template-columns:repeat(2,1fr)}}
+.card{background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:14px;padding:16px}
+.card-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px}
+.card-val{font-size:28px;font-weight:700;color:#fff;background:linear-gradient(135deg,rgba(255,255,255,0.9),rgba(201,168,76,0.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.section{margin-bottom:28px}
+.section-title{font-size:14px;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:12px;text-transform:uppercase;letter-spacing:1px}
+.tbl-wrap{overflow-x:auto;border:0.5px solid rgba(255,255,255,0.06);border-radius:12px;background:rgba(255,255,255,0.02)}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:700px}
+th{text-align:left;padding:10px 12px;color:rgba(255,255,255,0.3);font-size:9px;letter-spacing:1px;text-transform:uppercase;border-bottom:0.5px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02)}
+td{padding:9px 12px;border-bottom:0.5px solid rgba(255,255,255,0.03);color:rgba(255,255,255,0.6);white-space:nowrap}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:9px;font-weight:600}
+.b-g{background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.2)}
+.b-y{background:rgba(250,204,21,0.1);color:#FACC15;border:0.5px solid rgba(250,204,21,0.2)}
+.b-m{background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border:0.5px solid rgba(255,255,255,0.08)}
+.handle-list{display:flex;flex-wrap:wrap;gap:6px}
+.handle-pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-family:monospace;color:rgba(201,168,76,0.7);background:rgba(201,168,76,0.06);border:0.5px solid rgba(201,168,76,0.15)}
+.empty{text-align:center;padding:32px 20px;color:rgba(255,255,255,0.25);font-size:13px}
+.loading{text-align:center;padding:20px;color:rgba(255,255,255,0.25);font-size:12px}
+</style>
+</head>
+<body>
+
+<!-- Gate -->
+<div class="gate" id="gate">
+  <div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(201,168,76,0.5);margin-bottom:20px">Table for Two</div>
+    <div style="font-size:18px;font-weight:700;color:#C9A84C;margin-bottom:4px">Admin Dashboard</div>
+    <div style="font-size:12px;color:rgba(255,255,255,0.25);margin-bottom:24px">Internal access only</div>
+    <input type="password" id="pw" placeholder="Password" onkeydown="if(event.key==='Enter')login()">
+    <br><button onclick="login()">Enter</button>
+    <div class="gate-err" id="gate-err">Incorrect password</div>
+  </div>
+</div>
+
+<!-- Dashboard -->
+<div class="dash" id="dash">
+  <div class="header">
+    <h1>Admin Dashboard</h1>
+    <button class="signout" onclick="signOut()">Sign out</button>
+  </div>
+
+  <!-- Overview cards -->
+  <div class="cards">
+    <div class="card"><div class="card-label">Total signups</div><div class="card-val" id="stat-total">--</div></div>
+    <div class="card"><div class="card-label">Onboarded</div><div class="card-val" id="stat-onboarded">--</div></div>
+    <div class="card"><div class="card-label">Paired</div><div class="card-val" id="stat-paired">--</div></div>
+    <div class="card"><div class="card-label">Solo</div><div class="card-val" id="stat-solo">--</div></div>
+  </div>
+
+  <!-- Recent signups -->
+  <div class="section">
+    <div class="section-title">Recent signups</div>
+    <div id="signups-table" class="loading">Loading...</div>
+  </div>
+
+  <!-- Handles -->
+  <div class="section">
+    <div class="section-title">All handles</div>
+    <div id="handles-list" class="loading">Loading...</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const ADMIN_PW='T4TAdmin2026';
+const SB_URL='https://wjezqqtkxhzydyzxocow.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndqZXpxcXRreGh6eWR5enhvY293Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1MzQzNTUsImV4cCI6MjA5NTExMDM1NX0.gQTjQTBD9cpgWq_ozYisXA5N6tSXXGbRzvi1zlD-kGQ';
+const sb=window.supabase.createClient(SB_URL,SB_KEY);
+
+function login(){
+  if(localStorage.getItem('t4t_admin_auth')==='granted'){show();return;}
+  if(document.getElementById('pw').value===ADMIN_PW){
+    localStorage.setItem('t4t_admin_auth','granted');
+    show();
+  }else{
+    document.getElementById('gate-err').style.display='block';
+  }
+}
+function signOut(){
+  localStorage.removeItem('t4t_admin_auth');
+  location.reload();
+}
+function show(){
+  document.getElementById('gate').style.display='none';
+  document.getElementById('dash').classList.add('show');
+  loadData();
+}
+if(localStorage.getItem('t4t_admin_auth')==='granted')login();
+
+async function loadData(){
+  try{
+    const{data:users,error}=await sb.from('users').select('id,email,name,handle,account_state,onboarding_completed,created_at,preferences').order('created_at',{ascending:false});
+    if(error){console.warn('Fetch failed',error);document.getElementById('signups-table').innerHTML='<div class="empty">Failed to load data</div>';return;}
+    if(!users||!users.length){
+      document.getElementById('stat-total').textContent='0';
+      document.getElementById('stat-onboarded').textContent='0';
+      document.getElementById('stat-paired').textContent='0';
+      document.getElementById('stat-solo').textContent='0';
+      document.getElementById('signups-table').innerHTML='<div class="empty">No users yet</div>';
+      document.getElementById('handles-list').innerHTML='<div class="empty">No handles yet</div>';
+      return;
+    }
+
+    document.getElementById('stat-total').textContent=users.length;
+    document.getElementById('stat-onboarded').textContent=users.filter(u=>u.onboarding_completed).length;
+    document.getElementById('stat-paired').textContent=users.filter(u=>u.account_state==='paired').length;
+    document.getElementById('stat-solo').textContent=users.filter(u=>u.account_state==='solo'||(u.preferences&&u.preferences.date_mode==='solo')).length;
+
+    const recent=users.slice(0,20);
+    let html='<div class="tbl-wrap"><table><thead><tr><th>Email</th><th>Name</th><th>Handle</th><th>State</th><th>Onboarded</th><th>Created</th></tr></thead><tbody>';
+    recent.forEach(u=>{
+      const state=u.account_state||'--';
+      const stateBadge=state==='paired'?'<span class="badge b-g">paired</span>':state==='solo'?'<span class="badge b-y">solo</span>':'<span class="badge b-m">'+state+'</span>';
+      const onboarded=u.onboarding_completed?'<span class="badge b-g">yes</span>':'<span class="badge b-m">no</span>';
+      const created=u.created_at?new Date(u.created_at).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'--';
+      html+='<tr><td>'+(u.email||'--')+'</td><td>'+(u.name||'--')+'</td><td style="font-family:monospace;color:rgba(201,168,76,0.6)">'+(u.handle||'--')+'</td><td>'+stateBadge+'</td><td>'+onboarded+'</td><td>'+created+'</td></tr>';
+    });
+    html+='</tbody></table></div>';
+    document.getElementById('signups-table').innerHTML=html;
+
+    const handles=users.map(u=>u.handle).filter(Boolean).sort((a,b)=>a.toLowerCase().localeCompare(b.toLowerCase()));
+    if(handles.length){
+      document.getElementById('handles-list').innerHTML='<div class="handle-list">'+handles.map(h=>'<span class="handle-pill">'+h+'</span>').join('')+'</div>';
+    }else{
+      document.getElementById('handles-list').innerHTML='<div class="empty">No handles yet</div>';
+    }
+  }catch(e){
+    console.error('Admin load error',e);
+    document.getElementById('signups-table').innerHTML='<div class="empty">Error loading data</div>';
+  }
+}
+</script>
+</body>
+</html>
