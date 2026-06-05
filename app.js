@@ -5141,15 +5141,35 @@
         async function startBetaSignup(intent){
           const email=document.getElementById('lp-email').value.trim();
           const honeypot=document.getElementById('lp-website');
+          const hint=document.getElementById('lp-auth-hint');
+          if(hint)hint.style.display='none';
           if(honeypot&&honeypot.value)return;
           if(!email||!email.includes('@')){
             document.getElementById('lp-email').style.borderColor='rgba(239,68,68,0.5)';
             setTimeout(()=>document.getElementById('lp-email').style.borderColor='',2000);
             return;
           }
-          try{localStorage.setItem('t4t_auth_intent',intent||'signup');}catch(e){}
           const btn=document.getElementById('lp-email-btn');
-          btn.textContent='Sending...';btn.disabled=true;
+          btn.textContent='Checking...';btn.disabled=true;
+          // Check if account exists
+          if(_sb){
+            try{
+              const{data:existingUser}=await _sb.from('users').select('id').eq('email',email).maybeSingle();
+              if(intent==='login'&&!existingUser){
+                btn.textContent='Get early access';btn.disabled=false;
+                if(hint){hint.innerHTML='<span style="color:rgba(250,204,21,0.7)">No account found for this email.</span> <button onclick="startBetaSignup(\'signup\')" style="background:none;border:none;color:rgba(201,168,76,0.9);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">Sign up instead</button>';hint.style.display='block';}
+                return;
+              }
+              if(intent==='signup'&&existingUser){
+                btn.textContent='Get early access';btn.disabled=false;
+                if(hint){hint.innerHTML='<span style="color:rgba(250,204,21,0.7)">You already have an account.</span> <button onclick="startBetaSignup(\'login\')" style="background:none;border:none;color:rgba(201,168,76,0.9);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">Sign in instead</button>';hint.style.display='block';}
+                return;
+              }
+            }catch(e){console.warn('[T4T] Email check failed (proceeding)',e);}
+          }
+          try{localStorage.setItem('t4t_auth_intent',intent||'signup');}catch(e){}
+          try{localStorage.setItem('t4t_last_email',email);}catch(e){}
+          btn.textContent='Sending...';
           const result=await signInWithMagicLink(email,'','');
           if(result.error){
             btn.textContent='Get early access';btn.disabled=false;
@@ -5162,7 +5182,6 @@
           document.getElementById('lp-step-sent').style.display='block';
           document.getElementById('lp-sent-email').textContent=email;
           _trackEvent(intent==='login'?'sign_in_started':'sign_up_started',{email_domain:email.split('@')[1]});
-          // Track to Formspree (fire-and-forget)
           const data=new FormData();
           data.append('email',email);
           data.append('_subject','Beta signup started: '+email);
@@ -5495,6 +5514,8 @@
         if(_initChip)selectOccasion(_initChip,'first_date');
         initFromUrl();
         setTimeout(generateSuggestions,400);
+        // Pre-fill email from last login
+        try{const _lastEmail=localStorage.getItem('t4t_last_email');if(_lastEmail){const _ei=document.getElementById('lp-email');if(_ei)_ei.value=_lastEmail;}}catch(e){}
 
         // ════════════════════════════════════════════════
         // ── MOOD CHECK-IN ──
