@@ -509,8 +509,12 @@
               _applyUserNames();
               setSmartGreeting();
               const db=document.getElementById('demo-banner');if(db)db.style.display='block';
-              if(!_prof?.onboarding_completed){setTimeout(startOnboarding,600);}
-              else{setTimeout(()=>generateSuggestions(true),300);}
+              const _authIntent=(()=>{try{const v=localStorage.getItem('t4t_auth_intent');localStorage.removeItem('t4t_auth_intent');return v;}catch(e){return null;}})();
+              if(_authIntent==='login'||_prof?.onboarding_completed){
+                setTimeout(()=>generateSuggestions(true),300);
+              }else{
+                setTimeout(startOnboarding,600);
+              }
             } else {
               _authUser=null;_sbUserId=null;_sbReady=false;
               _authLoading=false;
@@ -5134,7 +5138,7 @@
         // ── Landing page: 3-step beta signup ──
         // Step 1: email → Step 2: name/partner → Step 3: magic link sent
 
-        async function startBetaSignup(){
+        async function startBetaSignup(intent){
           const email=document.getElementById('lp-email').value.trim();
           const honeypot=document.getElementById('lp-website');
           if(honeypot&&honeypot.value)return;
@@ -5143,9 +5147,9 @@
             setTimeout(()=>document.getElementById('lp-email').style.borderColor='',2000);
             return;
           }
+          try{localStorage.setItem('t4t_auth_intent',intent||'signup');}catch(e){}
           const btn=document.getElementById('lp-email-btn');
           btn.textContent='Sending...';btn.disabled=true;
-          // Send magic link immediately — profile completion happens post-auth
           const result=await signInWithMagicLink(email,'','');
           if(result.error){
             btn.textContent='Get early access';btn.disabled=false;
@@ -5154,11 +5158,10 @@
             toast(result.error);
             return;
           }
-          // Show "check your email" screen
           document.getElementById('lp-step-email').style.display='none';
           document.getElementById('lp-step-sent').style.display='block';
           document.getElementById('lp-sent-email').textContent=email;
-          _trackEvent('sign_up_started',{email_domain:email.split('@')[1]});
+          _trackEvent(intent==='login'?'sign_in_started':'sign_up_started',{email_domain:email.split('@')[1]});
           // Track to Formspree (fire-and-forget)
           const data=new FormData();
           data.append('email',email);
