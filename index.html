@@ -64,10 +64,13 @@
               <div style="position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden" aria-hidden="true">
                 <label>Website <input type="text" id="lp-website" tabindex="-1" autocomplete="off"></label>
               </div>
-              <input type="email" id="lp-email" placeholder="Enter your email" class="lp-clean-input" style="margin-bottom:10px" onkeydown="if(event.key==='Enter')startBetaSignup('signup')">
-              <div style="display:flex;gap:8px">
-                <button id="lp-email-btn" class="lp-clean-btn" style="flex:1" onclick="startBetaSignup('signup')">Get early access</button>
-                <button class="lp-clean-btn" style="flex:1;background:transparent;border:0.5px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);box-shadow:none" onclick="startBetaSignup('login')">Sign in</button>
+              <div class="lp-clean-input-row">
+                <input type="email" id="lp-email" placeholder="Enter your email" class="lp-clean-input" onkeydown="if(event.key==='Enter')startBetaSignup('signup')">
+                <button id="lp-email-btn" class="lp-clean-btn" onclick="startBetaSignup('signup')">Get early access</button>
+              </div>
+              <div style="text-align:center;margin-top:12px">
+                <span style="font-size:13px;color:rgba(255,255,255,0.45)">Already have an account?</span>
+                <button onclick="startBetaSignup('login')" style="background:none;border:none;color:rgba(201,168,76,0.9);font-size:13px;font-weight:600;cursor:pointer;margin-left:6px;text-decoration:underline;text-underline-offset:3px">Sign in</button>
               </div>
               <p class="lp-clean-disclaimer" style="margin-top:10px">We'll email you a magic link. No password needed. By continuing you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</p>
             </div>
