@@ -876,6 +876,7 @@
           if(id==='wishlist')renderWishlist();
           if(id==='whats-hot')renderWhatsHot();
           if(id==='restaurants')_renderEatTab();
+          if(id==='experiences')_renderActTab();
           // scroll content back to top on page change
           const _contentEl=document.querySelector('.content');
           if(_contentEl)_contentEl.scrollTo({top:0,behavior:'smooth'});
@@ -3533,6 +3534,100 @@
           document.querySelectorAll('#eat-pills .occasion-chip').forEach(c=>c.classList.remove('active'));
           if(el)el.classList.add('active');
           _renderEatTab();
+        }
+
+        // ════════════════════════════════════════════════
+        // ── ACTIVITIES TAB (dynamic browse from IDEAS) ──
+        // ════════════════════════════════════════════════
+        let _actFilter='All';
+        let _actVenues=[];
+
+        function _buildActVenues(){
+          if(_actVenues.length)return _actVenues;
+          const seen=new Set();
+          ['budget','mid','treat','luxury'].forEach(tier=>{
+            (IDEAS[tier]||[]).forEach(v=>{
+              if(seen.has(v.name))return;
+              const fmt=v.t&&v.t.fmt?v.t.fmt:[];
+              const isDiningOnly=fmt.length===1&&fmt[0]==='dining';
+              if(v.type==='foodie'&&isDiningOnly)return;
+              if(['fun','outdoor','cultural','all','romantic'].includes(v.type)&&!isDiningOnly){
+                seen.add(v.name);_actVenues.push(v);
+              }
+            });
+          });
+          _actVenues.sort((a,b)=>(b.score||0)-(a.score||0));
+          return _actVenues;
+        }
+
+        function _getActCategories(){
+          const whitelist=['Outdoor','Cultural','Nightlife','Wellness','Active','Unique'];
+          const found=new Set();
+          _buildActVenues().forEach(v=>{
+            const mood=v.mood||[];
+            const vibes=v.vibes||[];
+            if(v.type==='outdoor'||mood.includes('outdoors'))found.add('Outdoor');
+            if(v.type==='cultural'||mood.includes('cultural'))found.add('Cultural');
+            if(mood.includes('nightlife')||mood.includes('playful'))found.add('Nightlife');
+            if(mood.includes('wellness'))found.add('Wellness');
+            if(mood.includes('active'))found.add('Active');
+            if(vibes.includes('Unique / memorable'))found.add('Unique');
+          });
+          return['All',...whitelist.filter(w=>found.has(w))];
+        }
+
+        function _actMatchesFilter(v,filter){
+          if(filter==='All')return true;
+          const mood=v.mood||[];
+          const vibes=v.vibes||[];
+          if(filter==='Outdoor')return v.type==='outdoor'||mood.includes('outdoors');
+          if(filter==='Cultural')return v.type==='cultural'||mood.includes('cultural');
+          if(filter==='Nightlife')return mood.includes('nightlife')||mood.includes('playful');
+          if(filter==='Wellness')return mood.includes('wellness');
+          if(filter==='Active')return mood.includes('active');
+          if(filter==='Unique')return vibes.includes('Unique / memorable');
+          return false;
+        }
+
+        function _renderActTab(){
+          const pills=document.getElementById('act-pills');
+          const grid=document.getElementById('act-grid');
+          if(!pills||!grid)return;
+          const categories=_getActCategories();
+          pills.innerHTML=categories.map(c=>{
+            const active=c===_actFilter;
+            return'<div class="occasion-chip'+(active?' active':'')+'" style="flex-shrink:0;white-space:nowrap" onclick="_filterAct(\''+c.replace(/'/g,"\\'")+'\',this)">'+c+'</div>';
+          }).join('');
+          const venues=_buildActVenues();
+          const filtered=venues.filter(v=>_actMatchesFilter(v,_actFilter));
+          if(!filtered.length){
+            grid.innerHTML='<div style="text-align:center;padding:40px 20px;color:rgba(255,255,255,0.38);font-size:13px">No activities for this category yet.</div>';
+            return;
+          }
+          grid.innerHTML=filtered.map(v=>{
+            const area=(v.loc||'').split('·')[0].trim();
+            const desc=(v.loc||'').split('·').slice(1).join('·').trim();
+            const safeName=v.name.replace(/'/g,"\\'");
+            const safePrice=(v.price||'').replace(/'/g,"\\'");
+            return'<div class="idea-card" style="display:flex;gap:0;overflow:hidden;cursor:pointer" onclick="initiateBooking(\''+safeName+'\',\''+safePrice+'\',\'partner_handoff\',null)">'
+              +'<div style="width:110px;flex-shrink:0;overflow:hidden;position:relative">'
+              +'<img src="'+v.img+'" alt="'+v.name+'" style="width:100%;height:100%;object-fit:cover;display:block;min-height:120px" onerror="this.style.display=\'none\'">'
+              +'</div>'
+              +'<div style="flex:1;padding:14px 16px;display:flex;flex-direction:column;justify-content:center">'
+              +'<div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:3px">'+v.name+'</div>'
+              +'<div style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:6px">'+area+(desc?' · '+desc:'')+'</div>'
+              +'<div style="font-size:13px;font-weight:600;color:rgba(201,168,76,0.7);margin-bottom:6px">'+v.price+'</div>'
+              +'<div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">'+v.why+'</div>'
+              +'</div>'
+              +'</div>';
+          }).join('');
+        }
+
+        function _filterAct(category,el){
+          _actFilter=category;
+          document.querySelectorAll('#act-pills .occasion-chip').forEach(c=>c.classList.remove('active'));
+          if(el)el.classList.add('active');
+          _renderActTab();
         }
 
         let _whCat='all';
