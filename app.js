@@ -2111,35 +2111,23 @@
           if(detailsEl)detailsEl.style.display='block';
           const plan=_currentPlans.find(p=>p.id===planId);
           if(!plan||!plan.items){toast('✦ Plan activated');return;}
-          // Collect bookable stops
-          const stops=plan.items.map(item=>{
+          const total=plan.items.length;
+          let opened=0;
+          plan.items.forEach(item=>{
             const bi=_getBookingInfo(item.name);
             const url=bi.booking_url||bi.website_url||null;
-            const gmaps='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(item.name+', London');
-            return{name:item.name,url:url,gmaps:gmaps,provider:bi.provider||''};
-          });
-          const bookable=stops.filter(s=>s.url);
-          if(bookable.length===1){
-            window.open(bookable[0].url,'_blank','noopener');
-            toast('✦ Opened '+bookable[0].name);
-            return;
-          }
-          // Show booking sheet for 0 or 2+ stops
-          const ov=document.getElementById('booking-handoff-overlay');
-          const content=document.getElementById('booking-handoff-content');
-          if(!ov||!content){toast('✦ Plan activated');return;}
-          let html='<div style="padding:4px 0"><div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">'+plan.title+'</div><div style="font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:16px">'+stops.length+' stop'+(stops.length!==1?'s':'')+' — tap each to book</div>';
-          stops.forEach((s,i)=>{
-            const safeName=s.name.replace(/'/g,"\\'");
-            if(s.url){
-              html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid rgba(255,255,255,0.06)"><div><div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9)">'+(i+1)+'. '+s.name+'</div>'+(s.provider?'<div style="font-size:10px;color:rgba(255,255,255,0.3);margin-top:2px">via '+s.provider+'</div>':'')+'</div><a href="'+s.url+'" target="_blank" rel="noopener" style="padding:7px 14px;border-radius:8px;background:rgba(74,222,128,0.1);border:0.5px solid rgba(74,222,128,0.2);color:#4ADE80;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap" onclick="event.stopPropagation()">Book</a></div>';
-            }else{
-              html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:0.5px solid rgba(255,255,255,0.06)"><div><div style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.9)">'+(i+1)+'. '+s.name+'</div><div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:2px">No booking link</div></div><a href="'+s.gmaps+'" target="_blank" rel="noopener" style="padding:7px 14px;border-radius:8px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:11px;font-weight:500;text-decoration:none;white-space:nowrap" onclick="event.stopPropagation()">Maps</a></div>';
+            if(url){
+              window.open(url,'_blank','noopener');
+              opened++;
             }
           });
-          html+='<button style="width:100%;padding:12px;margin-top:16px;border-radius:10px;border:none;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" onclick="closeBookingHandoff()">Done</button></div>';
-          content.innerHTML=html;
-          ov.style.display='flex';document.body.style.overflow='hidden';
+          if(opened===total){
+            toast('✦ Opened '+total+' stop'+(total!==1?'s':'')+' — book each one');
+          }else if(opened>0){
+            toast('✦ Opened '+opened+' of '+total+' stops — others don\'t have booking links yet');
+          }else{
+            toast('No booking links available for this plan');
+          }
         }
 
         // ═══════════════════════════════════════════════════════
