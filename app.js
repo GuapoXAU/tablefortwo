@@ -240,7 +240,7 @@
         function _applyUserNames(){
           const you=_userName();const them=_partnerName();
           const yi=_userInitials();
-          const hasParter=!!them;
+          const hasParter=!!them&&them!=='Partner';
           const pi=hasParter?_partnerInitials():'';
           const profile=_getUserProfile()||{};
           const handle=profile.handle||_handles.user||'';
@@ -285,6 +285,9 @@
               pairingStatus.innerHTML='<span style="color:var(--primary);font-weight:600">Planning solo</span> · finding things just for you';
             }
           }
+          // Partner handle row — hide if no partner
+          const _phr=document.getElementById('partner-handle-row');
+          if(_phr)_phr.style.display=hasParter?'flex':'none';
           // What's Hot subtitle
           const whSub=document.querySelector('.wh-section-sub');
           if(whSub){
@@ -481,7 +484,7 @@
               name:profile.name,
               handle:profile.handle||_handles.user||'',
               partner_name:profile.partner||'',
-              account_state:profile.partner?'paired':'single',
+              account_state:(profile.partner&&profile.partner!=='Partner')?'paired':'single',
               city:'London'
             }).select('id').single();
             if(error){console.warn('[T4T] User create failed',error);return null;}
