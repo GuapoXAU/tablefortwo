@@ -928,7 +928,7 @@
           }
         }
 
-        function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+        function toast(msg){const t=document.getElementById('toast');t.innerHTML=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
         function toggleTag(el){el.classList.toggle('on');}
         function switchTab(el,panelId){
           const tabs=el.parentElement.querySelectorAll('.tab');
@@ -2087,7 +2087,7 @@
               _wishlist.push({id:Date.now()+Math.random(),name:item.name,emoji:item.emoji,price:item.price,type:item.type||'activity',why:'From plan: '+plan.title,addedDate:new Date().toISOString().slice(0,10),done:false});
             }
           });
-          toast('♥ Plan saved to wishlist');
+          toast('♥ Saved to wishlist — <span onclick="go(\'wishlist\',null)" style="text-decoration:underline;cursor:pointer;color:#C9A84C">View</span>');
         }
 
         // ── Plan reactions ──
