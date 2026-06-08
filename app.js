@@ -2107,23 +2107,26 @@
           });
           _setPlanStatus(planId,'active');
           _trackEvent('plan_booking_started',{plan_id:planId});
-          // Expand the plan details so user can see booking buttons
           const detailsEl=document.querySelector('[data-plan-id="'+planId+'"] .plan-details');
           if(detailsEl)detailsEl.style.display='block';
-          // Show per-stop booking status summary
           const plan=_currentPlans.find(p=>p.id===planId);
-          if(plan&&plan.items){
-            const bookable=plan.items.filter(i=>{const bi=_getBookingInfo(i.name);return bi.link_status==='verified'||(bi.link_status==='unverified'&&bi.booking_url);}).length;
-            const total=plan.items.length;
-            if(bookable===total){
-              toast('✦ '+total+' stops to book — work through each one below');
-            }else if(bookable>0){
-              toast('✦ '+bookable+' of '+total+' stops bookable — book each separately below');
-            }else{
-              toast('Plan saved — no stops have direct booking yet');
+          if(!plan||!plan.items){toast('✦ Plan activated');return;}
+          const total=plan.items.length;
+          let opened=0;
+          plan.items.forEach(item=>{
+            const bi=_getBookingInfo(item.name);
+            const url=bi.booking_url||bi.website_url||null;
+            if(url){
+              window.open(url,'_blank','noopener');
+              opened++;
             }
+          });
+          if(opened===total){
+            toast('✦ Opened '+total+' stop'+(total!==1?'s':'')+' — book each one');
+          }else if(opened>0){
+            toast('✦ Opened '+opened+' of '+total+' stops — others don\'t have booking links yet');
           }else{
-            toast('✦ Plan activated');
+            toast('No booking links available for this plan');
           }
         }
 
