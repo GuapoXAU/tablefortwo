@@ -5166,33 +5166,42 @@
             return;
           }
           const btn=document.getElementById('lp-email-btn');
-          btn.textContent='Checking...';btn.disabled=true;
-          // Check if account exists
-          if(_sb){
-            try{
-              const{data:existingUser}=await _sb.from('users').select('id').eq('email',email).maybeSingle();
-              if(intent==='login'&&!existingUser){
-                btn.textContent='Get early access';btn.disabled=false;
-                if(hint){hint.innerHTML='<span style="color:rgba(250,204,21,0.7)">No account found for this email.</span> <button onclick="startBetaSignup(\'signup\')" style="background:none;border:none;color:rgba(201,168,76,0.9);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">Sign up instead</button>';hint.style.display='block';}
-                return;
-              }
-              if(intent==='signup'&&existingUser){
-                btn.textContent='Get early access';btn.disabled=false;
-                if(hint){hint.innerHTML='<span style="color:rgba(250,204,21,0.7)">You already have an account.</span> <button onclick="startBetaSignup(\'login\')" style="background:none;border:none;color:rgba(201,168,76,0.9);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">Sign in instead</button>';hint.style.display='block';}
-                return;
-              }
-            }catch(e){console.warn('[T4T] Email check failed (proceeding)',e);}
-          }
+          btn.textContent='Sending...';btn.disabled=true;
           try{localStorage.setItem('t4t_auth_intent',intent||'signup');}catch(e){}
           try{localStorage.setItem('t4t_last_email',email);}catch(e){}
-          btn.textContent='Sending...';
-          const result=await signInWithMagicLink(email,'','');
-          if(result.error){
-            btn.textContent='Get early access';btn.disabled=false;
-            document.getElementById('lp-email').style.borderColor='rgba(239,68,68,0.5)';
-            setTimeout(()=>document.getElementById('lp-email').style.borderColor='',2000);
-            toast(result.error);
-            return;
+          if(intent==='login'){
+            // Sign in: shouldCreateUser=false — Supabase errors if no auth account
+            if(!_sb){btn.textContent='Get early access';btn.disabled=false;toast('Not connected');return;}
+            const{error}=await _sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:window.location.origin+'/?app'}});
+            if(error){
+              btn.textContent='Get early access';btn.disabled=false;
+              if(error.message&&(error.message.includes('not found')||error.message.includes('Signups not allowed')||error.status===400)){
+                if(hint){hint.innerHTML='<span style="color:rgba(250,204,21,0.7)">No account found for this email.</span> <button onclick="startBetaSignup(\'signup\')" style="background:none;border:none;color:rgba(201,168,76,0.9);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">Sign up instead</button>';hint.style.display='block';}
+              }else{
+                toast(error.message||'Something went wrong');
+              }
+              return;
+            }
+          }else{
+            // Signup: check if auth account already exists by attempting shouldCreateUser=false
+            if(_sb){
+              const{error:probeErr}=await _sb.auth.signInWithOtp({email,options:{shouldCreateUser:false,emailRedirectTo:window.location.origin+'/?app'}});
+              if(!probeErr){
+                // OTP sent successfully = account exists — tell user to sign in instead
+                btn.textContent='Get early access';btn.disabled=false;
+                if(hint){hint.innerHTML='<span style="color:rgba(250,204,21,0.7)">You already have an account — check your email for the sign-in link.</span> <button onclick="startBetaSignup(\'login\')" style="background:none;border:none;color:rgba(201,168,76,0.9);font-size:12px;font-weight:600;cursor:pointer;text-decoration:underline">Sign in instead</button>';hint.style.display='block';}
+                return;
+              }
+            }
+            // No existing account — create one
+            const result=await signInWithMagicLink(email,'','');
+            if(result.error){
+              btn.textContent='Get early access';btn.disabled=false;
+              document.getElementById('lp-email').style.borderColor='rgba(239,68,68,0.5)';
+              setTimeout(()=>document.getElementById('lp-email').style.borderColor='',2000);
+              toast(result.error);
+              return;
+            }
           }
           document.getElementById('lp-step-email').style.display='none';
           document.getElementById('lp-step-sent').style.display='block';
