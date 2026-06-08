@@ -65,15 +65,12 @@
                 <label>Website <input type="text" id="lp-website" tabindex="-1" autocomplete="off"></label>
               </div>
               <div class="lp-clean-input-row">
-                <input type="email" id="lp-email" placeholder="Enter your email" class="lp-clean-input" onkeydown="if(event.key==='Enter')startBetaSignup('signup')">
-                <button id="lp-email-btn" class="lp-clean-btn" onclick="startBetaSignup('signup')">Get early access</button>
+                <input type="email" id="lp-email" placeholder="Email address" class="lp-clean-input" onkeydown="if(event.key==='Enter')startBetaSignup('auto')">
+                <button id="lp-email-btn" class="lp-clean-btn" onclick="startBetaSignup('auto')">Continue</button>
               </div>
               <div id="lp-auth-hint" style="display:none;text-align:center;margin-top:10px;font-size:12px;line-height:1.5"></div>
-              <div style="text-align:center;margin-top:12px">
-                <span style="font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:0.3px;text-transform:uppercase;font-weight:500">Returning?</span>
-                <button onclick="startBetaSignup('login')" style="background:none;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.85);font-size:13px;font-weight:500;cursor:pointer;margin-left:6px;padding:6px 16px;border-radius:20px;font-family:var(--font-serif);letter-spacing:0.3px;outline:none">Sign in →</button>
-              </div>
-              <p class="lp-clean-disclaimer" style="margin-top:10px">We'll email you a magic link. No password needed. By continuing you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</p>
+              <p class="lp-clean-disclaimer" style="margin-top:10px">We'll send you a magic link. No password needed. By continuing you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</p>
+              <p class="lp-clean-disclaimer" style="margin-top:6px">Enter your email above — it works whether you're new or returning.</p>
             </div>
 
             <!-- Step 2: Magic link sent -->
@@ -81,7 +78,7 @@
               <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
               <div id="lp-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
               <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:6px">Click the magic link in your inbox to sign in. It expires in 1 hour.</div>
-              <div style="font-size:11.5px;color:rgba(255,255,255,0.25);line-height:1.5;margin-bottom:20px">Don't see it? Check your spam or junk folder — new senders sometimes get filtered.</div>
+              <div style="font-size:13px;font-weight:600;color:rgba(250,204,21,0.85);line-height:1.5;margin-bottom:20px">Can't see it? Check your spam folder — it sometimes lands there.</div>
               <button class="lp-clean-btn" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1)" onclick="document.getElementById('lp-step-sent').style.display='none';document.getElementById('lp-step-email').style.display='block'">Try a different email</button>
             </div>
 
@@ -1331,7 +1328,7 @@
               <div style="font-size:18px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
               <div id="auth-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
               <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:6px">Click the magic link in your inbox to sign in. It expires in 1 hour.</div>
-              <div style="font-size:11.5px;color:rgba(255,255,255,0.25);line-height:1.5;margin-bottom:24px">Don't see it? Check your spam or junk folder — new senders sometimes get filtered.</div>
+              <div style="font-size:13px;font-weight:600;color:rgba(250,204,21,0.85);line-height:1.5;margin-bottom:24px">Can't see it? Check your spam folder — it sometimes lands there.</div>
               <button onclick="document.getElementById('auth-sent').style.display='none';document.getElementById('auth-form').style.display='block'" style="padding:12px 24px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;cursor:pointer">Try a different email</button>
             </div>
 
