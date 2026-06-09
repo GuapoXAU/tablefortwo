@@ -2115,11 +2115,15 @@
           _setPlanStatus(planId,'saved');
           const plan=_currentPlans.find(p=>p.id===planId);
           if(!plan)return;
+          let added=0;
           plan.items.forEach(item=>{
             if(!_wishlist.some(w=>w.name===item.name)){
               _wishlist.push({id:Date.now()+Math.random(),name:item.name,emoji:item.emoji,price:item.price,type:item.type||'activity',why:'From plan: '+plan.title,addedDate:new Date().toISOString().slice(0,10),done:false});
+              added++;
             }
           });
+          if(added){_wishBadgeCount+=added;_updateWishBadge();_trackEvent('wishlist_save',{name:plan.title,count:added});}
+          renderWishlist();
           toast('♥ Saved to wishlist — <span onclick="go(\'wishlist\',null)" style="text-decoration:underline;cursor:pointer;color:#C9A84C">View</span>');
         }
 
@@ -2145,21 +2149,22 @@
           const plan=_currentPlans.find(p=>p.id===planId);
           if(!plan||!plan.items){toast('✦ Plan activated');return;}
           const total=plan.items.length;
-          let opened=0;
+          const urls=[];
           plan.items.forEach(item=>{
             const bi=_getBookingInfo(item.name);
             const url=bi.booking_url||bi.website_url||null;
-            if(url){
-              window.open(url,'_blank','noopener');
-              opened++;
-            }
+            if(url)urls.push(url);
           });
-          if(opened===total){
-            toast('✦ Opened '+total+' stop'+(total!==1?'s':'')+' — book each one');
-          }else if(opened>0){
-            toast('✦ Opened '+opened+' of '+total+' stops — others don\'t have booking links yet');
+          if(!urls.length){toast('No booking links available for this plan');return;}
+          // Open first immediately, rest with delays to avoid popup blocker
+          window.open(urls[0],'_blank','noopener');
+          urls.slice(1).forEach((url,i)=>{
+            setTimeout(()=>window.open(url,'_blank','noopener'),(i+1)*500);
+          });
+          if(urls.length===total){
+            toast('✦ Opening '+total+' stop'+(total!==1?'s':'')+' — book each one');
           }else{
-            toast('No booking links available for this plan');
+            toast('✦ Opening '+urls.length+' of '+total+' stops — others don\'t have booking links yet');
           }
         }
 
