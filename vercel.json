@@ -1,0 +1,24 @@
+{
+  "redirects": [
+    {
+      "source": "/tiktok",
+      "destination": "/?utm_source=tiktok&utm_medium=social&utm_campaign=bio",
+      "permanent": false
+    },
+    {
+      "source": "/instagram",
+      "destination": "/?utm_source=instagram&utm_medium=social&utm_campaign=bio",
+      "permanent": false
+    },
+    {
+      "source": "/twitter",
+      "destination": "/?utm_source=twitter&utm_medium=social&utm_campaign=bio",
+      "permanent": false
+    },
+    {
+      "source": "/youtube",
+      "destination": "/?utm_source=youtube&utm_medium=social&utm_campaign=bio",
+      "permanent": false
+    }
+  ]
+}
