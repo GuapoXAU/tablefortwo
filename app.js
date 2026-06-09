@@ -5824,14 +5824,16 @@
             el.innerHTML='<div style="text-align:center;padding:20px;color:var(--ink-muted)"><div style="margin-bottom:8px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div><div style="font-size:12px">No saved ideas yet — swipe right on Discover or tap save on What\'s Hot</div></div>';
             return;
           }
-          el.innerHTML=todo.slice(0,5).map(w=>`<div class="wish-card" style="margin-bottom:6px">
-            <div class="wish-check${w.done?' checked':''}" onclick="toggleWishDone(${w.id});renderHubWishlist()">${w.done?'✓':''}</div>
+          el.innerHTML=todo.slice(0,5).map(w=>`<div class="wish-card" style="margin-bottom:6px;cursor:pointer" onclick="quickBook('${w.name.replace(/'/g,"\\'")}','experience','${(w.price||'').replace(/'/g,"\\'")}')">
             <div style="flex:1">
               <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:2px">${w.name}</div>
               ${w.price?'<div style="font-size:11px;color:var(--ink-muted)">'+w.price+'</div>':''}
               ${w.why?'<div style="font-size:11px;color:var(--ink-muted);margin-top:3px;font-style:italic">✦ '+w.why+'</div>':''}
             </div>
-            <button class="btn btn-sm btn-rose" style="flex-shrink:0;font-size:10px;padding:5px 10px" onclick="quickBook('${w.name.replace(/'/g,"\\'")}','experience','${(w.price||'').replace(/'/g,"\\'")}')">Book</button>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+              <button class="btn btn-sm btn-rose" style="font-size:10px;padding:5px 10px" onclick="event.stopPropagation();quickBook('${w.name.replace(/'/g,"\\'")}','experience','${(w.price||'').replace(/'/g,"\\'")}')">Book</button>
+              <div onclick="event.stopPropagation();toggleWishDone(${w.id});renderHubWishlist()" style="width:18px;height:18px;border-radius:50%;border:1.5px solid rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:9px;color:rgba(255,255,255,0.4)" title="Mark done">${w.done?'✓':''}</div>
+            </div>
           </div>`).join('')
           +(todo.length>5?'<div style="text-align:center;margin-top:8px"><span style="font-size:12px;color:var(--rose);cursor:pointer" onclick="go(\'wishlist\',document.querySelector(\'[onclick*=wishlist]\'))">+'+(todo.length-5)+' more →</span></div>':'');
         }
