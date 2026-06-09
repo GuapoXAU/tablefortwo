@@ -345,6 +345,22 @@
           }
         })();
 
+        // Capture inbound UTM/referrer for acquisition tracking
+        (function(){
+          try{
+            const p=new URLSearchParams(window.location.search);
+            const src=p.get('utm_source')||'direct';
+            const med=p.get('utm_medium')||'';
+            const cam=p.get('utm_campaign')||'';
+            const ref=document.referrer?new URL(document.referrer).hostname:'';
+            const source=src!=='direct'?src:ref.includes('instagram')?'instagram':ref.includes('tiktok')?'tiktok':ref.includes('google')?'google':'direct';
+            sessionStorage.setItem('t4t_source',source);
+            sessionStorage.setItem('t4t_medium',med);
+            sessionStorage.setItem('t4t_campaign',cam);
+            sessionStorage.setItem('t4t_referrer',ref);
+          }catch(e){}
+        })();
+
         // ════════════════════════════════════════════════
         // ── SUPABASE CLIENT + AUTH ──
         // ════════════════════════════════════════════════
@@ -5267,6 +5283,13 @@
           document.getElementById('lp-step-sent').style.display='block';
           document.getElementById('lp-sent-email').textContent=email;
           _trackEvent(intent==='login'?'sign_in_started':'sign_up_started',{email_domain:email.split('@')[1]});
+          try{
+            const _src=sessionStorage.getItem('t4t_source')||'direct';
+            const _med=sessionStorage.getItem('t4t_medium')||'';
+            const _cam=sessionStorage.getItem('t4t_campaign')||'';
+            const _ref=sessionStorage.getItem('t4t_referrer')||'';
+            if(_sb)_sb.from('events').insert({event_type:'signup_source',event_data:{source:_src,medium:_med,campaign:_cam,referrer:_ref,intent:intent},user_id:null}).then(()=>{}).catch(()=>{});
+          }catch(e){}
           const data=new FormData();
           data.append('email',email);
           data.append('_subject','Beta signup started: '+email);

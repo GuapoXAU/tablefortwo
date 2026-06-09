@@ -147,6 +147,12 @@ tr:hover td{background:rgba(255,255,255,0.02)}
     <div id="health-flags" class="loading">Loading...</div>
   </div>
 
+  <!-- Acquisition sources -->
+  <div class="section">
+    <div class="section-title">Acquisition sources</div>
+    <div id="acquisition-section"><div class="empty">No data yet</div></div>
+  </div>
+
   <!-- Website visits -->
   <div class="section" id="visits-section" style="display:none">
     <div class="section-title">Website visits</div>
@@ -317,6 +323,23 @@ async function loadData(){
         document.getElementById('venue-engagement').innerHTML=veHtml;
       }
     }catch(e){console.warn('Events table not available',e);}
+
+    // Acquisition sources
+    try{
+      const{data:sources}=await sb.from('events').select('event_data').eq('event_type','signup_source');
+      if(sources&&sources.length){
+        const counts={};
+        sources.forEach(e=>{const s=e.event_data?.source||'direct';counts[s]=(counts[s]||0)+1;});
+        const total=sources.length;
+        let ahtml='<div style="display:flex;flex-direction:column;gap:8px">';
+        Object.entries(counts).sort((a,b)=>b[1]-a[1]).forEach(([src,n])=>{
+          const p=Math.round(n/total*100);
+          ahtml+='<div style="display:flex;align-items:center;gap:10px"><div style="width:100px;font-size:13px;color:#fff;text-transform:capitalize">'+src+'</div><div style="flex:1;height:6px;background:rgba(255,255,255,0.08);border-radius:3px"><div style="width:'+p+'%;height:100%;background:#C9A84C;border-radius:3px"></div></div><div style="font-size:12px;color:rgba(255,255,255,0.5);width:50px;text-align:right">'+n+' ('+p+'%)</div></div>';
+        });
+        ahtml+='</div>';
+        document.getElementById('acquisition-section').innerHTML=ahtml;
+      }
+    }catch(e){console.warn('Acquisition data not available',e);}
 
     // Website visits
     try{
