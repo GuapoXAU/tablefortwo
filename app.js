@@ -5881,9 +5881,9 @@
           else if(freq==='biweekly')nextDate.setDate(now.getDate()+14);
           else nextDate.setMonth(now.getMonth()+1);
           const opts={weekday:'long',month:'long',day:'numeric'};
-          statusEl.innerHTML=`♥ Date night scheduled <strong>${freqLabel}</strong> — next one on <strong>${nextDate.toLocaleDateString('en-GB',opts)}</strong>.<br>We'll remind you 2 days before.`;
+          statusEl.innerHTML=`♥ Night out scheduled <strong>${freqLabel}</strong> — next one on <strong>${nextDate.toLocaleDateString('en-GB',opts)}</strong>.<br>We'll remind you 2 days before.`;
           statusEl.style.display='';
-          toast(`✦ Date night set — ${freqLabel}`);
+          toast(`✦ Night out set — ${freqLabel}`);
         }
 
         // ════════════════════════════════════════════════
