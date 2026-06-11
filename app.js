@@ -666,7 +666,7 @@
             // Console log in beta (always, for debugging)
             console.log('[T4T]',event,p);
             // Essential events (auth, errors) always log; product usage events require consent
-            const _essentialEvents=new Set(['sign_up_started','sign_up_completed','sign_out','account_deletion_requested','error_state_seen']);
+            const _essentialEvents=new Set(['sign_up_started','sign_up_completed','sign_out','account_deletion_requested','error_state_seen','page_view','signup_source']);
             const needsConsent=!_essentialEvents.has(event);
             if(needsConsent&&!_hasAnalyticsConsent())return; // skip non-essential tracking without consent
             // Supabase backend
@@ -5680,6 +5680,8 @@
         if(_initChip)selectOccasion(_initChip,'first_date');
         initFromUrl();
         setTimeout(generateSuggestions,400);
+        // Track page load as a visit
+        _trackEvent('page_view',{page:'init',referrer:document.referrer||'direct',url:window.location.href});
         // Pre-fill email from last login
         try{const _lastEmail=localStorage.getItem('t4t_last_email');if(_lastEmail){const _ei=document.getElementById('lp-email');if(_ei)_ei.value=_lastEmail;}}catch(e){}
 
