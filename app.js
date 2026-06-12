@@ -671,7 +671,7 @@
             if(needsConsent&&!_hasAnalyticsConsent())return; // skip non-essential tracking without consent
             // Supabase backend
             if(this.provider==='supabase'&&_sb){
-              _sb.from('events').insert({user_id:_sbUserId||null,event_type:event,event_data:p}).then(()=>{}).catch(()=>{});
+              _sb.from('events').insert({user_id:_sbUserId||null,event_type:event,event_data:p}).then(({error})=>{if(error)console.warn('[T4T Event] Insert failed:',event,error.message);}).catch(e=>console.warn('[T4T Event] Exception:',event,e.message));
             }
             // PostHog — uncomment when SDK is loaded
             // if(this.provider==='posthog'&&window.posthog){
