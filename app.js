@@ -1782,7 +1782,7 @@
           const candidates=venues.filter(v=>{
             const slug=v._slug||_venueSlug(v.name);
             if(excludeSlugs&&excludeSlugs.has(slug))return false;
-            if((usedCounts.get(slug)||0)>=1)return false;
+            if((usedCounts.get(slug)||0)>=2)return false;
             if(items.some(i=>i.name===v.name))return false;
             return slot.cats.includes(v.category);
           });
