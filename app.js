@@ -955,9 +955,8 @@
 
         function savePref(){
           _trackEvent('preferences_updated',{user:_userName()});
-          const btn=document.getElementById('pref-save-btn');
-          if(btn){btn.textContent='Saved';btn.style.opacity='0.6';setTimeout(()=>{btn.textContent='Save';btn.style.opacity='1';},2000);}
-          toast('Preferences saved');
+          startOnboarding();
+          toast('Update your preferences');
         }
 
         // ── @handle system ──
@@ -1065,7 +1064,7 @@
         // ── Budget band definitions (used by pills + filtering) ──
         const _BUDGET_BANDS=[
           {id:'under50',   label:'Under \u00a350',          max:50,   tiers:['budget']},
-          {id:'50to150',   label:'\u00a350\u2013\u00a3150', max:150,  tiers:['mid','premium']},
+          {id:'50to150',   label:'\u00a350\u2013\u00a3150', max:150,  tiers:['mid']},
           {id:'150plus',   label:'\u00a3150+',              max:9999, tiers:['luxury']}
         ];
 
@@ -2055,7 +2054,7 @@
           const usedCounts=new Map(); // slug → count (0=unused, 1=one plan, 2+=hard-banned)
           // For 1-stop mode, build single-venue plans directly
           if(stopCount===1||stopCount==='1'){
-            const dining=venues.filter(v=>v.category==='dining'||v.type==='foodie');
+            const dining=venues.filter(v=>v.category==='dining'||v.type==='foodie'||v.category==='wellness'||v.category==='culture'||v.category==='outdoors');
             const shuffled=[...dining];
             for(let i=shuffled.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[shuffled[i],shuffled[j]]=[shuffled[j],shuffled[i]];}
             for(const v of shuffled){
@@ -5831,6 +5830,7 @@
           if(_wishlist.find(w=>w.name===name)){toast('✦ Already on your wishlist!');return;}
           _wishlist.push({id:Date.now(),name,emoji,price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
           _wishBadgeCount++;_updateWishBadge();
+          _sbSaveState('wishlist',_wishlist);
           _trackEvent('wishlist_save',{name});
           toast('✦ Saved to your wishlist — find it under Wishlist');
         }
