@@ -888,6 +888,15 @@
 
         const catColors={'Dinner reservation':'#C4687A','Experience / activity':'#6B4C7A','Hotel check-in':'#C4687A','Hotel check-out':'#8B3A4A','Cab pickup':'#3A6A8A','Personal':'#5A7A5A'};
 
+        function openMoreSheet(){
+          const ov=document.getElementById('more-sheet-overlay');
+          if(ov){ov.style.display='block';document.body.style.overflow='hidden';}
+        }
+        function closeMoreSheet(){
+          const ov=document.getElementById('more-sheet-overlay');
+          if(ov){ov.style.display='none';document.body.style.overflow='';}
+        }
+
         function go(id,el){
           document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
           const _pg=document.getElementById('page-'+id);
