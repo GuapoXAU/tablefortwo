@@ -892,9 +892,6 @@
         .wh-trending-pill.rising{background:rgba(201,168,76,0.18);color:#C9A84C;border:0.5px solid rgba(201,168,76,0.38)}
         .wh-trending-pill.new{background:rgba(74,222,128,0.14);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.28)}
         .wh-trending-pill.ending{background:rgba(220,120,60,0.18);color:#E8946A;border:0.5px solid rgba(220,120,60,0.32)}
-        .wh-match-pill{position:absolute;top:11px;right:11px;width:44px;height:44px;border-radius:50%;background:rgba(8,8,8,0.82);backdrop-filter:blur(10px);border:1.5px solid rgba(201,168,76,0.38);display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:2}
-        .wh-match-pct{font-size:12px;font-weight:800;color:#C9A84C;line-height:1;letter-spacing:-0.3px}
-        .wh-match-label{font-size:7px;color:rgba(154,139,106,0.75);letter-spacing:0.4px;margin-top:1px;text-transform:uppercase}
         .wh-card-body{padding:14px 16px 16px}
         .wh-cat-tag{display:inline-block;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(154,139,106,0.6);margin-bottom:5px}
         .wh-name{font-size:16px;font-weight:700;color:rgba(255,255,255,0.9);line-height:1.25;margin-bottom:4px;letter-spacing:-0.2px}
@@ -903,7 +900,6 @@
         .wh-tag{padding:3px 9px;border-radius:10px;font-size:10.5px;background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.5);border:0.5px solid rgba(255,255,255,0.06);letter-spacing:0.2px}
         .wh-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
         .wh-booked{display:flex;align-items:center;gap:5px;font-size:11px;color:rgba(154,139,106,0.6);margin-bottom:6px}
-        .wh-booked-count{font-weight:700;color:#C9A84C}
         .wh-price{font-size:15px;font-weight:700;color:rgba(255,255,255,0.9);letter-spacing:-0.2px}
         .wh-price-note{font-size:10px;color:rgba(154,139,106,0.55);margin-left:3px;font-weight:400}
         .wh-save-btn{flex-shrink:0;padding:9px 15px;border-radius:13px;border:0.5px solid rgba(196,104,122,0.3);background:rgba(196,104,122,0.09);color:#C4687A;font-size:11px;font-weight:700;cursor:pointer;transition:all 0.2s;letter-spacing:0.3px;display:flex;align-items:center;gap:5px}
