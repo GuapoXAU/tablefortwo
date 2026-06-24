@@ -163,7 +163,7 @@
         </div>
         <!-- ── END LANDING PAGE ── -->
 
-        <div class="app">
+        <div class="app" style="display:none">
         <aside class="sidebar">
           <div class="logo">
             <div class="logo-name"><span class="logo-heart">♥</span>Table for Two</div>
@@ -1488,7 +1488,7 @@
 
         <!-- ── AUTH LOADING SCREEN ── -->
         <!-- CSS fallback: fades out after 7s if JS never runs (Supabase hang, parse error, etc.) -->
-        <style>#auth-loading-screen{animation:_lsTimeout 0.4s linear 7s forwards;}@keyframes _lsTimeout{to{opacity:0;pointer-events:none;visibility:hidden;}}</style>
+        <style>/* Loading screen removed only by JS after auth resolves — no CSS timer */</style>
         <div id="auth-loading-screen" style="position:fixed;inset:0;z-index:450;background:#0A0A0A;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.3s">
           <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs><linearGradient id="t4t-load-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D4B86A"/><stop offset="50%" stop-color="#C9A84C"/><stop offset="100%" stop-color="#8B6914"/></linearGradient></defs>

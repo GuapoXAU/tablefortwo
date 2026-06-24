@@ -356,13 +356,7 @@
             const url=new URL(window.location);url.searchParams.delete('code');
             history.replaceState(null,'',url.toString());
           }
-          // If going straight to ?app, require beta access
-          if(params.has('app')&&!_hasBetaAccess()){
-            // Don't skip landing — show the gate instead
-          } else if(params.has('app')&&_hasBetaAccess()){
-            const lp=document.getElementById('landing');
-            if(lp){lp.style.display='none';lp.style.visibility='hidden';}
-          }
+          // ?app param is handled after auth resolves — don't skip landing here
         })();
 
         // Capture inbound UTM/referrer for acquisition tracking
@@ -542,9 +536,10 @@
               _authUser=session.user;
               _grantBetaAccess();
               if(event==='SIGNED_IN')_trackEvent('sign_up_completed',{method:'password'});
-              // Hide landing immediately
+              // Hide landing, show app
               const lp=document.getElementById('landing');
               if(lp){lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';}
+              const appEl=document.querySelector('.app');if(appEl)appEl.style.display='';
               const ag=document.getElementById('beta-gate-overlay');if(ag)ag.style.display='none';
               const ne=document.getElementById('name-entry-overlay');if(ne)ne.style.display='none';
               _authLoading=false;
@@ -574,14 +569,22 @@
             } else {
               _authUser=null;_sbUserId=null;_sbReady=false;
               _authLoading=false;
+              _showLoginScreen();
             }
           });
         }
         _setupAuthListener();
 
+        function _showLoginScreen(){
+          const ls=document.getElementById('auth-loading-screen');if(ls)ls.remove();
+          const lp=document.getElementById('landing');
+          if(lp){lp.style.display='';lp.style.visibility='';lp.style.pointerEvents='';lp.style.zIndex='';}
+          const appEl=document.querySelector('.app');if(appEl)appEl.style.display='none';
+        }
+
         // Check initial session on page load
         (async function _checkSession(){
-          if(!_sb)return;
+          if(!_sb){_showLoginScreen();return;}
           try{
             const{data:{session}}=await _sb.auth.getSession();
             if(session?.user){
@@ -590,7 +593,7 @@
               // Hide landing immediately if already signed in
               const lp=document.getElementById('landing');
               if(lp){lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';}
-              // Profile completeness check happens in onAuthStateChange after _sbEnsureUser
+              const appEl=document.querySelector('.app');if(appEl)appEl.style.display='';
               // For the initial render, just check localStorage to avoid flash
               const _prof=_getUserProfile();
               const hasProfile=_prof&&_prof.name&&_prof.name!=='User'&&_prof.handle;
@@ -601,8 +604,13 @@
                 const db=document.getElementById('demo-banner');if(db)db.style.display='block';
               }
               // If no profile, keep loading screen visible — onAuthStateChange will resolve
+            }else{
+              _showLoginScreen();
             }
-          }catch(e){console.warn('[T4T] Session check failed',e);}
+          }catch(e){
+            console.warn('[T4T] Session check failed',e);
+            _showLoginScreen();
+          }
           _authLoading=false;
         })();
 
@@ -5534,20 +5542,11 @@
         }
 
         function enterApp(){
-          // Require Supabase auth for beta access
           if(_authUser){
             const lp=document.getElementById('landing');
             if(lp){lp.style.opacity='0';lp.style.transition='opacity 0.35s';setTimeout(()=>{lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';},350);}
+            const appEl=document.querySelector('.app');if(appEl)appEl.style.display='';
             _applyUserNames();
-            return;
-          }
-          // Legacy beta code users who are not yet auth'd — still allow but prompt signup
-          if(_hasBetaAccess()&&_getUserProfile()){
-            const lp=document.getElementById('landing');
-            if(lp){lp.style.opacity='0';lp.style.transition='opacity 0.35s';setTimeout(()=>{lp.style.display='none';lp.style.visibility='hidden';lp.style.pointerEvents='none';lp.style.zIndex='-1';},350);}
-            _applyUserNames();
-            // Show gentle prompt to create an account for persistence
-            setTimeout(()=>toast('Sign up to save your preferences across devices'),2000);
             return;
           }
           // Not authenticated — show auth form
