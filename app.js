@@ -359,6 +359,23 @@
           // ?app param is handled after auth resolves — don't skip landing here
         })();
 
+        // ── Handle expired/invalid auth link fragments ──
+        var _authLinkError=false;
+        (function _handleAuthError(){
+          const hash=window.location.hash;
+          if(!hash||(!hash.includes('error=')))return;
+          try{
+            const params=new URLSearchParams(hash.substring(1));
+            const err=params.get('error')||'';
+            const code=params.get('error_code')||'';
+            if(err||code){
+              history.replaceState(null,'',window.location.pathname+window.location.search);
+              _authLinkError=true;
+              console.warn('[T4T] Auth link error:',err,code);
+            }
+          }catch(e){}
+        })();
+
         // Capture inbound UTM/referrer for acquisition tracking
         (function(){
           try{
@@ -530,6 +547,15 @@
           _sb.auth.onAuthStateChange(async(event,session)=>{
             console.log('[T4T Auth]',event,session?.user?.email);
             if(event==='SIGNED_OUT'){location.href='/';return;}
+            if(event==='PASSWORD_RECOVERY'&&session?.user){
+              _authUser=session.user;
+              _authLoading=false;
+              const ls=document.getElementById('auth-loading-screen');if(ls)ls.remove();
+              const lp=document.getElementById('landing');if(lp){lp.style.display='none';lp.style.visibility='hidden';}
+              const appEl=document.querySelector('.app');if(appEl)appEl.style.display='none';
+              _showPasswordReset();
+              return;
+            }
             if(session?.user){
               if(_authHandled&&_authUser?.id===session.user.id)return;
               _authHandled=true;
@@ -580,7 +606,32 @@
           const lp=document.getElementById('landing');
           if(lp){lp.style.display='';lp.style.visibility='';lp.style.pointerEvents='';lp.style.zIndex='';}
           const appEl=document.querySelector('.app');if(appEl)appEl.style.display='none';
+          if(_authLinkError){
+            _authLinkError=false;
+            const hint=document.getElementById('lp-auth-hint');
+            if(hint){hint.textContent='That link has expired — please sign in with your password.';hint.style.display='block';hint.style.color='rgba(250,204,21,0.85)';}
+          }
         }
+
+        function _showPasswordReset(){
+          const ov=document.getElementById('password-reset-overlay');
+          if(ov)ov.style.display='flex';
+        }
+        window.submitPasswordReset=async function(){
+          const pw=document.getElementById('pr-password').value.trim();
+          const errEl=document.getElementById('pr-error');
+          const okEl=document.getElementById('pr-success');
+          const btn=document.getElementById('pr-submit');
+          errEl.style.display='none';okEl.style.display='none';
+          if(pw.length<6){errEl.textContent='Password must be at least 6 characters.';errEl.style.display='block';return;}
+          btn.disabled=true;btn.textContent='Updating...';
+          try{
+            const{error}=await _sb.auth.updateUser({password:pw});
+            if(error){errEl.textContent=error.message;errEl.style.display='block';btn.disabled=false;btn.textContent='Update password';return;}
+            okEl.textContent='Password updated — signing you in...';okEl.style.display='block';
+            setTimeout(()=>{location.reload();},1500);
+          }catch(e){errEl.textContent='Something went wrong. Please try again.';errEl.style.display='block';btn.disabled=false;btn.textContent='Update password';}
+        };
 
         // Check initial session on page load
         (async function _checkSession(){
