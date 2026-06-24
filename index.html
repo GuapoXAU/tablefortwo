@@ -1553,5 +1553,6 @@
         <script src="https://browser.sentry-cdn.com/8.48.0/bundle.min.js" crossorigin="anonymous" defer></script>
         <script src="app.js"></script>
         <!-- Vercel Insights — loaded dynamically by consent system in app.js, not here -->
+        <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}</script>
   </body>
   </html>
