@@ -1476,22 +1476,27 @@
           if(_venueCache&&Date.now()<_venueCacheExpiry){
             return budgetTier?_venueCache.filter(v=>v.budget_tier===budgetTier):_venueCache;
           }
-          // Try DB
+          // Try DB with timeout — never block generation
           if(_sb){
             try{
               console.log('[T4T DEBUG _loadVenuesFromDB] Querying venues table...');
-              const{data,error}=await _sb.from('venues')
-                .select('*,booking_links(booking_url,booking_type,is_verified,is_primary,providers(slug,name))')
-                .eq('is_active',true)
-                .order('curation_score',{ascending:false});
+              const _timeout=new Promise(r=>setTimeout(()=>r({data:null,error:{message:'timeout'}}),3000));
+              const{data,error}=await Promise.race([
+                _sb.from('venues')
+                  .select('*,booking_links(booking_url,booking_type,is_verified,is_primary,providers(slug,name))')
+                  .eq('is_active',true)
+                  .order('curation_score',{ascending:false}),
+                _timeout
+              ]);
               console.log('[T4T DEBUG _loadVenuesFromDB] Result: data='+(data?data.length:'null')+' error='+(error?error.message:'none'));
               if(!error&&data&&data.length){
-                // Transform to match plan engine format
                 _venueCache=data.map(_dbVenueToIdea);
                 _venueCacheExpiry=Date.now()+_VENUE_CACHE_TTL;
                 localStorage.setItem('t4t_venue_cache',JSON.stringify({ts:Date.now(),data:_venueCache}));
                 return budgetTier?_venueCache.filter(v=>v.budget_tier===budgetTier):_venueCache;
               }
+              // On timeout/error, set a short negative cache so subsequent tier calls don't retry
+              if(!_venueCache){_venueCache=[];_venueCacheExpiry=Date.now()+10000;}
             }catch(e){console.warn('[T4T DEBUG _loadVenuesFromDB] EXCEPTION:',e.message);_captureError(e,{context:'venue_fetch',source:'_loadVenuesFromDB'});}
           }
           // Try localStorage cache
