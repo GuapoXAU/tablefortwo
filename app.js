@@ -359,22 +359,7 @@
           // ?app param is handled after auth resolves — don't skip landing here
         })();
 
-        // ── Handle expired/invalid auth link fragments ──
         var _authLinkError=false;
-        (function _handleAuthError(){
-          const hash=window.location.hash;
-          if(!hash||(!hash.includes('error=')))return;
-          try{
-            const params=new URLSearchParams(hash.substring(1));
-            const err=params.get('error')||'';
-            const code=params.get('error_code')||'';
-            if(err||code){
-              history.replaceState(null,'',window.location.pathname+window.location.search);
-              _authLinkError=true;
-              console.warn('[T4T] Auth link error:',err,code);
-            }
-          }catch(e){}
-        })();
 
         // Capture inbound UTM/referrer for acquisition tracking
         (function(){
@@ -411,11 +396,30 @@
         function _sbInit(){
           if(!_SUPABASE_URL||!_SUPABASE_KEY){console.log('[T4T] Supabase not configured');return;}
           try{
-            _sb=window.supabase.createClient(_SUPABASE_URL,_SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:false}});
+            _sb=window.supabase.createClient(_SUPABASE_URL,_SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
             console.log('[T4T] Supabase connected');
           }catch(e){console.warn('[T4T] Supabase init failed',e);_sb=null;setTimeout(()=>toast('Working offline — your data is saved locally'),1500);}
         }
         _sbInit();
+
+        // ── Handle expired/invalid auth link fragments ──
+        // Runs AFTER _sbInit so Supabase can parse valid access_token hashes first.
+        // Only strips the hash when it contains an error and no valid token.
+        (function _handleAuthError(){
+          const hash=window.location.hash;
+          if(!hash||!hash.includes('error='))return;
+          if(hash.includes('access_token='))return;
+          try{
+            const params=new URLSearchParams(hash.substring(1));
+            const err=params.get('error')||'';
+            const code=params.get('error_code')||'';
+            if(err||code){
+              history.replaceState(null,'',window.location.pathname+window.location.search);
+              _authLinkError=true;
+              console.warn('[T4T] Auth link error:',err,code);
+            }
+          }catch(e){}
+        })();
 
         // ── Venue overrides (Supabase-backed, written by audit.html) ──
         let _venueOverrides=new Map();
