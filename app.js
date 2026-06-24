@@ -584,6 +584,7 @@
               const hasProfile=_prof&&_prof.name&&_prof.name!=='User'&&_prof.handle;
               if(!hasProfile){
                 _showProfileCompletion();
+                window.__t4tLoaded=true;
                 return;
               }
               // Existing user with complete profile — enter app directly
@@ -615,6 +616,7 @@
             const hint=document.getElementById('lp-auth-hint');
             if(hint){hint.textContent='That link has expired — please sign in with your password.';hint.style.display='block';hint.style.color='rgba(250,204,21,0.85)';}
           }
+          window.__t4tLoaded=true;
         }
 
         function _showPasswordReset(){
@@ -4396,6 +4398,7 @@
             }
 
             area.innerHTML=html;
+            window.__t4tLoaded=true;
 
             // Scroll to plans
             setTimeout(()=>{const fb=document.getElementById('discover-filter-bar');if(fb)fb.scrollIntoView({behavior:'smooth',block:'start'});},100);

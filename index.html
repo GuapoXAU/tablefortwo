@@ -1,6 +1,15 @@
   <!DOCTYPE html>
   <html lang="en">
   <head>
+        <script>
+(function(){
+  function show(m){var d=document.createElement('div');d.style.cssText='position:fixed;top:40px;left:0;right:0;z-index:2147483646;background:#b00;color:#fff;font:11px monospace;padding:10px;white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow:auto';d.textContent='ERR: '+m;(document.body||document.documentElement).appendChild(d);}
+  window.addEventListener('error',function(e){show((e.message||'')+' @ '+((e.filename||'').split('/').pop())+':'+(e.lineno||'')+'\n'+((e.error&&e.error.stack)||''));});
+  window.addEventListener('unhandledrejection',function(e){show('REJECTION: '+((e.reason&&(e.reason.stack||e.reason.message))||e.reason));});
+  window.__t4tLoaded=false;
+  setTimeout(function(){if(!window.__t4tLoaded)show('WATCHDOG: app did not finish loading in 8s — content render did not complete');},8000);
+})();
+</script>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
         <title>Table for Two — Socialising, Made Simple</title>
