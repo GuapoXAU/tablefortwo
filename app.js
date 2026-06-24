@@ -692,15 +692,12 @@
             p.$user_id=_sbUserId||null;
             p.$anon_id=this._getAnonId();
             p.$timestamp=new Date().toISOString();
-            // Console log in beta (always, for debugging)
             console.log('[T4T]',event,p);
-            // Essential events (auth, errors) always log; product usage events require consent
             const _essentialEvents=new Set(['sign_up_started','sign_up_completed','sign_out','account_deletion_requested','error_state_seen','page_view','signup_source']);
             const needsConsent=!_essentialEvents.has(event);
-            if(needsConsent&&!_hasAnalyticsConsent())return; // skip non-essential tracking without consent
-            // Supabase backend
+            if(needsConsent&&!_hasAnalyticsConsent())return;
             if(this.provider==='supabase'&&_sb){
-              _sb.from('events').insert({user_id:_sbUserId||null,event_type:event,event_data:p}).then(({error})=>{if(error)console.warn('[T4T Event] Insert failed:',event,error.message);}).catch(e=>console.warn('[T4T Event] Exception:',event,e.message));
+              try{_sb.from('events').insert({user_id:_sbUserId||null,event_type:event,event_data:p}).then(()=>{}).catch(()=>{});}catch(e){}
             }
             // PostHog — uncomment when SDK is loaded
             // if(this.provider==='posthog'&&window.posthog){
