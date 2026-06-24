@@ -60,27 +60,41 @@
             <!-- One-liner -->
             <p class="lp-clean-sub">Tell us your vibe. We'll handle the rest.</p>
 
-            <!-- Step 1: Email only -->
+            <!-- Step 1: Email + Password -->
             <div class="lp-clean-form" id="lp-step-email">
               <div style="position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden" aria-hidden="true">
                 <label>Website <input type="text" id="lp-website" tabindex="-1" autocomplete="off"></label>
               </div>
-              <div class="lp-clean-input-row">
-                <input type="email" id="lp-email" placeholder="Email address" class="lp-clean-input" onkeydown="if(event.key==='Enter')startBetaSignup('auto')">
-                <button id="lp-email-btn" class="lp-clean-btn" onclick="startBetaSignup('auto')">Continue</button>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <input type="email" id="lp-email" placeholder="Email address" class="lp-clean-input" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('lp-password').focus()">
+                <div style="position:relative">
+                  <input type="password" id="lp-password" placeholder="Password (min 6 characters)" class="lp-clean-input" style="width:100%;padding-right:44px" autocomplete="current-password" onkeydown="if(event.key==='Enter')startBetaSignup()">
+                  <button type="button" onclick="const p=document.getElementById('lp-password');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'Show':'Hide'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(201,168,76,0.6);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:4px">Show</button>
+                </div>
+                <button id="lp-email-btn" class="lp-clean-btn" onclick="startBetaSignup()">Create account</button>
               </div>
               <div id="lp-auth-hint" style="display:none;text-align:center;margin-top:10px;font-size:12px;line-height:1.5"></div>
-              <p class="lp-clean-disclaimer" style="margin-top:10px">We'll send you a magic link. No password needed. By continuing you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</p>
-              <p class="lp-clean-disclaimer" style="margin-top:6px">Enter your email above — it works whether you're new or returning.</p>
+              <p class="lp-clean-disclaimer" style="margin-top:10px">By continuing you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</p>
+              <p class="lp-clean-disclaimer" style="margin-top:6px" id="lp-auth-toggle">Already have an account? <a href="#" onclick="event.preventDefault();toggleLpAuthMode('login')" style="color:#C9A84C;font-weight:600">Sign in</a></p>
+              <p class="lp-clean-disclaimer" style="margin-top:4px"><a href="#" onclick="event.preventDefault();showLpForgotPassword()" style="color:rgba(201,168,76,0.5);font-weight:500">Forgot password?</a></p>
             </div>
 
-            <!-- Step 2: Magic link sent -->
-            <div class="lp-clean-form" id="lp-step-sent" style="display:none;text-align:center;padding:8px 0">
+            <!-- Forgot password -->
+            <div class="lp-clean-form" id="lp-step-forgot" style="display:none;text-align:center;padding:8px 0">
+              <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Reset your password</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:16px">Enter your email and we'll send a reset link.</div>
+              <input type="email" id="lp-forgot-email" placeholder="Email address" class="lp-clean-input" style="width:100%;margin-bottom:10px" onkeydown="if(event.key==='Enter')submitLpForgotPassword()">
+              <div id="lp-forgot-hint" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px"></div>
+              <button id="lp-forgot-btn" class="lp-clean-btn" onclick="submitLpForgotPassword()" style="width:100%;margin-bottom:12px">Send reset link</button>
+              <button class="lp-clean-btn" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1);width:100%" onclick="document.getElementById('lp-step-forgot').style.display='none';document.getElementById('lp-step-email').style.display='block'">Back to sign in</button>
+            </div>
+
+            <!-- Reset link sent -->
+            <div class="lp-clean-form" id="lp-step-reset-sent" style="display:none;text-align:center;padding:8px 0">
               <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
-              <div id="lp-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
-              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:6px">Click the magic link in your inbox to sign in. It expires in 1 hour.</div>
-              <div style="font-size:13px;font-weight:600;color:rgba(250,204,21,0.85);line-height:1.5;margin-bottom:20px">Can't see it? Check your spam folder — it sometimes lands there.</div>
-              <button class="lp-clean-btn" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1)" onclick="document.getElementById('lp-step-sent').style.display='none';document.getElementById('lp-step-email').style.display='block'">Try a different email</button>
+              <div id="lp-reset-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:20px">We've sent a password reset link to your email.</div>
+              <button class="lp-clean-btn" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1)" onclick="document.getElementById('lp-step-reset-sent').style.display='none';document.getElementById('lp-step-email').style.display='block'">Back to sign in</button>
             </div>
 
             <!-- Partner CTA -->
@@ -1323,7 +1337,7 @@
           </div>
         </div>
 
-        <!-- ── AUTH GATE (Magic Link + Invite Code) ── -->
+        <!-- ── AUTH GATE (Password + Invite Code) ── -->
         <div id="beta-gate-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:#060606;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
           <div style="width:100%;max-width:380px;text-align:center">
             <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:24px">
@@ -1336,16 +1350,21 @@
             </svg>
             <div style="font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(201,168,76,0.6);margin-bottom:24px">Private Beta</div>
             <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:300;color:rgba(255,255,255,0.9);margin-bottom:8px">Sign in to continue</h2>
-            <p style="font-size:14px;color:rgba(255,255,255,0.35);margin-bottom:28px;line-height:1.5">We'll send you a magic link — no password needed.</p>
+            <p style="font-size:14px;color:rgba(255,255,255,0.35);margin-bottom:28px;line-height:1.5">Enter your email and password to continue.</p>
 
             <!-- Sign in form -->
             <div id="auth-form">
               <div style="margin-bottom:12px">
-                <input type="email" id="auth-email" placeholder="your@email.com" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:15px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')submitMagicLink()">
+                <input type="email" id="auth-email" placeholder="your@email.com" autocomplete="email" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:15px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+              </div>
+              <div style="margin-bottom:12px;position:relative">
+                <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:14px 18px;padding-right:54px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:15px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')submitAuthGate()">
+                <button type="button" onclick="const p=document.getElementById('auth-password');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'Show':'Hide'" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(201,168,76,0.6);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:4px">Show</button>
               </div>
               <div id="auth-error" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px;line-height:1.4"></div>
-              <button id="auth-submit-btn" onclick="submitMagicLink()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2);transition:all 0.18s">Send magic link</button>
-              <div style="font-size:11px;color:rgba(255,255,255,0.38);margin-top:10px;line-height:1.5;text-align:center">By signing up you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</div>
+              <button id="auth-submit-btn" onclick="submitAuthGate()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2);transition:all 0.18s">Sign in</button>
+              <div style="text-align:center;margin-top:12px"><a href="#" onclick="event.preventDefault();showForgotPassword()" style="font-size:12px;color:rgba(201,168,76,0.5);font-weight:500;text-decoration:none">Forgot password?</a></div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.38);margin-top:10px;line-height:1.5;text-align:center">By signing in you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</div>
               <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid rgba(255,255,255,0.06)">
                 <div style="font-size:11px;color:rgba(255,255,255,0.2);margin-bottom:10px">Or enter an invite code</div>
                 <div style="display:flex;gap:8px">
@@ -1356,14 +1375,23 @@
               </div>
             </div>
 
-            <!-- Magic link sent confirmation -->
-            <div id="auth-sent" style="display:none">
-              <div style="font-size:40px;margin-bottom:16px">✉</div>
+            <!-- Forgot password -->
+            <div id="auth-forgot" style="display:none">
+              <div style="font-size:18px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Reset your password</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:16px">Enter your email and we'll send a reset link.</div>
+              <div style="margin-bottom:12px"><input type="email" id="auth-forgot-email" placeholder="your@email.com" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:15px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')submitForgotPassword()"></div>
+              <div id="auth-forgot-error" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px"></div>
+              <button id="auth-forgot-btn" onclick="submitForgotPassword()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-bottom:12px">Send reset link</button>
+              <button onclick="document.getElementById('auth-forgot').style.display='none';document.getElementById('auth-form').style.display='block'" style="width:100%;padding:12px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;cursor:pointer">Back to sign in</button>
+            </div>
+
+            <!-- Reset link sent -->
+            <div id="auth-reset-sent" style="display:none;text-align:center">
+              <div style="font-size:40px;margin-bottom:16px">&#10003;</div>
               <div style="font-size:18px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
-              <div id="auth-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
-              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:6px">Click the magic link in your inbox to sign in. It expires in 1 hour.</div>
-              <div style="font-size:13px;font-weight:600;color:rgba(250,204,21,0.85);line-height:1.5;margin-bottom:24px">Can't see it? Check your spam folder — it sometimes lands there.</div>
-              <button onclick="document.getElementById('auth-sent').style.display='none';document.getElementById('auth-form').style.display='block'" style="padding:12px 24px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;cursor:pointer">Try a different email</button>
+              <div id="auth-reset-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:24px">We've sent a password reset link to your email.</div>
+              <button onclick="document.getElementById('auth-reset-sent').style.display='none';document.getElementById('auth-form').style.display='block'" style="padding:12px 24px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;cursor:pointer">Back to sign in</button>
             </div>
 
             <p style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:24px;line-height:1.5">This is a demo — no real bookings or payments. Your data is stored securely on Supabase.</p>
@@ -1427,7 +1455,7 @@
           </div>
         </div>
 
-        <!-- ── PROFILE COMPLETION (post-magic-link, new users only) ── -->
+        <!-- ── PROFILE COMPLETION (post-signup, new users only) ── -->
         <div id="profile-completion-overlay" style="display:none;position:fixed;inset:0;z-index:420;background:#060606;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
           <div style="width:100%;max-width:380px">
             <div style="text-align:center;margin-bottom:32px">
