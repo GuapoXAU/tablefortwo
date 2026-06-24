@@ -7,7 +7,20 @@
   window.addEventListener('error',function(e){show((e.message||'')+' @ '+((e.filename||'').split('/').pop())+':'+(e.lineno||'')+'\n'+((e.error&&e.error.stack)||''));});
   window.addEventListener('unhandledrejection',function(e){show('REJECTION: '+((e.reason&&(e.reason.stack||e.reason.message))||e.reason));});
   window.__t4tLoaded=false;
-  setTimeout(function(){if(!window.__t4tLoaded)show('WATCHDOG: app did not finish loading in 8s — content render did not complete');},8000);
+  setTimeout(function(){
+    var info='DIAG '+new Date().toISOString().substr(11,8)
+      +'\n__t4tLoaded='+window.__t4tLoaded
+      +'\n_sb='+(typeof _sb!=='undefined'?(_sb?'set':'null'):'undefined')
+      +'\n_authUser='+(typeof _authUser!=='undefined'?(_authUser?'set':'null'):'undefined')
+      +'\n.app display='+(document.querySelector('.app')?getComputedStyle(document.querySelector('.app')).display:'no .app el')
+      +'\nlanding display='+(document.getElementById('landing')?getComputedStyle(document.getElementById('landing')).display:'no landing el')
+      +'\nloading screen='+(document.getElementById('auth-loading-screen')?'present':'gone')
+      +'\nUA='+navigator.userAgent.substr(0,60);
+    var d=document.createElement('div');
+    d.style.cssText='position:fixed;top:40px;left:0;right:0;z-index:2147483646;background:#004400;color:#0f0;font:11px monospace;padding:10px;white-space:pre-wrap';
+    d.textContent=info;
+    document.body.appendChild(d);
+  },4000);
 })();
 </script>
         <meta charset="UTF-8">
