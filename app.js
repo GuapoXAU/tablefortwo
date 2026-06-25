@@ -2821,7 +2821,7 @@
 
         // Graceful fallback — now offers official site if available
         function showVenueUnavailable(venueName,venuePrice,websiteUrl){
-          _trackEvent('booking_unavailable_shown',{venue:venueName,has_website:!!websiteUrl});
+          _trackEvent('booking_unavailable_shown',{name:venueName,has_website:!!websiteUrl});
           const ov=document.getElementById('booking-handoff-overlay');
           const content=document.getElementById('booking-handoff-content');
           if(!ov||!content)return;
@@ -2834,7 +2834,7 @@
               <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:6px;line-height:1.5">${websiteUrl?'Direct booking isn\'t available, but you can visit their official site.':'Direct booking isn\'t available for this venue yet.'}</div>
               ${!websiteUrl?'<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:16px">We\'re adding verified booking links during beta.</div>':''}
               <div style="display:flex;flex-direction:column;gap:8px">
-                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}'});_openExternal('${safeWebsite}')">Visit official site ↗</button>`:''}
+                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{name:'${safeName}'});_openExternal('${safeWebsite}')">Visit official site ↗</button>`:''}
                 <button class="booking-handoff-cta" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7)" onclick="_openExternal('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('${safeName}, London'))">Find on Google Maps ↗</button>
                 <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','${venuePrice||''}','experience','Saved — awaiting booking link');closeBookingHandoff();toast('✦ Saved to wishlist')">Save to wishlist</button>
                 <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
@@ -2870,7 +2870,7 @@
           // Determine source screen
           const _bkSrc=planId?'plan_card':document.querySelector('.page.active')?.id?.replace('page-','')||'discover';
           _pendingBooking={_sid:Date.now().toString(36)+Math.random().toString(36).slice(2,5),name:venueName,price:venuePrice,status:venueStatus,planId:planId||null,url:primaryUrl,booking_url:info.booking_url,website_url:info.website_url,provider:info.provider,verified:info.verified,link_status:info.link_status||'unverified',source_screen:_bkSrc,booking_status:'clicked_out',clickedAt:new Date().toISOString()};
-          _trackEvent('booking_click',{name:venueName,provider:info.provider,verified:info.verified,link_status:info.link_status,item_type:venueStatus,plan_id:planId||null,source_screen:_bkSrc,outbound_url:primaryUrl});
+          _trackEvent('booking_click',{name:venueName,provider:info.provider,verified:info.verified,link_status:info.link_status,item_type:venueStatus,plan_id:planId||null,source_screen:_bkSrc,outbound_url:primaryUrl,type:'venue'});
 
           // Route unavailable venues to fallback (with website if available)
           if(info.link_status==='unavailable'){
@@ -2879,7 +2879,7 @@
           }
           // Website-only: booking URL broken but official site works
           if(info.link_status==='website_only'){
-            _trackEvent('downgraded_to_official_site',{venue:venueName,website_url:info.website_url});
+            _trackEvent('downgraded_to_official_site',{name:venueName,website_url:info.website_url});
             showVenueUnavailable(venueName,venuePrice,info.website_url);
             return;
           }
@@ -2991,7 +2991,7 @@
           const websiteUrl=_pendingBooking?.website_url;
           const safeWebsite=(websiteUrl||'').replace(/'/g,"\\'");
           _captureError(new Error('Booking URL invalid or missing'),{context:'booking_fallback',source:'showBookingFallback',venue:name});
-          _trackEvent('broken_booking_url_detected',{venue:name,provider:_pendingBooking?.provider||'unknown',has_website:!!websiteUrl});
+          _trackEvent('broken_booking_url_detected',{name:name,provider:_pendingBooking?.provider||'unknown',has_website:!!websiteUrl});
           fbContent.innerHTML=`
             <div style="padding:8px 0">
               <div style="text-align:center;margin-bottom:14px">
@@ -2999,7 +2999,7 @@
                 <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.5">The booking link for <strong style="color:rgba(255,255,255,0.6)">${name}</strong> isn't working.${websiteUrl?' You can still visit their official site.':' We\'ve flagged it for review.'}</div>
               </div>
               <div style="display:flex;flex-direction:column;gap:8px">
-                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}',from:'fallback'});_openExternal('${safeWebsite}')">Visit official site ↗</button>`:''}
+                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{name:'${safeName}',from:'fallback'});_openExternal('${safeWebsite}')">Visit official site ↗</button>`:''}
                 <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','','experience','Saved — booking link broken');closeBookingHandoff();toast('✦ Saved — we\\'ll fix the link')">Save to wishlist</button>
                 <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
               </div>
@@ -4391,6 +4391,21 @@
             }
 
             area.innerHTML=html;
+
+            // Fire venue_shown for each venue rendered to screen
+            if(plans&&plans.length){
+              const _shownScreen=document.querySelector('.page.active')?.id?.replace('page-','')||'discover';
+              const _shownSet=new Set();
+              plans.forEach(function(p){
+                if(!p.items)return;
+                p.items.forEach(function(item){
+                  var key=item.name+'|'+p.id;
+                  if(_shownSet.has(key))return;
+                  _shownSet.add(key);
+                  _trackEvent('venue_shown',{name:item.name,plan_id:p.id,source_screen:_shownScreen});
+                });
+              });
+            }
 
             // Scroll to plans
             setTimeout(()=>{const fb=document.getElementById('discover-filter-bar');if(fb)fb.scrollIntoView({behavior:'smooth',block:'start'});},100);
