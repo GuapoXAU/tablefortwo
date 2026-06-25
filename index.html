@@ -1,28 +1,6 @@
   <!DOCTYPE html>
   <html lang="en">
   <head>
-        <script>
-(function(){
-  function show(m){var d=document.createElement('div');d.style.cssText='position:fixed;top:40px;left:0;right:0;z-index:2147483646;background:#b00;color:#fff;font:11px monospace;padding:10px;white-space:pre-wrap;word-break:break-word;max-height:50vh;overflow:auto';d.textContent='ERR: '+m;(document.body||document.documentElement).appendChild(d);}
-  window.addEventListener('error',function(e){show((e.message||'')+' @ '+((e.filename||'').split('/').pop())+':'+(e.lineno||'')+'\n'+((e.error&&e.error.stack)||''));});
-  window.addEventListener('unhandledrejection',function(e){show('REJECTION: '+((e.reason&&(e.reason.stack||e.reason.message))||e.reason));});
-  window.__t4tLoaded=false;
-  setTimeout(function(){
-    var info='DIAG '+new Date().toISOString().substr(11,8)
-      +'\n__t4tLoaded='+window.__t4tLoaded
-      +'\n_sb='+(typeof _sb!=='undefined'?(_sb?'set':'null'):'undefined')
-      +'\n_authUser='+(typeof _authUser!=='undefined'?(_authUser?'set':'null'):'undefined')
-      +'\n.app display='+(document.querySelector('.app')?getComputedStyle(document.querySelector('.app')).display:'no .app el')
-      +'\nlanding display='+(document.getElementById('landing')?getComputedStyle(document.getElementById('landing')).display:'no landing el')
-      +'\nloading screen='+(document.getElementById('auth-loading-screen')?'present':'gone')
-      +'\nUA='+navigator.userAgent.substr(0,60);
-    var d=document.createElement('div');
-    d.style.cssText='position:fixed;top:40px;left:0;right:0;z-index:2147483646;background:#004400;color:#0f0;font:11px monospace;padding:10px;white-space:pre-wrap';
-    d.textContent=info;
-    document.body.appendChild(d);
-  },4000);
-})();
-</script>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
         <title>Table for Two — Socialising, Made Simple</title>
@@ -49,7 +27,6 @@
         <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-<div style="position:fixed;top:0;left:0;right:0;z-index:2147483647;background:#00ff00;color:#000;font:bold 14px monospace;text-align:center;padding:6px">LIVE BUILD 2030</div>
         <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Table for Two — AI date planning app with suggestions, booking, reminders and calendar</h2>
 
         <!-- ── LANDING PAGE ── -->

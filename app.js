@@ -584,7 +584,6 @@
               const hasProfile=_prof&&_prof.name&&_prof.name!=='User'&&_prof.handle;
               if(!hasProfile){
                 _showProfileCompletion();
-                window.__t4tLoaded=true;
                 return;
               }
               // Existing user with complete profile — enter app directly
@@ -608,6 +607,7 @@
 
         function _showLoginScreen(){
           const ls=document.getElementById('auth-loading-screen');if(ls)ls.remove();
+          document.documentElement.classList.remove('skip-lp');
           const lp=document.getElementById('landing');
           if(lp){lp.style.display='';lp.style.visibility='';lp.style.pointerEvents='';lp.style.zIndex='';}
           const appEl=document.querySelector('.app');if(appEl)appEl.style.display='none';
@@ -616,7 +616,6 @@
             const hint=document.getElementById('lp-auth-hint');
             if(hint){hint.textContent='That link has expired — please sign in with your password.';hint.style.display='block';hint.style.color='rgba(250,204,21,0.85)';}
           }
-          window.__t4tLoaded=true;
         }
 
         function _showPasswordReset(){
@@ -1481,7 +1480,6 @@
           // Try DB with timeout — never block generation
           if(_sb){
             try{
-              console.log('[T4T DEBUG _loadVenuesFromDB] Querying venues table...');
               const _timeout=new Promise(r=>setTimeout(()=>r({data:null,error:{message:'timeout'}}),3000));
               const{data,error}=await Promise.race([
                 _sb.from('venues')
@@ -1490,7 +1488,6 @@
                   .order('curation_score',{ascending:false}),
                 _timeout
               ]);
-              console.log('[T4T DEBUG _loadVenuesFromDB] Result: data='+(data?data.length:'null')+' error='+(error?error.message:'none'));
               if(!error&&data&&data.length){
                 _venueCache=data.map(_dbVenueToIdea);
                 _venueCacheExpiry=Date.now()+_VENUE_CACHE_TTL;
@@ -1499,7 +1496,7 @@
               }
               // On timeout/error, set a short negative cache so subsequent tier calls don't retry
               if(!_venueCache){_venueCache=[];_venueCacheExpiry=Date.now()+10000;}
-            }catch(e){console.warn('[T4T DEBUG _loadVenuesFromDB] EXCEPTION:',e.message);_captureError(e,{context:'venue_fetch',source:'_loadVenuesFromDB'});}
+            }catch(e){_captureError(e,{context:'venue_fetch',source:'_loadVenuesFromDB'});}
           }
           // Try localStorage cache
           try{
@@ -2014,13 +2011,11 @@
           prefs=prefs||{};
           const budgetBand=prefs.budget||_activeBudgetBand||'under50';
           const relContext=prefs._relContext||_activeRelContext||'partner';
-          console.log('[T4T DEBUG _generatePlans] START budgetBand='+budgetBand+' relContext='+relContext+' _sbUserId='+_sbUserId+' _authUser='+!!_authUser);
 
           // ── Build taxonomy-driven venue pool ──
           // Pool ALL tiers that could match the selected budget band
           const band=_BUDGET_BANDS.find(b=>b.id===budgetBand);
           const eligibleTiers=band?band.tiers:['budget','mid'];
-          console.log('[T4T DEBUG _generatePlans] eligibleTiers='+JSON.stringify(eligibleTiers));
 
           // Reset session memory when constraints change
           const ck=_constraintKey(prefs);
@@ -2039,15 +2034,11 @@
           let venues=[];
           // Always load hardcoded IDEAS as the base
           for(const tier of _ALL_IDEA_KEYS){
-            const tierVenues=(IDEAS[tier]||[]);
-            console.log('[T4T DEBUG _generatePlans] IDEAS.'+tier+' count='+tierVenues.length);
-            venues=venues.concat(tierVenues.map(_classifyVenue));
+            venues=venues.concat((IDEAS[tier]||[]).map(_classifyVenue));
           }
-          console.log('[T4T DEBUG _generatePlans] Total hardcoded venues='+venues.length);
           // Layer DB venues on top — DB wins if same slug exists
           for(const tier of _ALL_IDEA_KEYS){
             const dbVenues=await _loadVenuesFromDB(tier);
-            console.log('[T4T DEBUG _generatePlans] DB tier='+tier+' returned='+(dbVenues?dbVenues.length:'null'));
             if(dbVenues&&dbVenues.length){
               const dbBySlug=new Map(dbVenues.map(v=>[_venueSlug(v.name),v]));
               venues=venues.map(v=>{
@@ -2066,12 +2057,10 @@
           venues=venues.filter(v=>{const s=_venueSlug(v.name);if(_seenVenueSlugs.has(s))return false;_seenVenueSlugs.add(s);return true;});
           // Venue status filter — remove closed/hidden venues
           venues=venues.filter(v=>!v.venue_status||v.venue_status==='active');
-          console.log('[T4T DEBUG _generatePlans] After dedup+status filter='+venues.length);
 
           // ── TAXONOMY HARD FILTERS (deterministic, not scoring) ──
           // 1. Relationship context: only exclude if tag exists AND doesn't match; missing = pass
           venues=venues.filter(v=>!v.rel||!v.rel.length||v.rel.includes(relContext));
-          console.log('[T4T DEBUG _generatePlans] After rel filter ('+relContext+')='+venues.length);
 
           // 2. Budget band: strict — venue must have an explicit budgetTier and it must be in eligibleTiers.
           // No fallback inference. Every hardcoded venue now has budgetTier (camelCase); DB venues have
@@ -2080,11 +2069,9 @@
             const tier=v.budgetTier||v.budget_tier;
             return !!tier&&eligibleTiers.includes(tier);
           });
-          console.log('[T4T DEBUG _generatePlans] After budget filter ('+JSON.stringify(eligibleTiers)+')='+venues.length);
 
           // 3. Exclude untagged venues only if explicitly flagged false (missing _isTagged = pass)
           venues=venues.filter(v=>v._isTagged!==false);
-          console.log('[T4T DEBUG _generatePlans] After _isTagged filter='+venues.length);
 
           // 4. Dietary filter — strict: only show venues tagged for the selected dietary need
           if(prefs.dietary&&prefs.dietary.length&&!prefs.dietary.includes('none')){
@@ -2275,7 +2262,6 @@
           // Record this generation in session memory
           _recordShownSlugs(finalPlans);
 
-          console.log('[T4T DEBUG _generatePlans] DONE plans='+finalPlans.length+' poolSize='+venues.length);
           return finalPlans;
         }
 
@@ -4174,14 +4160,11 @@
           </div>`;
 
           setTimeout(async()=>{
-            console.log('[T4T DEBUG generateSuggestions] Calling _generatePlans...');
             // Generate plans from engine (async — tries DB first)
             let plans;
             try{
               plans=await _generatePlans(prefs);
-              console.log('[T4T DEBUG generateSuggestions] _generatePlans returned '+(plans?plans.length:'null/undefined')+' plans');
             }catch(err){
-              console.error('[T4T DEBUG generateSuggestions] _generatePlans THREW:',err);
               _captureError(err,{context:'plan_generation',source:'generateSuggestions'});
               area.innerHTML=`<div style="text-align:center;padding:40px 20px">
                 <div style="font-size:15px;font-weight:600;color:rgba(255,255,255,0.6);margin-bottom:6px">Couldn't load plans</div>
@@ -4398,7 +4381,6 @@
             }
 
             area.innerHTML=html;
-            window.__t4tLoaded=true;
 
             // Scroll to plans
             setTimeout(()=>{const fb=document.getElementById('discover-filter-bar');if(fb)fb.scrollIntoView({behavior:'smooth',block:'start'});},100);
