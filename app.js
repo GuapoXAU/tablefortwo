@@ -481,11 +481,16 @@
           }catch(e){return{error:'Something went wrong. Please try again.'};}
         }
 
-        function signOut(){
+        async function signOut(){
           console.log('[T4T] signOut fired');
           toast('Signing out…');
+          _trackEvent('sign_out',{user:_userName()});
           _authUser=null;_sbUserId=null;_sbReady=false;
+          if(_sb){try{await Promise.race([_sb.auth.signOut({scope:'local'}),new Promise(function(r){setTimeout(r,2000);})]);}catch(e){}}
           try{
+            var keys=[];
+            for(var i=0;i<localStorage.length;i++){keys.push(localStorage.key(i));}
+            keys.forEach(function(k){if(k&&k.indexOf('sb-')===0&&k.indexOf('-auth-token')!==-1)localStorage.removeItem(k);});
             localStorage.removeItem('t4t_user_profile');
             localStorage.removeItem('t4t_beta_access');
             localStorage.removeItem('t4t_bk');
@@ -493,10 +498,8 @@
             localStorage.removeItem('t4t_handles');
             localStorage.removeItem('t4t_venue_cache');
           }catch(e){}
-          _trackEvent('sign_out',{user:_userName()});
-          if(_sb){try{_sb.auth.signOut().catch(function(){});}catch(e){}}
           _showLoginScreen();
-          setTimeout(function(){window.location.replace('/');},100);
+          window.location.replace('/');
         }
 
         // Get the current authenticated user's DB row ID + restore full profile
