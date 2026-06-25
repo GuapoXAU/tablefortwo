@@ -1,4 +1,4 @@
-const CACHE_NAME = 't4t-cache-v5';
+const CACHE_NAME = 't4t-cache-v6';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -15,8 +15,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Never cache Supabase API requests
-  if (url.hostname.includes('supabase.co')) return;
+  // Only handle same-origin requests — let the browser/wrapper handle external URLs natively
+  if (url.origin !== self.location.origin) return;
 
   // Navigation requests (HTML): network-first
   const isNav = event.request.mode === 'navigate'

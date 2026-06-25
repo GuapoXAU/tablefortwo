@@ -2338,9 +2338,9 @@
           });
           if(!urls.length){toast('No booking links available for this plan');return;}
           // Open first immediately, rest with delays to avoid popup blocker
-          window.open(urls[0],'_blank','noopener');
+          _openExternal(urls[0]);
           urls.slice(1).forEach((url,i)=>{
-            setTimeout(()=>window.open(url,'_blank','noopener'),(i+1)*500);
+            setTimeout(()=>_openExternal(url),(i+1)*500);
           });
           if(urls.length===total){
             toast('✦ Opening '+total+' stop'+(total!==1?'s':'')+' — book each one');
@@ -2698,6 +2698,16 @@
         // ════════════════════════════════════════════════
 
         // Validate a URL — returns true only for well-formed http(s) URLs
+        function _openExternal(url){
+          if(!url)return;
+          var a=document.createElement('a');
+          a.href=url;a.target='_blank';a.rel='noopener noreferrer';
+          a.style.display='none';
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(function(){a.remove();},100);
+        }
+
         function _isValidUrl(url){
           if(!url||typeof url!=='string')return false;
           const trimmed=url.trim();
@@ -2824,8 +2834,8 @@
               <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:6px;line-height:1.5">${websiteUrl?'Direct booking isn\'t available, but you can visit their official site.':'Direct booking isn\'t available for this venue yet.'}</div>
               ${!websiteUrl?'<div style="font-size:11px;color:rgba(255,255,255,0.3);margin-bottom:16px">We\'re adding verified booking links during beta.</div>':''}
               <div style="display:flex;flex-direction:column;gap:8px">
-                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}'});window.open('${safeWebsite}','_blank','noopener')">Visit official site ↗</button>`:''}
-                <button class="booking-handoff-cta" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7)" onclick="window.open('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('${safeName}, London'),'_blank','noopener')">Find on Google Maps ↗</button>
+                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}'});_openExternal('${safeWebsite}')">Visit official site ↗</button>`:''}
+                <button class="booking-handoff-cta" style="background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.7)" onclick="_openExternal('https://www.google.com/maps/search/?api=1&query='+encodeURIComponent('${safeName}, London'))">Find on Google Maps ↗</button>
                 <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','${venuePrice||''}','experience','Saved — awaiting booking link');closeBookingHandoff();toast('✦ Saved to wishlist')">Save to wishlist</button>
                 <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
               </div>
@@ -2968,7 +2978,7 @@
           const isDirectBooking=_pendingBooking.booking_url&&rawUrl===_pendingBooking.booking_url;
           _pendingBooking.booking_status='site_opened';
           _trackEvent(isDirectBooking?'direct_booking_clicked':'official_site_clicked',{name:_pendingBooking.name,provider:_pendingBooking.provider,link_status:_pendingBooking.link_status,url:url,source_screen:_pendingBooking.source_screen});
-          window.open(_addUtm(url),'_blank','noopener');
+          _openExternal(_addUtm(url));
           showBookingReturnState();
         }
 
@@ -2989,7 +2999,7 @@
                 <div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.5">The booking link for <strong style="color:rgba(255,255,255,0.6)">${name}</strong> isn't working.${websiteUrl?' You can still visit their official site.':' We\'ve flagged it for review.'}</div>
               </div>
               <div style="display:flex;flex-direction:column;gap:8px">
-                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}',from:'fallback'});window.open('${safeWebsite}','_blank','noopener')">Visit official site ↗</button>`:''}
+                ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_trackEvent('official_site_clicked',{venue:'${safeName}',from:'fallback'});_openExternal('${safeWebsite}')">Visit official site ↗</button>`:''}
                 <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','','experience','Saved — booking link broken');closeBookingHandoff();toast('✦ Saved — we\\'ll fix the link')">Save to wishlist</button>
                 <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
               </div>
@@ -3119,7 +3129,7 @@
                 <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:4px">Sorry about that</div>
                 <div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:16px;line-height:1.5">We've logged this issue. ${websiteUrl?'You can try their official site directly.':'Try again later or save it for next time.'}</div>
                 <div style="display:flex;flex-direction:column;gap:8px">
-                  ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="window.open('${safeWebsite}','_blank','noopener')">Visit official site ↗</button>`:''}
+                  ${websiteUrl?`<button class="booking-handoff-cta" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.8)" onclick="_openExternal('${safeWebsite}')">Visit official site ↗</button>`:''}
                   <button class="plan-btn plan-btn-activate" style="width:100%" onclick="saveToWishlist('${safeName}','✦','','experience','Saved — booking failed on partner site');closeBookingHandoff();toast('Saved to wishlist')">Save to wishlist</button>
                   <button class="plan-btn" style="width:100%;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);color:rgba(255,255,255,0.35)" onclick="closeBookingHandoff()">Close</button>
                 </div>
@@ -4704,7 +4714,7 @@
           const ci=document.getElementById('hotel-in').value||'';
           const q=encodeURIComponent(d+' hotel London');
           const url='https://www.booking.com/searchresults.html?ss='+q+(ci?'&checkin='+ci:'');
-          window.open(url,'_blank','noopener');
+          _openExternal(url);
           _trackEvent('booking_click',{name:d,provider:'Booking.com',type:'hotel'});
           toast('✦ Hotel search opened — confirm when booked');
         }
@@ -4725,7 +4735,7 @@
           // Build Airbnb search URL
           const q=encodeURIComponent(dest);
           const url=`https://www.airbnb.co.uk/s/${q}/homes?checkin=${ci}&checkout=${co}&adults=2`;
-          window.open(url,'_blank');
+          _openExternal(url);
           bookings.push({id:Date.now(),type:'airbnb',name:dest+(note?' — '+note:''),date:ci,meta:type,amount:'',icon:_SVG.airbnb});
           updateStats();renderBookings();toast('✦ Airbnb search opened for '+dest);
         }
@@ -5179,7 +5189,7 @@
         }
 
         function openMaps(from,to){
-          window.open('https://www.google.com/maps/dir/'+from+'/'+to,'_blank');
+          _openExternal('https://www.google.com/maps/dir/'+from+'/'+to);
         }
 
         function swapAndFind(){
