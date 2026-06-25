@@ -12,6 +12,7 @@
         let _authUser=null;     // Supabase auth user object
         let _authLoading=true;  // true until we know auth state
         let _authHandled=false; // guard against double-init from listener + session check
+        let _authResolved=false; // true once auth listener has fired at least once
 
         // Check if user has valid beta access (now backed by auth OR legacy code)
         function _hasBetaAccess(){
@@ -291,6 +292,10 @@
             if(llDesc&&i===0)llDesc.textContent='How '+you+' feels most loved — shapes what kind of date lands best';
             if(llDesc&&i===1&&hasParter)llDesc.textContent='How '+them+' feels most loved — shapes what kind of date lands best';
           });
+          // Paired-only elements — hide when solo
+          const _pb=document.getElementById('paired-badge');if(_pb)_pb.style.display=hasParter?'':'none';
+          const _pd=document.getElementById('paired-divider');if(_pd)_pd.style.display=hasParter?'':'none';
+          const _sd=document.getElementById('shared-dislikes');if(_sd)_sd.style.display=hasParter?'':'none';
           // Profile avatar colors
           document.querySelectorAll('.profile-avatar').forEach((av,i)=>{
             if(i===0)av.textContent=yi;
@@ -305,6 +310,13 @@
               pairingStatus.innerHTML='<span style="color:var(--primary);font-weight:600">Planning solo</span> · finding things just for you';
             }
           }
+          // Taste-blend subtitle
+          const _tbs=document.getElementById('taste-blend-subtitle');
+          if(_tbs){
+            if(hasParter)_tbs.textContent='Your taste and '+(them||'your partner')+'\'s, blended into every recommendation.';
+            else if(_pairingMode==='friends')_tbs.textContent='Blended from everyone in your group, so there\'s something for all of you.';
+            else _tbs.textContent='Every recommendation is shaped around your taste.';
+          }
           // Partner handle row — hide if no partner
           const _phr=document.getElementById('partner-handle-row');
           if(_phr)_phr.style.display=hasParter?'flex':'none';
@@ -318,8 +330,10 @@
           if(authStatus){
             if(_authUser){
               authStatus.innerHTML='Signed in as <strong style="color:var(--primary)">'+_authUser.email+'</strong>';
-            } else {
+            } else if(_authResolved){
               authStatus.textContent='Not signed in';
+            } else {
+              authStatus.textContent='';
             }
           }
           // Surprise overlay
@@ -466,11 +480,9 @@
         }
 
         async function signOut(){
-          if(!_sb)return;
           _trackEvent('sign_out',{user:_userName()});
-          await _sb.auth.signOut();
+          if(_sb){try{await _sb.auth.signOut();}catch(e){}}
           _authUser=null;_sbUserId=null;_sbReady=false;
-          // Clear session data from localStorage (user data persists in Supabase)
           try{
             localStorage.removeItem('t4t_user_profile');
             localStorage.removeItem('t4t_beta_access');
@@ -550,6 +562,7 @@
           if(!_sb)return;
           _sb.auth.onAuthStateChange(async(event,session)=>{
             console.log('[T4T Auth]',event,session?.user?.email);
+            _authResolved=true;
             if(event==='SIGNED_OUT'){location.href='/';return;}
             if(event==='PASSWORD_RECOVERY'&&session?.user){
               _authUser=session.user;
@@ -7438,6 +7451,14 @@
             } else if(mode==='friends'){
               status.innerHTML='<span style="color:var(--primary);font-weight:600">Planning with friends</span> · group activities & dining';
             }
+          }
+          // Taste-blend subtitle
+          var _tbs2=document.getElementById('taste-blend-subtitle');
+          if(_tbs2){
+            var _pn=_partnerName();
+            if(mode==='couple')_tbs2.textContent=_pn&&_pn!=='Partner'?'Your taste and '+_pn+'\'s, blended into every recommendation.':'Both your tastes, blended into every recommendation.';
+            else if(mode==='friends')_tbs2.textContent='Blended from everyone in your group, so there\'s something for all of you.';
+            else _tbs2.textContent='Every recommendation is shaped around your taste.';
           }
           // Update couple pill in header
           const pills=document.querySelectorAll('.couple-name');

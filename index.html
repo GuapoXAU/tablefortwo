@@ -344,7 +344,7 @@
               <div style="padding:12px 16px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
                 <div>
                   <div style="font-size:12px;color:var(--ink-soft)" id="pairing-status"><span style="color:var(--primary);font-weight:600">Paired mode</span> · planning together</div>
-                  <div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:2px">Both your tastes are blended into every recommendation</div>
+                  <div id="taste-blend-subtitle" style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:2px">Both your tastes are blended into every recommendation</div>
                 </div>
                 <button class="btn btn-sm" style="font-size:10px;padding:4px 12px;white-space:nowrap" onclick="openPairingPicker()">Switch planning mode</button>
               </div>
@@ -401,7 +401,7 @@
                         <div id="jamie-cosmic" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
                       </div>
                     </div>
-                    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:2px"><span style="font-size:20px;color:var(--rose)">♥</span><span style="font-size:8px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.5px">paired</span></div>
+                    <div id="paired-badge" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:2px"><span style="font-size:20px;color:var(--rose)">♥</span><span style="font-size:8px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.5px">paired</span></div>
                     <div class="profile-half">
                       <div class="profile-avatar" style="background:#EDE6F2;color:#3C3489"></div>
                       <div style="font-size:14px;font-weight:500;margin-bottom:3px;color:var(--ink)">Partner</div>
@@ -445,8 +445,8 @@
                       </div>
                     </div>
                   </div>
-                  <div class="divider"></div>
-                  <div class="g2">
+                  <div id="paired-divider" class="divider"></div>
+                  <div id="shared-dislikes" class="g2">
                     <div>
                       <div class="form-label" style="margin-bottom:8px">Shared dislikes</div>
                       <div class="tag-row">

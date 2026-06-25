@@ -1,4 +1,4 @@
-const CACHE_NAME = 't4t-cache-v6';
+const CACHE_NAME = 't4t-cache-v7';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
