@@ -455,7 +455,8 @@
         async function _authSignUp(email,password){
           if(!_sb)return{error:'Supabase not configured'};
           try{
-            const{data,error}=await _sb.auth.signUp({email,password});
+            var _timeout=new Promise(function(r){setTimeout(function(){r({data:null,error:{message:'That took too long — please try again.'}});},10000);});
+            const{data,error}=await Promise.race([_sb.auth.signUp({email,password}),_timeout]);
             if(error){console.warn('[T4T] Sign-up error:',error);return{error:error.message};}
             return{success:true,data};
           }catch(e){console.warn('[T4T] Sign-up exception:',e);return{error:'Something went wrong. Please try again.'};}
@@ -464,7 +465,8 @@
         async function _authSignIn(email,password){
           if(!_sb)return{error:'Supabase not configured'};
           try{
-            const{data,error}=await _sb.auth.signInWithPassword({email,password});
+            var _timeout=new Promise(function(r){setTimeout(function(){r({data:null,error:{message:'That took too long — please try again.'}});},10000);});
+            const{data,error}=await Promise.race([_sb.auth.signInWithPassword({email,password}),_timeout]);
             if(error){console.warn('[T4T] Sign-in error:',error);return{error:error.message};}
             return{success:true,data};
           }catch(e){console.warn('[T4T] Sign-in exception:',e);return{error:'Something went wrong. Please try again.'};}
@@ -479,9 +481,9 @@
           }catch(e){return{error:'Something went wrong. Please try again.'};}
         }
 
-        async function signOut(){
-          _trackEvent('sign_out',{user:_userName()});
-          if(_sb){try{await _sb.auth.signOut();}catch(e){}}
+        function signOut(){
+          console.log('[T4T] signOut fired');
+          toast('Signing out…');
           _authUser=null;_sbUserId=null;_sbReady=false;
           try{
             localStorage.removeItem('t4t_user_profile');
@@ -491,7 +493,10 @@
             localStorage.removeItem('t4t_handles');
             localStorage.removeItem('t4t_venue_cache');
           }catch(e){}
-          location.href='/';
+          _trackEvent('sign_out',{user:_userName()});
+          if(_sb){try{_sb.auth.signOut().catch(function(){});}catch(e){}}
+          _showLoginScreen();
+          setTimeout(function(){window.location.replace('/');},100);
         }
 
         // Get the current authenticated user's DB row ID + restore full profile
@@ -586,10 +591,12 @@
               const ag=document.getElementById('beta-gate-overlay');if(ag)ag.style.display='none';
               const ne=document.getElementById('name-entry-overlay');if(ne)ne.style.display='none';
               _authLoading=false;
-              // Sync DB — check if profile exists with name + handle
+              // Sync DB — check if profile exists with name + handle (timeout so it never blocks)
               try{
-                const uid=await _sbEnsureUser();
-                if(uid){await _sbLoadState();}
+                var _dbTimeout=new Promise(function(r){setTimeout(function(){r('timeout');},5000);});
+                var _dbSync=_sbEnsureUser().then(function(uid){if(uid)return _sbLoadState();}).then(function(){return 'ok';});
+                var _dbResult=await Promise.race([_dbSync,_dbTimeout]);
+                if(_dbResult==='timeout')console.warn('[T4T] DB sync timed out (non-fatal)');
               }catch(e){console.warn('[T4T] DB sync failed (non-fatal)',e);}
               const ls=document.getElementById('auth-loading-screen');if(ls)ls.remove();
               // Check profile completeness — route to profile completion or app
@@ -5506,32 +5513,43 @@
           }
           const btn=document.getElementById('lp-email-btn');
           const origText=btn.textContent;
-          btn.textContent=_lpAuthMode==='login'?'Signing in...':'Creating account...';btn.disabled=true;
+          var _isLogin=_lpAuthMode==='login';
+          btn.textContent=_isLogin?'Signing in...':'Creating account...';btn.disabled=true;
+          console.log('[T4T] startBetaSignup:',_isLogin?'login':'signup',email);
           try{localStorage.setItem('t4t_last_email',email);}catch(e){}
-          if(!_sb){btn.textContent=origText;btn.disabled=false;toast('Not connected');return;}
-
-          let result;
-          if(_lpAuthMode==='login'){
-            try{localStorage.setItem('t4t_auth_intent','login');}catch(e){}
-            result=await _authSignIn(email,password);
-          }else{
-            try{localStorage.setItem('t4t_auth_intent','signup');}catch(e){}
-            result=await _authSignUp(email,password);
-          }
-
-          if(result.error){
-            btn.textContent=origText;btn.disabled=false;
-            if(hint){hint.textContent=result.error;hint.style.display='block';hint.style.color='#F87171';}
-            return;
-          }
-          _trackEvent(_lpAuthMode==='login'?'sign_in_completed':'sign_up_started',{method:'password',email_domain:email.split('@')[1]});
+          if(!_sb){btn.textContent=origText;btn.disabled=false;toast('Not connected — please reload');return;}
           try{
-            const _src=sessionStorage.getItem('t4t_source')||'direct';
-            const _med=sessionStorage.getItem('t4t_medium')||'';
-            const _cam=sessionStorage.getItem('t4t_campaign')||'';
-            const _ref=sessionStorage.getItem('t4t_referrer')||'';
-            if(_sb)_sb.from('events').insert({event_type:'signup_source',event_data:{source:_src,medium:_med,campaign:_cam,referrer:_ref,intent:_lpAuthMode},user_id:null}).then(()=>{}).catch(()=>{});
-          }catch(e){}
+            var result;
+            if(_isLogin){
+              try{localStorage.setItem('t4t_auth_intent','login');}catch(e){}
+              console.log('[T4T] Calling _authSignIn...');
+              result=await _authSignIn(email,password);
+            }else{
+              try{localStorage.setItem('t4t_auth_intent','signup');}catch(e){}
+              console.log('[T4T] Calling _authSignUp...');
+              result=await _authSignUp(email,password);
+            }
+            console.log('[T4T] Auth result:',result.error||'ok');
+            if(result.error){
+              btn.textContent=origText;btn.disabled=false;
+              if(hint){hint.textContent=result.error;hint.style.display='block';hint.style.color='#F87171';}
+              return;
+            }
+            toast(_isLogin?'Signed in':'Account created');
+            _trackEvent(_isLogin?'sign_in_completed':'sign_up_started',{method:'password',email_domain:email.split('@')[1]});
+            try{
+              var _src=sessionStorage.getItem('t4t_source')||'direct';
+              var _med=sessionStorage.getItem('t4t_medium')||'';
+              var _cam=sessionStorage.getItem('t4t_campaign')||'';
+              var _ref=sessionStorage.getItem('t4t_referrer')||'';
+              if(_sb)_sb.from('events').insert({event_type:'signup_source',event_data:{source:_src,medium:_med,campaign:_cam,referrer:_ref,intent:_lpAuthMode},user_id:null}).then(function(){}).catch(function(){});
+            }catch(e){}
+          }catch(e){
+            console.error('[T4T] startBetaSignup threw:',e);
+            if(hint){hint.textContent='Something went wrong — please try again.';hint.style.display='block';hint.style.color='#F87171';}
+          }finally{
+            btn.textContent=origText;btn.disabled=false;
+          }
         }
 
         function showLpForgotPassword(){
