@@ -79,6 +79,18 @@
               <p class="lp-clean-disclaimer" style="margin-top:4px"><a href="#" onclick="event.preventDefault();showLpForgotPassword()" style="color:rgba(201,168,76,0.5);font-weight:500">Forgot password?</a></p>
             </div>
 
+            <!-- Email confirmation pending -->
+            <div class="lp-clean-form" id="lp-step-confirm" style="display:none;text-align:center;padding:8px 0">
+              <div style="font-size:32px;margin-bottom:12px">&#9993;</div>
+              <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.6;margin-bottom:6px">We've sent a confirmation link to</div>
+              <div id="lp-confirm-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:12px"></div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.3);line-height:1.5;margin-bottom:20px">Click the link in the email to finish creating your account. Check your spam folder if you don't see it.</div>
+              <button id="lp-resend-btn" class="lp-clean-btn" style="width:100%;margin-bottom:10px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1)" onclick="resendConfirmation()">Resend confirmation email</button>
+              <div id="lp-resend-hint" style="display:none;font-size:12px;margin-bottom:10px;line-height:1.5"></div>
+              <button class="lp-clean-btn" style="background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);box-shadow:none;border:0.5px solid rgba(255,255,255,0.06);width:100%" onclick="document.getElementById('lp-step-confirm').style.display='none';document.getElementById('lp-step-email').style.display='block'">Back to sign in</button>
+            </div>
+
             <!-- Forgot password -->
             <div class="lp-clean-form" id="lp-step-forgot" style="display:none;text-align:center;padding:8px 0">
               <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Reset your password</div>

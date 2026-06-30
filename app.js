@@ -5535,7 +5535,26 @@
             console.log('[T4T] Auth result:',result.error||'ok');
             if(result.error){
               btn.textContent=origText;btn.disabled=false;
-              if(hint){hint.textContent=result.error;hint.style.display='block';hint.style.color='#F87171';}
+              var errMsg=result.error;
+              if(_isLogin&&(errMsg.toLowerCase().includes('email not confirmed')||errMsg.toLowerCase().includes('not confirmed'))){
+                _showConfirmEmail(email);
+                return;
+              }
+              if(hint){hint.textContent=errMsg;hint.style.display='block';hint.style.color='#F87171';}
+              return;
+            }
+            // Signup succeeded but no session = confirmation required
+            if(!_isLogin&&(!result.data||!result.data.session)){
+              console.log('[T4T] Signup ok, confirmation pending');
+              _trackEvent('sign_up_started',{method:'password',email_domain:email.split('@')[1]});
+              try{
+                var _src=sessionStorage.getItem('t4t_source')||'direct';
+                var _med=sessionStorage.getItem('t4t_medium')||'';
+                var _cam=sessionStorage.getItem('t4t_campaign')||'';
+                var _ref=sessionStorage.getItem('t4t_referrer')||'';
+                if(_sb)_sb.from('events').insert({event_type:'signup_source',event_data:{source:_src,medium:_med,campaign:_cam,referrer:_ref,intent:'signup'},user_id:null}).then(function(){}).catch(function(){});
+              }catch(e){}
+              _showConfirmEmail(email);
               return;
             }
             toast(_isLogin?'Signed in':'Account created');
@@ -5552,6 +5571,45 @@
             if(hint){hint.textContent='Something went wrong — please try again.';hint.style.display='block';hint.style.color='#F87171';}
           }finally{
             btn.textContent=origText;btn.disabled=false;
+          }
+        }
+
+        var _confirmEmail='';
+        var _resendCooldown=0;
+        function _showConfirmEmail(email){
+          _confirmEmail=email;
+          document.getElementById('lp-step-email').style.display='none';
+          document.getElementById('lp-step-forgot').style.display='none';
+          document.getElementById('lp-step-reset-sent').style.display='none';
+          document.getElementById('lp-confirm-email').textContent=email;
+          var rh=document.getElementById('lp-resend-hint');if(rh){rh.style.display='none';}
+          document.getElementById('lp-step-confirm').style.display='block';
+        }
+        async function resendConfirmation(){
+          var now=Date.now();
+          if(now<_resendCooldown){
+            var secs=Math.ceil((_resendCooldown-now)/1000);
+            var rh=document.getElementById('lp-resend-hint');
+            if(rh){rh.textContent='Please wait '+secs+'s before resending.';rh.style.display='block';rh.style.color='rgba(255,255,255,0.4)';}
+            return;
+          }
+          var btn=document.getElementById('lp-resend-btn');
+          var rh=document.getElementById('lp-resend-hint');
+          if(btn){btn.textContent='Sending...';btn.disabled=true;}
+          try{
+            if(!_sb||!_confirmEmail){if(rh){rh.textContent='Unable to resend — please try signing up again.';rh.style.display='block';rh.style.color='#F87171';}return;}
+            var _timeout=new Promise(function(r){setTimeout(function(){r({error:{message:'Request timed out — please try again.'}});},10000);});
+            var res=await Promise.race([_sb.auth.resend({type:'signup',email:_confirmEmail}),_timeout]);
+            if(res.error){
+              if(rh){rh.textContent=res.error.message;rh.style.display='block';rh.style.color='#F87171';}
+            }else{
+              _resendCooldown=Date.now()+60000;
+              if(rh){rh.textContent='Confirmation email resent. Check your inbox.';rh.style.display='block';rh.style.color='rgba(201,168,76,0.7)';}
+            }
+          }catch(e){
+            if(rh){rh.textContent='Something went wrong — please try again.';rh.style.display='block';rh.style.color='#F87171';}
+          }finally{
+            if(btn){btn.textContent='Resend confirmation email';btn.disabled=false;}
           }
         }
 
