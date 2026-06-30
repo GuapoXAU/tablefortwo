@@ -5585,6 +5585,15 @@
           var rh=document.getElementById('lp-resend-hint');if(rh){rh.style.display='none';}
           document.getElementById('lp-step-confirm').style.display='block';
         }
+        function confirmAndSignIn(){
+          document.getElementById('lp-step-confirm').style.display='none';
+          document.getElementById('lp-step-email').style.display='block';
+          toggleLpAuthMode('login');
+          var emailInput=document.getElementById('lp-email');
+          if(emailInput&&_confirmEmail){emailInput.value=_confirmEmail;}
+          var pwInput=document.getElementById('lp-password');
+          if(pwInput){pwInput.value='';pwInput.focus();}
+        }
         async function resendConfirmation(){
           var now=Date.now();
           if(now<_resendCooldown){
