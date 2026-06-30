@@ -7820,3 +7820,108 @@
           _captureError(e.reason,{context:'promise',source:'unhandledrejection'});
         });
 
+        // ═══ Micro-interactions ═══
+        (function(){
+          var _reducedMotion=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+          if(_reducedMotion)return;
+
+          var _t4tAnims={header:true,cards:true,pills:true,countup:true,pulse:true,feedback:true,badges:true,save:true};
+          var body=document.body;
+          if(_t4tAnims.header)body.classList.add('t4t-anim-header');
+          if(_t4tAnims.cards)body.classList.add('t4t-anim-cards');
+          if(_t4tAnims.pills)body.classList.add('t4t-anim-pills');
+          if(_t4tAnims.pulse)body.classList.add('t4t-anim-pulse');
+          if(_t4tAnims.feedback)body.classList.add('t4t-anim-feedback');
+          if(_t4tAnims.badges)body.classList.add('t4t-anim-badges');
+          if(_t4tAnims.save)body.classList.add('t4t-anim-save');
+
+          // 1. Scroll-aware header
+          if(_t4tAnims.header){
+            var _mh=document.querySelector('.mobile-header');
+            var _ct=document.querySelector('.content');
+            if(_mh&&_ct){
+              var _lastST=0;
+              _ct.addEventListener('scroll',function(){
+                var st=_ct.scrollTop;
+                if(st>40&&!_mh.classList.contains('mh-compact'))_mh.classList.add('mh-compact');
+                else if(st<=40&&_mh.classList.contains('mh-compact'))_mh.classList.remove('mh-compact');
+                _lastST=st;
+              },{passive:true});
+            }
+          }
+
+          // 2. Card entrance — IntersectionObserver
+          if(_t4tAnims.cards){
+            var _cardObs=new IntersectionObserver(function(entries){
+              var delay=0;
+              entries.forEach(function(e){
+                if(e.isIntersecting){
+                  var el=e.target;
+                  setTimeout(function(){el.classList.add('t4t-visible');},delay);
+                  delay+=80;
+                  _cardObs.unobserve(el);
+                }
+              });
+            },{root:document.querySelector('.content'),threshold:0.1});
+            var _obsCards=new MutationObserver(function(){
+              document.querySelectorAll('.plan-card:not(.t4t-visible)').forEach(function(c){_cardObs.observe(c);});
+            });
+            _obsCards.observe(document.body,{childList:true,subtree:true});
+            document.querySelectorAll('.plan-card:not(.t4t-visible)').forEach(function(c){_cardObs.observe(c);});
+          }
+
+          // 4. Match % count-up on reason tags (score display removed, so count-up targets plan cost/duration numbers if present)
+          // The app no longer shows a numeric match %. Skipping count-up as there's no target element.
+
+          // 5. Primary button idle pulse — handled by CSS; press feedback via JS
+          if(_t4tAnims.pulse){
+            document.addEventListener('touchstart',function(e){
+              var btn=e.target.closest('.btn-rose');
+              if(btn){btn.style.animation='none';btn.style.transform='scale(0.96)';}
+            },{passive:true});
+            document.addEventListener('touchend',function(e){
+              var btn=e.target.closest('.btn-rose');
+              if(btn){btn.style.transform='';setTimeout(function(){btn.style.animation='';},50);}
+            },{passive:true});
+          }
+
+          // 6. Feedback button bounce
+          if(_t4tAnims.feedback){
+            document.addEventListener('click',function(e){
+              var btn=e.target.closest('.plan-react');
+              if(!btn)return;
+              btn.classList.remove('t4t-bounce');
+              void btn.offsetWidth;
+              btn.classList.add('t4t-bounce');
+              btn.addEventListener('animationend',function(){btn.classList.remove('t4t-bounce');},{once:true});
+            });
+          }
+
+          // 8. Save micro-animation
+          if(_t4tAnims.save){
+            document.addEventListener('click',function(e){
+              var btn=e.target.closest('.plan-btn-save');
+              if(!btn)return;
+              btn.classList.remove('t4t-save-pop');
+              void btn.offsetWidth;
+              btn.classList.add('t4t-save-pop');
+              btn.addEventListener('animationend',function(){btn.classList.remove('t4t-save-pop');},{once:true});
+              // Particle burst
+              var rect=btn.getBoundingClientRect();
+              var cx=rect.left+rect.width/2;var cy=rect.top+rect.height/2;
+              for(var i=0;i<4;i++){
+                var dot=document.createElement('div');
+                dot.className='t4t-save-particle';
+                var angle=(Math.PI*2/4)*i+Math.random()*0.5;
+                dot.style.left=cx+'px';dot.style.top=cy+'px';dot.style.position='fixed';
+                document.body.appendChild(dot);
+                var tx=Math.cos(angle)*24;var ty=Math.sin(angle)*24;
+                requestAnimationFrame(function(d,x,y){return function(){
+                  d.classList.add('t4t-burst');d.style.transform='translate('+x+'px,'+y+'px)';
+                  setTimeout(function(){d.remove();},450);
+                };}(dot,tx,ty));
+              }
+            });
+          }
+        })();
+

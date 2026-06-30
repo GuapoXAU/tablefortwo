@@ -1058,3 +1058,51 @@
         .booking-confirm-retry{border-color:rgba(201,168,76,0.15)}
         .booking-confirm-retry:hover{background:rgba(201,168,76,0.06);border-color:rgba(201,168,76,0.25)}
 
+        /* ═══ Micro-interactions ═══ */
+
+        /* 1. Scroll-aware header */
+        .t4t-anim-header .mobile-header{transition:transform 0.25s ease,padding 0.25s ease}
+        .t4t-anim-header .mobile-header.mh-compact{padding-top:calc(max(env(safe-area-inset-top,20px),20px) + 4px)!important;padding-bottom:6px!important;background:rgba(8,8,8,0.92)!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+        .t4t-anim-header .mobile-header.mh-compact .mobile-logo{font-size:15px!important;transition:font-size 0.25s ease}
+        .t4t-anim-header .mobile-header.mh-compact .mobile-page-title{font-size:10px!important;transition:font-size 0.25s ease}
+
+        /* 2. Card entrance */
+        .t4t-anim-cards .plan-card{opacity:0;transform:translateY(20px);transition:opacity 0.35s ease,transform 0.35s ease}
+        .t4t-anim-cards .plan-card.t4t-visible{opacity:1;transform:translateY(0)}
+
+        /* 3. Filter pill transitions */
+        .t4t-anim-pills .occasion-chip{transition:transform 0.2s ease,opacity 0.2s ease,border-color 0.15s,background 0.15s,color 0.15s}
+        .t4t-anim-pills .occasion-chip.active{transform:scale(1.05)}
+
+        /* 4. Match count-up — no CSS needed, JS only */
+
+        /* 5. Primary button idle pulse */
+        .t4t-anim-pulse .btn-rose{animation:t4t-breathe 3s ease-in-out infinite}
+        .t4t-anim-pulse .btn-rose:active{animation:none;transform:scale(0.96);transition:transform 0.1s ease}
+        @keyframes t4t-breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.02)}}
+
+        /* 6. Feedback button bounce */
+        .t4t-anim-feedback .plan-react.t4t-bounce{animation:t4t-tap-bounce 0.35s ease}
+        @keyframes t4t-tap-bounce{0%{transform:scale(1)}30%{transform:scale(0.92)}65%{transform:scale(1.05)}100%{transform:scale(1)}}
+
+        /* 7. Trending/rising badge pulse */
+        .t4t-anim-badges .wh-trending-pill{animation:t4t-badge-pulse 3s ease-in-out infinite}
+        @keyframes t4t-badge-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+
+        /* 8. Save micro-animation */
+        .t4t-anim-save .plan-btn-save.t4t-save-pop{animation:t4t-save-pop 0.4s ease}
+        @keyframes t4t-save-pop{0%{transform:scale(1)}35%{transform:scale(1.3)}100%{transform:scale(1)}}
+        .t4t-save-particle{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(201,168,76,0.7);pointer-events:none;opacity:1}
+        .t4t-save-particle.t4t-burst{transition:transform 0.4s ease-out,opacity 0.4s ease-out;opacity:0}
+
+        /* Reduced motion: disable all */
+        @media(prefers-reduced-motion:reduce){
+          .t4t-anim-header .mobile-header{transition:none!important}
+          .t4t-anim-cards .plan-card{opacity:1!important;transform:none!important;transition:none!important}
+          .t4t-anim-pills .occasion-chip{transition:none!important;transform:none!important}
+          .t4t-anim-pulse .btn-rose{animation:none!important}
+          .t4t-anim-feedback .plan-react.t4t-bounce{animation:none!important}
+          .t4t-anim-badges .wh-trending-pill{animation:none!important}
+          .t4t-anim-save .plan-btn-save.t4t-save-pop{animation:none!important}
+        }
+
