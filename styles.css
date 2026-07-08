@@ -1095,6 +1095,16 @@
         .t4t-save-particle{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(201,168,76,0.7);pointer-events:none;opacity:1}
         .t4t-save-particle.t4t-burst{transition:transform 0.4s ease-out,opacity 0.4s ease-out;opacity:0}
 
+        /* 9. Members door */
+        .md-overlay{position:fixed;inset:0;z-index:1001;background:rgba(4,4,3,0.97);display:flex;align-items:center;justify-content:center;overflow:hidden}
+        .md-scene{display:flex;flex-direction:column;align-items:center;width:100%;max-width:340px;padding:0 20px}
+        .t4t-anim-mdoor .md-scene{opacity:0;transform:translateY(18px);animation:md-enter 0.5s ease forwards}
+        @keyframes md-enter{to{opacity:1;transform:translateY(0)}}
+        .t4t-anim-mdoor .md-glow{animation:md-breathe 4s ease-in-out infinite}
+        .t4t-anim-mdoor .md-flicker{animation:md-flicker 6s ease-in-out infinite}
+        @keyframes md-breathe{0%,100%{opacity:0.55;transform:scale(1)}50%{opacity:0.85;transform:scale(1.08)}}
+        @keyframes md-flicker{0%,100%{opacity:1}47%{opacity:1}48%{opacity:0.7}49%{opacity:1}82%{opacity:1}83%{opacity:0.75}84%{opacity:1}}
+
         /* Reduced motion: disable all */
         @media(prefers-reduced-motion:reduce){
           .t4t-anim-header .mobile-header{transition:none!important}
@@ -1104,5 +1114,8 @@
           .t4t-anim-feedback .plan-react.t4t-bounce{animation:none!important}
           .t4t-anim-badges .wh-trending-pill{animation:none!important}
           .t4t-anim-save .plan-btn-save.t4t-save-pop{animation:none!important}
+          .t4t-anim-mdoor .md-scene{animation:none!important;opacity:1!important;transform:none!important}
+          .t4t-anim-mdoor .md-glow{animation:none!important;opacity:0.7!important}
+          .t4t-anim-mdoor .md-flicker{animation:none!important}
         }
 

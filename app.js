@@ -8,6 +8,17 @@
         // Valid invite codes — still used as optional extra gate
         const _BETA_CODES=['T4T2026','TABLEFORTWO','EARLYACCESS','BETA2026','LONDON26'];
 
+        // ── Subscription tiers ──
+        const TIER_LIMITS={
+          free:    {refreshesPerPlan:3, maxSaves:10, advancedFilters:false, exclusiveVenues:false, concierge:false},
+          plus:    {refreshesPerPlan:Infinity, maxSaves:Infinity, advancedFilters:true, exclusiveVenues:false, concierge:false},
+          members: {refreshesPerPlan:Infinity, maxSaves:Infinity, advancedFilters:true, exclusiveVenues:true, concierge:true}
+        };
+        const TIER_GATES={refreshes:true, saves:true, advancedFilters:true, exclusiveVenues:true};
+        let _userTier='free';
+        let _refreshCount=0;
+        function _getTierLimit(key){return(TIER_LIMITS[_userTier]||TIER_LIMITS.free)[key];}
+
         // Auth state
         let _authUser=null;     // Supabase auth user object
         let _authLoading=true;  // true until we know auth state
@@ -506,7 +517,7 @@
         async function _sbEnsureUser(){
           if(!_sb||!_authUser)return null;
           try{
-            const{data}=await _sb.from('users').select('id,name,partner_name,email,handle,account_state,city,onboarding_completed,preferences').eq('auth_id',_authUser.id).maybeSingle();
+            const{data}=await _sb.from('users').select('id,name,partner_name,email,handle,account_state,city,onboarding_completed,preferences,tier').eq('auth_id',_authUser.id).maybeSingle();
             if(data){
               _sbUserId=data.id;
               // Restore full profile to localStorage (DB is source of truth)
@@ -524,6 +535,7 @@
               // Restore handle into _handles
               if(data.handle){_handles.user=data.handle;try{localStorage.setItem('t4t_handles',JSON.stringify(_handles));}catch(e){}}
               _saveUserProfile(restoredProfile);
+              if(data.tier&&TIER_LIMITS[data.tier])_userTier=data.tier;
               // Restore in-memory preferences for plan engine
               if(data.onboarding_completed&&data.preferences&&typeof data.preferences==='object'){
                 Object.assign(_obPrefs,data.preferences);
@@ -2082,6 +2094,10 @@
           venues=venues.filter(v=>!v.venue_status||v.venue_status==='active');
 
           // ── TAXONOMY HARD FILTERS (deterministic, not scoring) ──
+          // 0. Exclusive venues: only show to members tier
+          if(TIER_GATES.exclusiveVenues&&!_getTierLimit('exclusiveVenues')){
+            venues=venues.filter(v=>!v.exclusive);
+          }
           // 1. Relationship context: only exclude if tag exists AND doesn't match; missing = pass
           venues=venues.filter(v=>!v.rel||!v.rel.length||v.rel.includes(relContext));
 
@@ -2316,6 +2332,11 @@
         }
 
         function savePlanToWishlist(planId){
+          if(TIER_GATES.saves&&_getTierLimit('maxSaves')!==Infinity){
+            const plan=_currentPlans.find(p=>p.id===planId);
+            const wouldAdd=plan?plan.items.filter(i=>!_wishlist.some(w=>w.name===i.name)).length:0;
+            if(_wishlist.length+wouldAdd>_getTierLimit('maxSaves')){showUpgradePrompt('save_cap');return;}
+          }
           _setPlanStatus(planId,'saved');
           const plan=_currentPlans.find(p=>p.id===planId);
           if(!plan)return;
@@ -4130,7 +4151,14 @@
         }
 
         function generateSuggestions(_instant){
-          _trackEvent('refresh_clicked',{instant:!!_instant});
+          if(!_instant&&TIER_GATES.refreshes&&_getTierLimit('refreshesPerPlan')!==Infinity){
+            _refreshCount++;
+            if(_refreshCount>_getTierLimit('refreshesPerPlan')){
+              showUpgradePrompt('refresh_cap');
+              return;
+            }
+          }
+          _trackEvent('refresh_clicked',{instant:!!_instant,refresh_num:_refreshCount});
           const area=document.getElementById('suggestions-area');
 
           // ── PREFERENCE PRIORITY CHAIN ──
@@ -6109,6 +6137,7 @@
         function _clearWishBadge(){_wishBadgeCount=0;_updateWishBadge();}
         function saveToWishlist(name,emoji,price,type,why){
           if(_wishlist.find(w=>w.name===name)){toast('✦ Already on your wishlist!');return;}
+          if(TIER_GATES.saves&&_getTierLimit('maxSaves')!==Infinity&&_wishlist.length>=_getTierLimit('maxSaves')){showUpgradePrompt('save_cap');return;}
           _wishlist.push({id:Date.now(),name,emoji,price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
           _wishBadgeCount++;_updateWishBadge();
           _sbSaveState('wishlist',_wishlist);
@@ -6135,6 +6164,7 @@
           const type=document.getElementById('wi-type').value;
           const why=document.getElementById('wi-why').value.trim();
           if(_wishlist.find(w=>w.name===name)){toast('Already on your wishlist!');closeWishOverlay();return;}
+          if(TIER_GATES.saves&&_getTierLimit('maxSaves')!==Infinity&&_wishlist.length>=_getTierLimit('maxSaves')){showUpgradePrompt('save_cap');closeWishOverlay();return;}
           _wishlist.push({id:Date.now(),name,emoji:'✦',price,type,why,addedDate:new Date().toISOString().slice(0,10),done:false});
           _wishBadgeCount++;_updateWishBadge();
           closeWishOverlay();
@@ -7609,10 +7639,28 @@
           const ov=document.getElementById('refine-overlay');
           const sheet=document.getElementById('refine-sheet');
           if(!ov||!sheet)return;
-          // Prefill from saved onboarding preferences
           _rfPrefill();
-          // Restore current selections
           _rfApplySelections();
+          // Gate advanced filter groups for free users
+          if(TIER_GATES.advancedFilters&&!_getTierLimit('advancedFilters')){
+            ['rf-style','rf-food','rf-pace'].forEach(function(id){
+              var grp=document.getElementById(id);
+              if(!grp)return;
+              var parent=grp.closest('.rf-group');
+              if(!parent)return;
+              if(!parent.querySelector('.rf-lock-badge')){
+                parent.style.position='relative';
+                var lock=document.createElement('div');
+                lock.className='rf-lock-badge';
+                lock.style.cssText='position:absolute;inset:0;background:rgba(8,8,8,0.6);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2';
+                lock.innerHTML='<span style="font-size:11px;color:rgba(201,168,76,0.7);font-weight:600;letter-spacing:0.3px">&#9733; Plus</span>';
+                lock.onclick=function(e){e.stopPropagation();showUpgradePrompt('advanced_filters');};
+                parent.appendChild(lock);
+              }
+            });
+          }else{
+            document.querySelectorAll('.rf-lock-badge').forEach(function(el){el.remove();});
+          }
           ov.style.display='block';
           document.body.style.overflow='hidden';
           requestAnimationFrame(()=>{sheet.classList.add('rf-open');});
@@ -7809,6 +7857,157 @@
               if(ctx.venue)scope.setExtra('venue',ctx.venue);
               Sentry.captureException(error instanceof Error?error:new Error(msg));
             });
+          }
+        }
+
+        // ── Upgrade prompt ──
+        function showUpgradePrompt(reason){
+          if(reason==='exclusive_venue'||reason==='concierge'){showMembersDoor(reason);return;}
+          _trackEvent('upgrade_prompt_shown',{reason:reason,current_tier:_userTier});
+          var _titles={
+            refresh_cap:'This is a Plus feature',
+            save_cap:'This is a Plus feature',
+            advanced_filters:'This is a Plus feature',
+            exclusive_venue:'This is a Members-only experience',
+            concierge:'This is a Members feature'
+          };
+          var _bodies={
+            refresh_cap:'Unlimited refreshes are included with Plus. You\'ve reached the free limit for this session.',
+            save_cap:'Unlimited saves are included with Plus. You\'ve reached the free limit.',
+            advanced_filters:'Dietary precision, mood tuning, and taste-blending are included with Plus.',
+            exclusive_venue:'This venue is reserved for Members.',
+            concierge:'A dedicated concierge is included with Members.'
+          };
+          var ov=document.getElementById('upgrade-prompt-overlay');
+          if(ov)ov.remove();
+          ov=document.createElement('div');
+          ov.id='upgrade-prompt-overlay';
+          ov.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.7);display:flex;align-items:center;justify-content:center;padding:20px';
+          ov.onclick=function(e){if(e.target===ov){ov.remove();}};
+          ov.innerHTML='<div style="background:rgba(12,11,9,0.97);border:0.5px solid rgba(201,168,76,0.2);border-radius:20px;max-width:360px;width:100%;padding:28px 24px;text-align:center">'
+            +'<div style="width:48px;height:48px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:22px">&#9733;</div>'
+            +'<div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:8px;font-family:var(--font-serif,serif)">'+(_titles[reason]||'Premium feature')+'</div>'
+            +'<div style="font-size:13px;color:rgba(255,255,255,0.45);line-height:1.6;margin-bottom:20px">'+(_bodies[reason]||'This feature is part of a premium plan.')+'</div>'
+            +'<button onclick="document.getElementById(\'upgrade-prompt-overlay\').remove();showTierScreen()" style="width:100%;padding:14px;background:linear-gradient(135deg,#8B6914,#C9A84C);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px">Learn more</button>'
+            +'<button onclick="document.getElementById(\'upgrade-prompt-overlay\').remove()" style="width:100%;padding:12px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;color:rgba(255,255,255,0.4);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit">OK</button>'
+            +'</div>';
+          document.body.appendChild(ov);
+        }
+
+        // ── Tier info screen (no payment — informational only) ──
+        function showTierScreen(){
+          var ov=document.getElementById('tier-screen-overlay');
+          if(ov)ov.remove();
+          ov=document.createElement('div');
+          ov.id='tier-screen-overlay';
+          ov.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,0.8);overflow-y:auto;-webkit-overflow-scrolling:touch';
+          var _tierData=[
+            {id:'free',name:'Free',features:['Unlimited planning sessions','Up to '+TIER_LIMITS.free.refreshesPerPlan+' refreshes per plan','Save up to '+TIER_LIMITS.free.maxSaves+' wishlist items','Basic filters']},
+            {id:'plus',name:'Plus',features:['Everything in Free','Unlimited refreshes','Unlimited saves','Advanced personalisation','Dietary precision & mood tuning','Couple & group taste-blending','Early access to new venues'],highlight:true},
+            {id:'members',name:'Members',features:['Everything in Plus','Exclusive members-only venues','Personal concierge','Priority support']}
+          ];
+          var html='<div style="max-width:440px;margin:0 auto;padding:24px 18px calc(env(safe-area-inset-bottom,20px) + 24px)">';
+          html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">';
+          html+='<div style="font-family:var(--font-serif,serif);font-size:22px;font-weight:300;color:rgba(255,255,255,0.9)">Your plan</div>';
+          html+='<button onclick="document.getElementById(\'tier-screen-overlay\').remove()" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:22px;cursor:pointer;padding:4px 8px">&#10005;</button></div>';
+          _tierData.forEach(function(t){
+            var isCurrent=_userTier===t.id;
+            var border=t.highlight?'border:1px solid rgba(201,168,76,0.35)':(isCurrent?'border:1px solid rgba(201,168,76,0.25)':'border:0.5px solid rgba(255,255,255,0.08)');
+            var bg=t.highlight?'background:rgba(201,168,76,0.04)':(isCurrent?'background:rgba(201,168,76,0.02)':'background:rgba(255,255,255,0.02)');
+            html+='<div style="'+bg+';'+border+';border-radius:16px;padding:22px 20px;margin-bottom:14px;position:relative">';
+            if(isCurrent)html+='<div style="position:absolute;top:-10px;right:16px;padding:3px 12px;background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;font-size:10px;font-weight:700;color:#C9A84C;letter-spacing:0.5px;text-transform:uppercase">Current</div>';
+            html+='<div style="font-size:18px;font-weight:700;color:rgba(255,255,255,0.9);margin-bottom:12px">'+t.name+'</div>';
+            html+='<div style="display:flex;flex-direction:column;gap:8px">';
+            t.features.forEach(function(f){
+              html+='<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.55)"><span style="color:rgba(201,168,76,0.7);font-size:14px">&#10003;</span>'+f+'</div>';
+            });
+            html+='</div></div>';
+          });
+          html+='</div>';
+          ov.innerHTML=html;
+          document.body.appendChild(ov);
+        }
+
+        // ── Members door ──
+        var _mdoorMotion=true;
+        function showMembersDoor(triggerReason){
+          _trackEvent('members_door_shown',{trigger:triggerReason,current_tier:_userTier});
+          var ov=document.getElementById('members-door-overlay');
+          if(ov)ov.remove();
+          var _rm=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
+          var _anim=_mdoorMotion&&!_rm;
+          ov=document.createElement('div');
+          ov.id='members-door-overlay';
+          ov.className='md-overlay'+(_anim?' t4t-anim-mdoor':'');
+          // Close button
+          var closeHtml='<button onclick="document.getElementById(\'members-door-overlay\').remove()" style="position:absolute;top:max(env(safe-area-inset-top,16px),16px);right:16px;background:none;border:none;color:rgba(255,255,255,0.25);font-size:24px;cursor:pointer;z-index:2;padding:8px">&#10005;</button>';
+          // SVG door with lantern
+          var doorSvg='<svg viewBox="0 0 200 320" width="200" height="320" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">'
+            // Lantern glow — radial gradient
+            +'<defs><radialGradient id="md-lg" cx="100" cy="28" r="90" gradientUnits="userSpaceOnUse">'
+            +'<stop offset="0%" stop-color="#C9A23E" stop-opacity="0.35"/>'
+            +'<stop offset="60%" stop-color="#C9A23E" stop-opacity="0.06"/>'
+            +'<stop offset="100%" stop-color="#C9A23E" stop-opacity="0"/>'
+            +'</radialGradient></defs>'
+            // Glow circle
+            +'<ellipse class="md-glow" cx="100" cy="60" rx="80" ry="70" fill="url(#md-lg)" style="transform-origin:100px 60px"/>'
+            // Lantern fixture
+            +'<g class="md-flicker">'
+            +'<rect x="92" y="4" width="16" height="3" rx="1.5" fill="#8a7330"/>'
+            +'<rect x="95" y="7" width="10" height="14" rx="2" fill="none" stroke="#b9932f" stroke-width="1.2"/>'
+            +'<line x1="100" y1="9" x2="100" y2="18" stroke="#C9A23E" stroke-width="1" stroke-linecap="round" opacity="0.8"/>'
+            +'<circle cx="100" cy="12" r="2.5" fill="#C9A23E" opacity="0.5"/>'
+            +'<line x1="100" y1="21" x2="100" y2="30" stroke="#8a7330" stroke-width="0.8"/>'
+            +'</g>'
+            // Door frame
+            +'<rect x="30" y="30" width="140" height="260" rx="3" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="1.5"/>'
+            // Door fill
+            +'<rect x="32" y="32" width="136" height="256" rx="2" fill="rgba(12,11,9,0.95)"/>'
+            // Centre divider
+            +'<line x1="100" y1="36" x2="100" y2="284" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>'
+            // Upper panels
+            +'<rect x="40" y="40" width="54" height="100" rx="2" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>'
+            +'<rect x="106" y="40" width="54" height="100" rx="2" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>'
+            // Lower panels
+            +'<rect x="40" y="155" width="54" height="120" rx="2" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>'
+            +'<rect x="106" y="155" width="54" height="120" rx="2" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="0.8"/>'
+            // Knocker ring
+            +'<circle cx="100" cy="200" r="10" fill="none" stroke="#b9932f" stroke-width="2" opacity="0.7"/>'
+            +'<circle cx="100" cy="190" r="2.5" fill="#b9932f" opacity="0.6"/>'
+            // Threshold
+            +'<rect x="28" y="288" width="144" height="4" rx="1" fill="rgba(255,255,255,0.03)"/>'
+            +'</svg>';
+
+          ov.innerHTML=closeHtml
+            +'<div class="md-scene" id="md-scene-content">'
+            +'<div style="margin-bottom:6px">'
+            +doorSvg
+            +'</div>'
+            +'<div style="font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:#C9A23E;margin-bottom:6px">MEMBERS</div>'
+            +'<div style="font-family:var(--font-serif,serif);font-size:24px;font-weight:300;color:rgba(255,255,255,0.88);letter-spacing:-0.3px;margin-bottom:10px">Table for Two</div>'
+            +'<div style="font-size:12px;color:rgba(255,255,255,0.35);letter-spacing:0.3px;margin-bottom:4px">Exclusive tables &middot; a personal concierge</div>'
+            +'<div style="font-size:9px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,0.18);margin-bottom:28px">BY INVITATION</div>'
+            +'<button id="md-request-btn" onclick="requestMembersAccess()" style="width:100%;max-width:280px;padding:14px;background:linear-gradient(135deg,#8B6914,#C9A84C);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px">Request access</button>'
+            +'<button onclick="document.getElementById(\'members-door-overlay\').remove();showTierScreen()" style="width:100%;max-width:280px;padding:12px;background:rgba(255,255,255,0.04);border:0.5px solid rgba(255,255,255,0.08);border-radius:12px;color:rgba(255,255,255,0.4);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit">See what\'s inside</button>'
+            +'</div>';
+          document.body.appendChild(ov);
+        }
+
+        function requestMembersAccess(){
+          var btn=document.getElementById('md-request-btn');
+          if(btn){btn.textContent='Requesting...';btn.disabled=true;}
+          _trackEvent('members_access_requested',{current_tier:_userTier});
+          var _email=_authUser?_authUser.email:'';
+          var _uid=_sbUserId||null;
+          if(_sb){
+            _sb.from('members_interest').insert({user_id:_uid,email:_email}).then(function(){}).catch(function(){});
+          }
+          var scene=document.getElementById('md-scene-content');
+          if(scene){
+            scene.innerHTML='<div style="width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:26px">&#10003;</div>'
+              +'<div style="font-family:var(--font-serif,serif);font-size:20px;font-weight:300;color:rgba(255,255,255,0.88);margin-bottom:10px;text-align:center">You\'re on the list</div>'
+              +'<div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;text-align:center;margin-bottom:28px">We\'ll be in touch when a spot opens up.</div>'
+              +'<button onclick="document.getElementById(\'members-door-overlay\').remove()" style="width:100%;max-width:280px;padding:14px;background:rgba(255,255,255,0.06);border:0.5px solid rgba(255,255,255,0.1);border-radius:12px;color:rgba(255,255,255,0.6);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit">Close</button>';
           }
         }
 
