@@ -15,6 +15,7 @@
           members: {refreshesPerPlan:Infinity, maxSaves:Infinity, advancedFilters:true, exclusiveVenues:true, concierge:true}
         };
         const TIER_GATES={refreshes:true, saves:true, advancedFilters:true, exclusiveVenues:true};
+        const SHOW_MEMBERS_NIGHTLIFE=false; // keep false until age rating confirmed
         let _userTier='free';
         let _refreshCount=0;
         function _getTierLimit(key){return(TIER_LIMITS[_userTier]||TIER_LIMITS.free)[key];}
@@ -740,7 +741,7 @@
             }
             // Re-render everything with loaded data
             _applyUserNames();
-            renderBookings();renderReminders?.();renderCal?.();updateStats();renderWishlist?.();renderJournal?.();renderHubWishlist?.();
+            renderBookings();renderReminders?.();renderCal?.();updateStats();renderWishlist?.();renderJournal?.();renderHubWishlist?.();renderMembersSection?.();
             console.log('[T4T] State loaded from Supabase');
             _sbReady=true;
           }catch(e){console.warn('[T4T] State load error',e);}
@@ -1036,6 +1037,7 @@
           const mt=document.getElementById('mobile-page-title');if(mt)mt.textContent=id==='discover'?'Discover':(TITLES[id]||id);
           if(id==='planner')renderCal();
           if(id==='bookings'||id==='discover'){renderBookings();updateStats();renderHubWishlist();_clearWishBadge();}
+          if(id==='discover')renderMembersSection();
           if(id==='planner')renderReminders();
           if(id==='journal')renderJournal();
           if(id==='wishlist')renderWishlist();
@@ -1467,10 +1469,11 @@
             {name:'Royal China Club',loc:'Marylebone · Cantonese restaurant',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'Hong Kong Cantonese classics with luxury ingredients — the best dim sum trolley in London',score:88,type:'foodie',vibes:['Candlelit'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury'],dietary:['vegetarian','pescatarian'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
             {name:'AngloThai',loc:'Marylebone · Thai-British fusion',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £150pp',why:'Michelin-starred Thai-British fusion — inventive tasting menus that redefine both cuisines',score:90,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],budgetTier:'luxury',contexts:['partner'],mood:['romantic','luxury'],dietary:['vegetarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
             {name:'Helene Darroze at The Connaught',loc:'Mayfair · French fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £250pp',why:'Three Michelin stars at The Connaught — among the finest French dining experiences in the world',score:95,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],budgetTier:'luxury',contexts:['partner'],mood:['romantic','luxury'],dietary:['vegetarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
-            // TODO: Nathan to confirm venue details (price, why, dietary, score)
-            {name:'House of KOKO',loc:'Camden · Members\' club',emoji:'✦',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'Private members\' floor above KOKO — cocktails, live music and late-night dining in Camden\'s iconic venue',score:90,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active',rel:['partner','friends'],budgetTier:'mid',contexts:['partner','friends'],mood:['nightlife','luxury','casual'],dietary:['vegetarian'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly','high_energy'],pace:'extended',fmt:['drinks','dining','entertainment'],weather:'weather_flexible'},exclusive:true},
-            // TODO: Nathan to confirm venue details (price, why, dietary, score)
-            {name:'Colony Grill Room',loc:'Mayfair · The Beaumont',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Art Deco grill room at The Beaumont — old-world glamour, Dover sole and impeccable service',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury'],dietary:['vegetarian','pescatarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining'],weather:'weather_flexible'},exclusive:true},
+            {name:'House of KOKO',loc:'Camden · Private members\' club',emoji:'✦',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'The members\' club inside Camden\'s iconic KOKO — a private balcony onto 150+ live shows a year, secret backstage performances, a rooftop restaurant, dome cocktail bar, speakeasy and vinyl rooms across four floors',score:90,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active',rel:['partner','friends'],budgetTier:'mid',contexts:['partner','friends'],mood:['nightlife','luxury','casual'],dietary:['vegetarian'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly','high_energy'],pace:'extended',fmt:['drinks','dining','entertainment'],weather:'weather_flexible'},exclusive:true},
+            // Members-only nightlife — gated behind SHOW_MEMBERS_NIGHTLIFE + membersOnly, off until age rating confirmed
+            {name:'Tape London',loc:'Mayfair · Members\' nightlife',emoji:'✦',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £200pp',why:'One of Mayfair\'s most exclusive nightclubs on Hanover Square — celebrity clientele, live performances and a recording-studio heritage. Access and tables arranged through your concierge.',score:88,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['nightlife','luxury'],dietary:[],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'extended',fmt:['drinks','entertainment'],weather:'weather_flexible'},membersOnly:true},
+            {name:'Cirque le Soir',loc:'Soho · Members\' nightlife',emoji:'✦',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £180pp',why:'London\'s most theatrical nightclub — circus performers, aerialists and fire shows in the heart of Soho. Guestlist and tables arranged through your concierge.',score:87,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['friends'],budgetTier:'luxury',contexts:['friends'],mood:['nightlife','luxury','playful'],dietary:[],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'extended',fmt:['drinks','entertainment'],weather:'weather_flexible'},membersOnly:true},
+            {name:'Libertine',loc:'Mayfair · Members\' nightlife',emoji:'✦',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £200pp',why:'An exclusive Mayfair nightclub with a strict door — access arranged through your concierge.',score:85,type:'fun',vibes:['Unique / memorable'],venue_status:'active',rel:['friends'],budgetTier:'luxury',contexts:['friends'],mood:['nightlife','luxury'],dietary:[],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['group_friendly','high_energy'],pace:'extended',fmt:['drinks','entertainment'],weather:'weather_flexible'},membersOnly:true},
             // TODO: Nathan to confirm venue details (price, why, dietary, score)
             {name:'Pierluigi',loc:'Beckenham · Italian seafood',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'Neighbourhood Italian with a reputation that travels — fresh seafood and handmade pasta',score:86,type:'foodie',vibes:['Candlelit'],venue_status:'active',rel:['partner','friends'],budgetTier:'mid',contexts:['partner','friends'],mood:['romantic','casual'],dietary:['vegetarian','pescatarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['dining'],weather:'weather_flexible'},conciergeBoost:true},
             // TODO: Nathan to confirm venue details (price, why, dietary, score)
@@ -2104,7 +2107,9 @@
           venues=venues.filter(v=>!v.venue_status||v.venue_status==='active');
 
           // ── TAXONOMY HARD FILTERS (deterministic, not scoring) ──
-          // 0. Exclusive venues: members see all; others get max 2 as locked teasers
+          // 0a. Members-only nightlife: hidden unless flag on AND user is members tier
+          venues=venues.filter(function(v){return!v.membersOnly||SHOW_MEMBERS_NIGHTLIFE&&_getTierLimit('exclusiveVenues');});
+          // 0b. Exclusive venues: members see all; others get max 2 as locked teasers
           var _exclusiveLocked=TIER_GATES.exclusiveVenues&&!_getTierLimit('exclusiveVenues');
           if(_exclusiveLocked){
             var _exCount=0;
@@ -7947,6 +7952,43 @@
           html+='</div>';
           ov.innerHTML=html;
           document.body.appendChild(ov);
+        }
+
+        // ── Members discover section ──
+        function renderMembersSection(){
+          var el=document.getElementById('members-discover-section');
+          if(!el)return;
+          var exVenues=[];
+          var _moVisible=SHOW_MEMBERS_NIGHTLIFE&&_getTierLimit('exclusiveVenues');
+          Object.keys(IDEAS).forEach(function(cat){IDEAS[cat].forEach(function(v){
+            if(v.membersOnly){if(_moVisible)exVenues.push(v);return;}
+            if(v.exclusive)exVenues.push(v);
+          });});
+          if(!exVenues.length){el.innerHTML='';return;}
+          var unlocked=_getTierLimit('exclusiveVenues');
+          var html='<div class="members-disc-wrap">';
+          html+='<div class="members-disc-header" onclick="'+(unlocked?'':'showMembersDoor(\'menu\')')+'" style="'+(unlocked?'':'cursor:pointer')+'">';
+          html+='<div style="display:flex;align-items:center;gap:8px">';
+          html+='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A23E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>';
+          html+='<span style="font-size:13px;font-weight:700;color:#C9A23E;letter-spacing:0.5px;font-family:var(--font-serif)">Members</span>';
+          html+='</div>';
+          if(!unlocked)html+='<span style="font-size:10px;color:rgba(201,162,62,0.5)">Learn more</span>';
+          html+='</div>';
+          html+='<div class="members-disc-grid">';
+          exVenues.forEach(function(v){
+            var locked=!unlocked;
+            html+='<div class="members-disc-card'+(locked?' members-disc-locked':'')+'" onclick="'+(locked?'showMembersDoor(\'exclusive_venue\')':'')+'">';
+            html+='<div class="members-disc-img" style="background-image:url('+v.img+')'+(locked?';opacity:0.4;filter:blur(1px)':'')+'"></div>';
+            html+='<div class="members-disc-body">';
+            html+='<div class="members-disc-name">'+v.name;
+            if(locked)html+='<span class="members-disc-badge"><svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>Members</span>';
+            html+='</div>';
+            html+='<div class="members-disc-loc">'+v.loc+'</div>';
+            html+='<div class="members-disc-why">'+v.why+'</div>';
+            html+='</div></div>';
+          });
+          html+='</div></div>';
+          el.innerHTML=html;
         }
 
         // ── Members door ──

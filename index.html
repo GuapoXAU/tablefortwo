@@ -335,6 +335,9 @@
               <!-- ── SUGGESTIONS ── -->
               <div id="suggestions-area"></div>
 
+              <!-- ── MEMBERS SECTION ── -->
+              <div id="members-discover-section" style="margin-top:24px"></div>
+
               <!-- Support link -->
               <div style="text-align:center;padding:20px 0 8px">
                 <span style="font-size:11px;color:rgba(255,255,255,0.38);cursor:pointer" onclick="_trackEvent('support_clicked',{});openFeedback()">Something wrong? Report an issue</span>
@@ -979,9 +982,13 @@
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
                 <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Transport</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Compare routes and book a ride</div></div>
               </div>
-              <div onclick="closeMoreSheet();showTierScreen()" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(201,168,76,0.03);border:0.5px solid rgba(201,168,76,0.12)">
+              <div onclick="closeMoreSheet();showMembersDoor('menu')" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(201,168,76,0.03);border:0.5px solid rgba(201,168,76,0.12)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A23E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><rect x="5" y="5" width="5" height="7" rx="1" opacity="0.4"/><rect x="14" y="5" width="5" height="7" rx="1" opacity="0.4"/><circle cx="12" cy="14" r="1.5"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(201,162,62,0.85)">Members</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Exclusive tables &middot; concierge access</div></div>
+              </div>
+              <div onclick="closeMoreSheet();showTierScreen()" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-                <div><div style="font-size:14px;font-weight:600;color:rgba(201,168,76,0.85)">Your Plan</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">View your tier and what's included</div></div>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Your Plan</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">View your tier and what's included</div></div>
               </div>
             </div>
           </div>

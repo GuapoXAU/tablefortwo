@@ -1101,6 +1101,20 @@
         .plan-item-book-btn.pis-members-locked:hover{background:rgba(201,162,62,0.18)}
         .pis-concierge-badge{display:inline-flex;align-items:center;gap:3px;margin-left:8px;padding:2px 8px;border-radius:10px;background:rgba(201,162,62,0.08);border:0.5px solid rgba(201,162,62,0.15);font-size:9px;font-weight:600;color:#C9A23E;letter-spacing:0.3px;vertical-align:middle}
 
+        /* 8b. Members discover section */
+        .members-disc-wrap{padding:16px;background:rgba(201,162,62,0.03);border:0.5px solid rgba(201,162,62,0.1);border-radius:16px}
+        .members-disc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:10px;border-bottom:0.5px solid rgba(201,162,62,0.08)}
+        .members-disc-grid{display:flex;flex-direction:column;gap:12px}
+        .members-disc-card{display:flex;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);border:0.5px solid rgba(255,255,255,0.05);transition:background 0.2s}
+        .members-disc-card:not(.members-disc-locked):hover{background:rgba(255,255,255,0.04)}
+        .members-disc-locked{cursor:pointer}
+        .members-disc-img{width:72px;height:72px;min-width:72px;border-radius:10px;background-size:cover;background-position:center}
+        .members-disc-body{flex:1;min-width:0}
+        .members-disc-name{font-size:13px;font-weight:600;color:#fff;margin-bottom:2px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+        .members-disc-badge{display:inline-flex;align-items:center;gap:3px;padding:1px 7px;border-radius:8px;background:rgba(201,162,62,0.1);border:0.5px solid rgba(201,162,62,0.2);font-size:8px;font-weight:700;color:#C9A23E;letter-spacing:0.4px}
+        .members-disc-loc{font-size:11px;color:rgba(255,255,255,0.35);margin-bottom:4px}
+        .members-disc-why{font-size:11px;color:rgba(255,255,255,0.5);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
         /* 9. Members door */
         .md-overlay{position:fixed;inset:0;z-index:1001;background:rgba(4,4,3,0.97);display:flex;align-items:center;justify-content:center;overflow:hidden}
         .md-scene{display:flex;flex-direction:column;align-items:center;width:100%;max-width:340px;padding:0 20px}
