@@ -1463,10 +1463,20 @@
             {name:'Restaurant Gordon Ramsay',loc:'Chelsea · French fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £260pp',why:'Three-Michelin-star French — Gordon Ramsay\'s flagship, jacket preferred',score:95,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],budgetTier:'luxury',contexts:['partner'],mood:['romantic','luxury'],dietary:['vegetarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
             {name:'PIRANA London',loc:'Mayfair · Nikkei fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £150pp',why:'Japanese-Peruvian fine dining with live DJ — ceviche, robata grill and sake in a stunning Mayfair setting',score:90,type:'foodie',vibes:['Candlelit','Unique / memorable','Live music'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury','nightlife'],dietary:['vegetarian','pescatarian'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining','drinks'],weather:'weather_flexible'}},
             {name:'Imperial Treasure',loc:'St James\'s · Michelin Cantonese',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £160pp',why:'Michelin-starred Cantonese fine dining — Peking duck with caviar, dim sum perfection',score:91,type:'foodie',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner'],budgetTier:'luxury',contexts:['partner'],mood:['romantic','luxury'],dietary:['vegetarian'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
-            {name:'Park Chinois',loc:'Mayfair · Shanghai cabaret dining',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £180pp',why:'1930s Shanghai supper club — Cantonese cuisine, live jazz, cabaret and champagne in Mayfair',score:92,type:'romantic',vibes:['Candlelit','Unique / memorable','Live music'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury','nightlife'],dietary:['vegetarian'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining','drinks','entertainment'],weather:'weather_flexible'}},
+            {name:'Park Chinois',loc:'Mayfair · Shanghai cabaret dining',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £180pp',why:'1930s Shanghai supper club — Cantonese cuisine, live jazz, cabaret and champagne in Mayfair',score:92,type:'romantic',vibes:['Candlelit','Unique / memorable','Live music'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury','nightlife'],dietary:['vegetarian'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining','drinks','entertainment'],weather:'weather_flexible'},conciergeBoost:true},
             {name:'Royal China Club',loc:'Marylebone · Cantonese restaurant',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £120pp',why:'Hong Kong Cantonese classics with luxury ingredients — the best dim sum trolley in London',score:88,type:'foodie',vibes:['Candlelit'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury'],dietary:['vegetarian','pescatarian'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
             {name:'AngloThai',loc:'Marylebone · Thai-British fusion',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £150pp',why:'Michelin-starred Thai-British fusion — inventive tasting menus that redefine both cuisines',score:90,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],budgetTier:'luxury',contexts:['partner'],mood:['romantic','luxury'],dietary:['vegetarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
             {name:'Helene Darroze at The Connaught',loc:'Mayfair · French fine dining',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £250pp',why:'Three Michelin stars at The Connaught — among the finest French dining experiences in the world',score:95,type:'foodie',vibes:['Candlelit','Tasting menu'],venue_status:'active',rel:['partner'],budgetTier:'luxury',contexts:['partner'],mood:['romantic','luxury'],dietary:['vegetarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','quiet'],pace:'extended',fmt:['dining'],weather:'weather_flexible'}},
+            // TODO: Nathan to confirm venue details (price, why, dietary, score)
+            {name:'House of KOKO',loc:'Camden · Members\' club',emoji:'✦',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'avg. £80pp',why:'Private members\' floor above KOKO — cocktails, live music and late-night dining in Camden\'s iconic venue',score:90,type:'fun',vibes:['Live music','Unique / memorable'],venue_status:'active',rel:['partner','friends'],budgetTier:'mid',contexts:['partner','friends'],mood:['nightlife','luxury','casual'],dietary:['vegetarian'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly','high_energy'],pace:'extended',fmt:['drinks','dining','entertainment'],weather:'weather_flexible'},exclusive:true},
+            // TODO: Nathan to confirm venue details (price, why, dietary, score)
+            {name:'Colony Grill Room',loc:'Mayfair · The Beaumont',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £90pp',why:'Art Deco grill room at The Beaumont — old-world glamour, Dover sole and impeccable service',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury'],dietary:['vegetarian','pescatarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining'],weather:'weather_flexible'},exclusive:true},
+            // TODO: Nathan to confirm venue details (price, why, dietary, score)
+            {name:'Pierluigi',loc:'Beckenham · Italian seafood',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £70pp',why:'Neighbourhood Italian with a reputation that travels — fresh seafood and handmade pasta',score:86,type:'foodie',vibes:['Candlelit'],venue_status:'active',rel:['partner','friends'],budgetTier:'mid',contexts:['partner','friends'],mood:['romantic','casual'],dietary:['vegetarian','pescatarian'],t:{tod:['evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['dining'],weather:'weather_flexible'},conciergeBoost:true},
+            // TODO: Nathan to confirm venue details (price, why, dietary, score)
+            {name:'China Tang',loc:'Park Lane · The Dorchester',emoji:'✦',img:'https://images.unsplash.com/photo-1569050467447-ce54b3bbc37d?w=600&h=320&fit=crop&q=80',price:'avg. £100pp',why:'Cantonese dining beneath The Dorchester — 1930s Shanghai glamour and exceptional dim sum',score:89,type:'romantic',vibes:['Candlelit','Unique / memorable'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['romantic','luxury'],dietary:['vegetarian'],t:{tod:['evening','night'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'extended',fmt:['dining'],weather:'weather_flexible'},conciergeBoost:true},
+            // TODO: Nathan to confirm venue details (price, why, dietary, score)
+            {name:'34 Mayfair',loc:'Mayfair · Grill & seafood',emoji:'✦',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'avg. £85pp',why:'Caprice Holdings grill in the heart of Mayfair — steaks, seafood and a buzzing brasserie atmosphere',score:88,type:'foodie',vibes:['Candlelit'],venue_status:'active',rel:['partner','friends'],budgetTier:'luxury',contexts:['partner','friends'],mood:['casual','luxury'],dietary:['vegetarian','pescatarian'],t:{tod:['afternoon','evening'],env:['indoor','rain_safe'],soc:['intimate','group_friendly'],pace:'relaxed',fmt:['dining'],weather:'weather_flexible'},conciergeBoost:true},
           ]
         };
 
@@ -2094,9 +2104,15 @@
           venues=venues.filter(v=>!v.venue_status||v.venue_status==='active');
 
           // ── TAXONOMY HARD FILTERS (deterministic, not scoring) ──
-          // 0. Exclusive venues: only show to members tier
-          if(TIER_GATES.exclusiveVenues&&!_getTierLimit('exclusiveVenues')){
-            venues=venues.filter(v=>!v.exclusive);
+          // 0. Exclusive venues: members see all; others get max 2 as locked teasers
+          var _exclusiveLocked=TIER_GATES.exclusiveVenues&&!_getTierLimit('exclusiveVenues');
+          if(_exclusiveLocked){
+            var _exCount=0;
+            venues=venues.filter(function(v){
+              if(!v.exclusive)return true;
+              _exCount++;
+              return _exCount<=2;
+            });
           }
           // 1. Relationship context: only exclude if tag exists AND doesn't match; missing = pass
           venues=venues.filter(v=>!v.rel||!v.rel.length||v.rel.includes(relContext));
@@ -4368,13 +4384,16 @@
                 // Items (expanded for first plan)
                 html+=`<div class="plan-details" style="display:${isFirst?'block':'none'}">`;
                 plan.items.forEach((item,i)=>{
+                  const _itemLocked=item.exclusive&&!_getTierLimit('exclusiveVenues');
+                  const _itemConcierge=item.conciergeBoost&&_getTierLimit('concierge');
                   const _itemBi=_getBookingInfo(item.name);
                   const _ils=_itemBi.link_status||'unverified';
                   let itemStatusLabel,itemStatusClass;
-                  // For combined-name items (e.g. "Kew Gardens + riverside pub"), make CTA specific to what's actually booked
                   const _isCombo=item.name.includes(' + ')&&_itemBi.provider;
                   const _itemVerified=_isVenueVerifiedLive(item.name);
-                  if(item.status==='details_only'){
+                  if(_itemLocked){
+                    itemStatusLabel='Members only';itemStatusClass='pis-members-locked';
+                  }else if(item.status==='details_only'){
                     itemStatusLabel='Free / walk-in';itemStatusClass='pis-details-only';
                   }else if(_itemVerified){
                     itemStatusLabel=_isCombo?'Book '+_itemBi.provider:_getVenueCta(item.name);itemStatusClass='pis-bookable-now';
@@ -4385,15 +4404,15 @@
                   }else{
                     itemStatusLabel='Find on Google Maps';itemStatusClass='pis-partner-handoff';
                   }
-                  const _hasAnyCta=!!(_itemBi.booking_url||_itemBi.website_url)||_itemVerified;
+                  const _hasAnyCta=!!(_itemBi.booking_url||_itemBi.website_url)||_itemVerified||_itemLocked;
                   const _gmapsUrl='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(item.name+', London');
-                  html+=`<div class="plan-item">
+                  html+=`<div class="plan-item${_itemLocked?' plan-item-locked':''}" ${_itemLocked?'onclick="event.stopPropagation();showMembersDoor(\'exclusive_venue\')"':''} style="${_itemLocked?'cursor:pointer;position:relative':''}">
                     <div class="plan-item-num">${item.order}</div>
-                    <div class="plan-item-img-wrap">
+                    <div class="plan-item-img-wrap" style="${_itemLocked?'opacity:0.5;filter:blur(1px)':''}">
                       <img class="plan-item-img" src="${item.img}" alt="${item.name}" loading="lazy" onerror="this.style.display='none'">
                     </div>
                     <div class="plan-item-body">
-                      <div class="plan-item-name">${item.name}</div>
+                      <div class="plan-item-name">${item.name}${_itemLocked?'<span style="display:inline-flex;align-items:center;gap:3px;margin-left:8px;padding:2px 8px;border-radius:10px;background:rgba(201,162,62,0.1);border:0.5px solid rgba(201,162,62,0.2);font-size:9px;font-weight:700;color:#C9A23E;letter-spacing:0.5px;vertical-align:middle"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>MEMBERS</span>':''}${_itemConcierge?'<span class="pis-concierge-badge">Priority booking</span>':''}</div>
                       <div class="plan-item-loc">${item.loc}</div>
                       <div class="plan-item-row">
                         <span class="plan-item-price">${item.price}</span>
@@ -4401,9 +4420,11 @@
                         <span class="plan-item-role">${item.role}</span>
                       </div>
                       <div class="plan-item-why">✦ ${item.why}</div>
-                      ${_hasAnyCta
+                      ${_itemLocked
+                        ?`<button class="plan-item-book-btn pis-members-locked" onclick="event.stopPropagation();showMembersDoor('exclusive_venue')">Members only</button>`
+                        :(_hasAnyCta
                         ?`<button class="plan-item-book-btn ${itemStatusClass}" onclick="event.stopPropagation();bookPlanItem('${plan.id}',${i})">${itemStatusLabel}</button>`
-                        :`<a class="plan-item-book-btn pis-partner-handoff" href="${_gmapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="text-decoration:none">Find on Google Maps</a>`}
+                        :`<a class="plan-item-book-btn pis-partner-handoff" href="${_gmapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="text-decoration:none">Find on Google Maps</a>`)}
                     </div>
                   </div>`;
                 });

@@ -1095,6 +1095,12 @@
         .t4t-save-particle{position:absolute;width:4px;height:4px;border-radius:50%;background:rgba(201,168,76,0.7);pointer-events:none;opacity:1}
         .t4t-save-particle.t4t-burst{transition:transform 0.4s ease-out,opacity 0.4s ease-out;opacity:0}
 
+        /* Locked exclusive venue item */
+        .plan-item-locked{opacity:0.85}
+        .plan-item-book-btn.pis-members-locked{background:rgba(201,162,62,0.1);color:#C9A23E;border:0.5px solid rgba(201,162,62,0.2)}
+        .plan-item-book-btn.pis-members-locked:hover{background:rgba(201,162,62,0.18)}
+        .pis-concierge-badge{display:inline-flex;align-items:center;gap:3px;margin-left:8px;padding:2px 8px;border-radius:10px;background:rgba(201,162,62,0.08);border:0.5px solid rgba(201,162,62,0.15);font-size:9px;font-weight:600;color:#C9A23E;letter-spacing:0.3px;vertical-align:middle}
+
         /* 9. Members door */
         .md-overlay{position:fixed;inset:0;z-index:1001;background:rgba(4,4,3,0.97);display:flex;align-items:center;justify-content:center;overflow:hidden}
         .md-scene{display:flex;flex-direction:column;align-items:center;width:100%;max-width:340px;padding:0 20px}
