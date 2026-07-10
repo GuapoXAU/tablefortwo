@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Table for Two</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --bg:#0F0F14;--card:#1A1A24;--card2:#22223A;
+  --coral:#FF5A5F;--coral-d:rgba(255,90,95,0.15);--coral-b:rgba(255,90,95,0.3);
+  --violet:#7B61FF;--violet-d:rgba(123,97,255,0.15);--violet-b:rgba(123,97,255,0.3);
+  --ink:#FFFFFF;--ink2:rgba(255,255,255,0.65);--ink3:rgba(255,255,255,0.35);
+  --bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);
+  --r:20px;--rsm:12px;--rxs:8px;
+  --nav:68px;--sb:env(safe-area-inset-bottom,0px);--st:env(safe-area-inset-top,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text','Segoe UI',sans-serif;color:var(--ink);overscroll-behavior:none}
+
+/* APP */
+#app{display:flex;flex-direction:column;height:100%;max-width:480px;margin:0 auto;position:relative}
+.pages{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding-bottom:calc(var(--nav) + var(--sb) + 8px)}
+.page{display:none}.page.active{display:block}
+
+/* TOPBAR */
+.topbar{
+  padding:calc(var(--st) + 14px) 20px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg);position:sticky;top:0;z-index:30;
+  border-bottom:0.5px solid var(--bdr);
+}
+.logo{font-size:18px;font-weight:700;letter-spacing:-0.3px;font-family:Georgia,serif;color:var(--ink)}
+.logo em{color:var(--coral);font-style:normal}
+.couple-pill{
+  display:flex;align-items:center;gap:7px;background:var(--card);
+  border:0.5px solid var(--bdr2);border-radius:24px;padding:5px 12px 5px 7px;cursor:pointer;
+}
+.av-wrap{display:flex}
+.av{width:22px;height:22px;border-radius:50%;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1.5px solid var(--bg)}
+.av-j{background:var(--coral);color:#fff;margin-right:-6px}
+.av-s{background:var(--violet);color:#fff}
+.couple-pill span{font-size:12px;font-weight:500;color:var(--ink2)}
+
+/* BOTTOM NAV */
+.bnav{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:480px;
+  background:rgba(15,15,20,0.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:0.5px solid var(--bdr);
+  padding:10px 0 calc(var(--sb) + 4px);
+  display:flex;z-index:50;
+}
+.bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;padding:2px 0}
+.bnav-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;transition:all 0.2s}
+.bnav-label{font-size:10px;font-weight:500;color:var(--ink3);transition:color 0.2s;letter-spacing:0.2px}
+.bnav-item.active .bnav-icon{background:var(--coral-d)}
+.bnav-item.active .bnav-label{color:var(--coral)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:10px 18px;border-radius:var(--rsm);border:0.5px solid var(--bdr2);background:var(--card);color:var(--ink);font-family:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:all 0.15s}
+.btn-primary{background:linear-gradient(135deg,var(--coral) 0%,#FF8C5F 100%);border:none;color:#fff;font-weight:700;box-shadow:0 4px 20px rgba(255,90,95,0.35)}
+.btn-primary:active{transform:scale(0.97);box-shadow:0 2px 10px rgba(255,90,95,0.2)}
+.btn-ghost{background:transparent;border-color:var(--bdr2);color:var(--ink2)}
+.btn-full{width:100%}
+.btn-lg{padding:15px 24px;font-size:15px;border-radius:var(--r)}
+
+/* CARDS */
+.card{background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.card-title{font-size:15px;font-weight:700;color:var(--ink);margin-bottom:4px}
+.card-sub{font-size:12px;color:var(--ink3)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:3px;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.2px}
+.badge-coral{background:var(--coral-d);color:var(--coral);border:0.5px solid var(--coral-b)}
+.badge-violet{background:var(--violet-d);color:var(--violet);border:0.5px solid var(--violet-b)}
+.badge-green{background:rgba(74,222,128,0.1);color:#4ADE80;border:0.5px solid rgba(74,222,128,0.2)}
+.badge-muted{background:rgba(255,255,255,0.06);color:var(--ink3);border:0.5px solid var(--bdr)}
+
+/* ── DISCOVER ── */
+.disc-header{padding:20px 20px 16px}
+.disc-greeting{font-size:24px;font-weight:700;font-family:Georgia,serif;line-height:1.2;margin-bottom:4px}
+.disc-sub{font-size:13px;color:var(--ink3)}
+
+.budget-row{display:flex;gap:8px;padding:0 20px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.budget-row::-webkit-scrollbar{display:none}
+.bp{flex-shrink:0;padding:8px 16px;border-radius:24px;border:0.5px solid var(--bdr2);background:var(--card);font-size:12px;font-weight:500;color:var(--ink2);cursor:pointer;transition:all 0.15s;white-space:nowrap}
+.bp.active{background:var(--coral-d);border-color:var(--coral-b);color:var(--coral);font-weight:700}
+
+.vibe-row{display:flex;gap:10px;padding:0 20px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none}
+.vibe-row::-webkit-scrollbar{display:none}
+.vc{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 14px;border-radius:var(--rsm);border:0.5px solid var(--bdr);background:var(--card);cursor:pointer;transition:all 0.15s;min-width:68px}
+.vc.active{border-color:var(--violet-b);background:var(--violet-d)}
+.vc-icon{font-size:20px}
+.vc-label{font-size:10px;font-weight:600;color:var(--ink3);letter-spacing:0.2px;text-align:center}
+.vc.active .vc-label{color:var(--violet)}
+
+.gen-wrap{padding:0 20px;margin-bottom:24px}
+
+/* ── SWIPE CARDS ── */
+.swipe-area{padding:0 16px 20px}
+.stack-wrap{position:relative;height:520px;margin-bottom:14px}
+.sc{
+  position:absolute;inset:0;background:var(--card);border-radius:var(--r);overflow:hidden;
+  box-shadow:0 24px 64px rgba(0,0,0,0.7),0 0 0 0.5px var(--bdr);
+  transition:transform 0.38s cubic-bezier(0.34,1.56,0.64,1),opacity 0.3s ease;
+  will-change:transform,opacity;display:flex;flex-direction:column;user-select:none;cursor:grab;
+}
+.sc:active{cursor:grabbing}
+.sc.c0{z-index:10;transform:translate(0,0) rotate(0deg);opacity:1}
+.sc.c1{z-index:9;transform:translate(0,12px) scale(0.95);opacity:1;pointer-events:none}
+.sc.c2{z-index:8;transform:translate(0,24px) scale(0.90);opacity:0.55;pointer-events:none}
+.sc.cx-l{z-index:11;transform:translate(-130%,-8px) rotate(-24deg);opacity:0;pointer-events:none;transition-duration:0.4s}
+.sc.cx-r{z-index:11;transform:translate(130%,-8px) rotate(24deg);opacity:0;pointer-events:none;transition-duration:0.4s}
+.sc.no-transition{transition:none!important}
+
+.sc-img-wrap{position:relative;flex-shrink:0;height:260px;background:var(--card2)}
+.sc-img{width:100%;height:100%;object-fit:cover;display:block}
+.sc-emoji-fb{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:56px}
+.sc-grad{position:absolute;bottom:0;left:0;right:0;height:110px;background:linear-gradient(transparent,rgba(15,15,20,0.95))}
+.sc-badge{position:absolute;top:14px;left:14px;z-index:2;padding:5px 12px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:0.3px;backdrop-filter:blur(12px)}
+.sc-badge-top{background:rgba(255,90,95,0.88);color:#fff}
+.sc-badge-love{background:rgba(255,90,95,0.92);color:#fff}
+.sc-like-ind{position:absolute;top:18px;right:16px;z-index:12;font-size:28px;opacity:0;transition:opacity 0.12s;pointer-events:none}
+
+.sc-body{flex:1;padding:14px 18px 0;display:flex;flex-direction:column;gap:0;overflow:hidden}
+.sc-name-row{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:4px}
+.sc-name{font-size:19px;font-weight:700;font-family:Georgia,serif;line-height:1.2;flex:1}
+.sc-price{font-size:14px;font-weight:700;color:var(--coral);flex-shrink:0;margin-left:10px;margin-top:3px}
+.sc-loc{font-size:11px;color:var(--ink3);margin-bottom:8px}
+.sc-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
+.sc-why{font-size:12px;color:var(--ink2);line-height:1.5;padding:8px 10px;background:rgba(255,255,255,0.04);border-radius:var(--rxs);border-left:2px solid var(--coral);margin-bottom:8px}
+.sc-match-row{display:flex;align-items:center;gap:8px;font-size:10px;font-weight:600;color:var(--ink3);margin-bottom:4px}
+.sc-match-bar{flex:1;height:3px;background:rgba(255,255,255,0.08);border-radius:2px}
+.sc-match-fill{height:3px;border-radius:2px;background:linear-gradient(90deg,var(--coral),var(--violet))}
+.sc-match-pct{color:var(--coral);font-size:12px;font-weight:800}
+
+.sc-actions{display:flex;align-items:center;justify-content:center;gap:16px;padding:10px 18px 14px;flex-shrink:0}
+.sc-btn{border-radius:50%;border:0.5px solid var(--bdr2);display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--card2);transition:transform 0.18s,box-shadow 0.18s;flex-shrink:0}
+.sc-btn:active{transform:scale(0.88)}
+.sc-skip{width:52px;height:52px;font-size:20px;color:var(--ink3)}
+.sc-book{width:64px;height:64px;font-size:22px;background:linear-gradient(135deg,var(--coral),#FF8C5F);border:none;color:#fff;box-shadow:0 6px 20px rgba(255,90,95,0.45)}
+.sc-save{width:52px;height:52px;font-size:20px;color:var(--violet)}
+
+.swipe-hints{display:flex;justify-content:space-between;padding:0 8px;margin-bottom:10px;pointer-events:none}
+.swipe-hint{font-size:10px;color:var(--ink3);font-weight:500}
+.swipe-dots{display:flex;gap:5px;justify-content:center;margin-bottom:5px}
+.dot{width:6px;height:6px;border-radius:3px;background:var(--bdr2);transition:all 0.25s}
+.dot.active{background:var(--coral);width:18px}
+.swipe-ctr{text-align:center;font-size:11px;color:var(--ink3);font-weight:500}
+
+/* Done state */
+.swipe-done{position:absolute;inset:0;z-index:7;display:none;flex-direction:column;align-items:center;justify-content:center;background:var(--card);border-radius:var(--r);border:0.5px solid var(--bdr);padding:32px 24px;text-align:center}
+.swipe-done.show{display:flex}
+.done-icon{font-size:48px;margin-bottom:16px}
+.done-title{font-size:20px;font-weight:700;font-family:Georgia,serif;margin-bottom:8px}
+.done-sub{font-size:13px;color:var(--ink3);line-height:1.55;margin-bottom:22px}
+
+/* Loading */
+.loading-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:520px;gap:14px}
+.spinner{width:32px;height:32px;border:2.5px solid var(--bdr2);border-top-color:var(--coral);border-radius:50%;animation:spin 0.7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-size:13px;color:var(--ink3)}
+
+/* ── WISHLIST ── */
+.page-head{padding:20px 20px 0;margin-bottom:14px}
+.page-title{font-size:22px;font-weight:700;font-family:Georgia,serif;margin-bottom:4px}
+.page-sub{font-size:13px;color:var(--ink3)}
+.filter-row{display:flex;gap:8px;padding:0 20px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none}
+.filter-row::-webkit-scrollbar{display:none}
+.fp{flex-shrink:0;padding:7px 15px;border-radius:20px;font-size:12px;font-weight:500;border:0.5px solid var(--bdr2);background:var(--card);color:var(--ink3);cursor:pointer;transition:all 0.15s}
+.fp.active{background:var(--violet-d);border-color:var(--violet-b);color:var(--violet)}
+.wish-list{padding:0 16px}
+.wish-item{background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--rsm);padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;transition:opacity 0.2s}
+.wish-item.done{opacity:0.45}
+.wish-emoji{font-size:26px;flex-shrink:0;margin-top:1px}
+.wish-content{flex:1;min-width:0}
+.wish-name{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.wish-item.done .wish-name{text-decoration:line-through;color:var(--ink3)}
+.wish-meta{font-size:11px;color:var(--ink3)}
+.wish-check{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--bdr2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;flex-shrink:0;transition:all 0.2s}
+.wish-check.ticked{background:var(--coral);border-color:var(--coral);color:#fff}
+
+/* ── BOOKINGS ── */
+.stat-strip{display:flex;gap:10px;padding:0 20px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
+.stat-strip::-webkit-scrollbar{display:none}
+.stat-box{flex-shrink:0;min-width:100px;background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--rsm);padding:12px 14px;text-align:center}
+.stat-val{font-size:22px;font-weight:700;color:var(--coral);font-family:Georgia,serif}
+.stat-lbl{font-size:10px;color:var(--ink3);margin-top:2px;font-weight:500}
+.bk-list{padding:0 16px}
+.bk-section-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);margin-bottom:10px;margin-top:4px}
+.bk-item{background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--rsm);padding:14px 16px;margin-bottom:10px;display:flex;gap:12px;align-items:flex-start}
+.bk-icon{width:42px;height:42px;border-radius:var(--rxs);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.bk-content{flex:1;min-width:0}
+.bk-name{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:2px}
+.bk-meta{font-size:11px;color:var(--ink3)}
+.bk-amount{font-size:15px;font-weight:700;color:var(--coral);flex-shrink:0}
+
+/* ── PROFILE ── */
+.profile-pair{display:flex;gap:12px;padding:0 16px;margin-bottom:14px}
+.profile-card{flex:1;background:var(--card);border:0.5px solid var(--bdr);border-radius:var(--rsm);padding:16px;text-align:center}
+.profile-av{width:48px;height:48px;border-radius:50%;margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff}
+.profile-name{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:8px}
+.profile-pref{font-size:11px;color:var(--ink3);line-height:1.8}
+.profile-section{padding:0 16px}
+
+/* ── OVERLAY / SHEET ── */
+.overlay{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,0.72);backdrop-filter:blur(6px);display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.overlay.open{opacity:1;pointer-events:all}
+.sheet{width:100%;max-width:480px;margin:0 auto;background:var(--card);border-radius:var(--r) var(--r) 0 0;padding:20px 20px calc(var(--sb) + 24px);transform:translateY(100%);transition:transform 0.4s cubic-bezier(0.34,1.56,0.64,1);max-height:88vh;overflow-y:auto}
+.overlay.open .sheet{transform:translateY(0)}
+.sheet-handle{width:40px;height:4px;background:var(--bdr2);border-radius:2px;margin:0 auto 20px}
+.sheet-title{font-size:18px;font-weight:700;font-family:Georgia,serif;margin-bottom:4px}
+.sheet-sub{font-size:13px;color:var(--ink3);margin-bottom:22px}
+.form-group{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.form-label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--ink3);font-weight:700}
+.form-input{padding:12px 14px;border:0.5px solid var(--bdr2);border-radius:var(--rxs);background:var(--bg);color:var(--ink);font-family:inherit;font-size:14px;outline:none;transition:border 0.15s;width:100%}
+.form-input:focus{border-color:var(--coral)}
+.form-input::placeholder{color:var(--ink3)}
+
+/* TOAST */
+#toast{position:fixed;bottom:calc(var(--nav) + var(--sb) + 16px);left:50%;transform:translateX(-50%) translateY(16px);background:var(--card2);border:0.5px solid var(--bdr2);color:var(--ink);border-radius:24px;padding:10px 20px;font-size:13px;font-weight:600;white-space:nowrap;opacity:0;transition:all 0.25s;pointer-events:none;z-index:400;box-shadow:0 8px 24px rgba(0,0,0,0.5)}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Utility */
+.serif{font-family:Georgia,serif}
+.gap-v{height:8px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="logo serif">Table <em>♥</em> Two</div>
+    <div class="couple-pill" onclick="goTo('profile')">
+      <div class="av-wrap"><div class="av av-j">J</div><div class="av av-s">S</div></div>
+      <span>Jamie & Sophie</span>
+    </div>
+  </header>
+
+  <!-- PAGES -->
+  <div class="pages" id="pages">
+
+    <!-- DISCOVER -->
+    <div class="page active" id="page-discover">
+      <div class="disc-header">
+        <div class="disc-greeting serif" id="greeting">Good evening, Jamie</div>
+        <div class="disc-sub" id="greeting-sub">Let's plan something wonderful</div>
+      </div>
+
+      <div class="budget-row">
+        <div class="bp active" onclick="setBudget(this,'budget')">Under £50</div>
+        <div class="bp" onclick="setBudget(this,'mid')">£50–£150</div>
+        <div class="bp" onclick="setBudget(this,'treat')">£150–£300</div>
+        <div class="bp" onclick="setBudget(this,'luxury')">£300+</div>
+      </div>
+
+      <div class="vibe-row">
+        <div class="vc active" onclick="setVibe(this,'all')"><div class="vc-icon">✦</div><div class="vc-label">All</div></div>
+        <div class="vc" onclick="setVibe(this,'romantic')"><div class="vc-icon">♥</div><div class="vc-label">Romantic</div></div>
+        <div class="vc" onclick="setVibe(this,'foodie')"><div class="vc-icon">🍽</div><div class="vc-label">Dining</div></div>
+        <div class="vc" onclick="setVibe(this,'cultural')"><div class="vc-icon">🎭</div><div class="vc-label">Cultural</div></div>
+        <div class="vc" onclick="setVibe(this,'outdoor')"><div class="vc-icon">🌿</div><div class="vc-label">Outdoor</div></div>
+        <div class="vc" onclick="setVibe(this,'fun')"><div class="vc-icon">⚡</div><div class="vc-label">Fun</div></div>
+      </div>
+
+      <div class="gen-wrap">
+        <button class="btn btn-primary btn-full btn-lg" onclick="generateCards()">Curate our perfect date ✦</button>
+      </div>
+
+      <div class="swipe-area" id="swipe-area"></div>
+    </div>
+
+    <!-- WISHLIST -->
+    <div class="page" id="page-wishlist">
+      <div class="page-head">
+        <div class="page-title serif">Wishlist 💫</div>
+        <div class="page-sub">Ideas you want to try someday</div>
+      </div>
+      <div class="filter-row">
+        <div class="fp active" onclick="setWishFilter('all',this)">All</div>
+        <div class="fp" onclick="setWishFilter('todo',this)">To do</div>
+        <div class="fp" onclick="setWishFilter('done',this)">Done ✓</div>
+      </div>
+      <div class="wish-list" id="wish-list"></div>
+    </div>
+
+    <!-- BOOKINGS -->
+    <div class="page" id="page-bookings">
+      <div class="page-head">
+        <div class="page-title serif">My Dates</div>
+        <div class="page-sub">Every date, all in one place</div>
+      </div>
+      <div class="stat-strip">
+        <div class="stat-box"><div class="stat-val" id="s-up">—</div><div class="stat-lbl">Upcoming</div></div>
+        <div class="stat-box"><div class="stat-val" id="s-tot">—</div><div class="stat-lbl">Total</div></div>
+        <div class="stat-box"><div class="stat-val" id="s-sp">—</div><div class="stat-lbl">Spent together</div></div>
+      </div>
+      <div class="bk-list" id="bk-list"></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="page-profile">
+      <div class="page-head">
+        <div class="page-title serif">Our Profiles</div>
+        <div class="page-sub">Your shared preferences & love languages</div>
+      </div>
+      <div class="profile-pair">
+        <div class="profile-card">
+          <div class="profile-av" style="background:var(--coral)">J</div>
+          <div class="profile-name">Jamie</div>
+          <div class="profile-pref">Italian cuisine<br>Cultural venues<br>Evening dates<br>Bold flavours</div>
+        </div>
+        <div class="profile-card">
+          <div class="profile-av" style="background:var(--violet)">S</div>
+          <div class="profile-name">Sophie</div>
+          <div class="profile-pref">Vegetarian 🥗<br>Indian & Med<br>Outdoor & romantic<br>Candlelit settings</div>
+        </div>
+      </div>
+      <div class="profile-section">
+        <div class="card">
+          <div class="card-title">Love languages</div>
+          <div class="card-sub" style="margin-bottom:14px">How you each feel most loved</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:var(--rxs)">
+              <span style="font-size:13px;color:var(--ink2)">Jamie</span>
+              <span class="badge badge-coral">⏳ Quality Time</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:var(--rxs)">
+              <span style="font-size:13px;color:var(--ink2)">Sophie</span>
+              <span class="badge badge-violet">🤗 Physical Touch</span>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Next up</div>
+          <div class="card-sub" style="margin-bottom:14px">Upcoming dates in your calendar</div>
+          <div id="profile-next"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /pages -->
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav">
+    <div class="bnav-item active" id="nav-discover" onclick="goTo('discover',this)">
+      <div class="bnav-icon">✦</div><div class="bnav-label">Discover</div>
+    </div>
+    <div class="bnav-item" id="nav-wishlist" onclick="goTo('wishlist',this)">
+      <div class="bnav-icon">💫</div><div class="bnav-label">Wishlist</div>
+    </div>
+    <div class="bnav-item" id="nav-bookings" onclick="goTo('bookings',this)">
+      <div class="bnav-icon">📅</div><div class="bnav-label">My Dates</div>
+    </div>
+    <div class="bnav-item" id="nav-profile" onclick="goTo('profile',this)">
+      <div class="bnav-icon">◉</div><div class="bnav-label">Us</div>
+    </div>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- BOOKING OVERLAY -->
+<div class="overlay" id="book-overlay" onclick="if(event.target===this)closeBook()">
+  <div class="sheet"><div class="sheet-handle"></div><div id="book-content"></div></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const IDEAS = {
+  budget:[
+    {name:'Maltby Street Market brunch',loc:'Bermondsey · Street food',emoji:'🌮',img:'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=600&h=320&fit=crop&q=80',price:'£25 for two',why:'Both love casual food scenes — packed with bold flavours',score:78,type:'foodie',vibes:['Walkable']},
+    {name:'Tate Modern + Thames walk',loc:'South Bank · Art & outdoors',emoji:'🖼️',img:'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=320&fit=crop&q=80',price:'Free + £15 coffee',why:'Jamie loves cultural, Sophie loves outdoors — ticks both boxes',score:86,type:'cultural',vibes:['Walkable','Unique / memorable']},
+    {name:'BFI Southbank cinema + wine',loc:'South Bank · Film & culture',emoji:'🎬',img:'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=600&h=320&fit=crop&q=80',price:'£30 for two',why:'Independent cinema on the river — intimate and cultural',score:80,type:'cultural',vibes:['Walkable']},
+    {name:'Battersea Park boating + picnic',loc:'Battersea · Outdoor',emoji:'🚣',img:'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=600&h=320&fit=crop&q=80',price:'£28 for two',why:'Sophie loves the outdoors — relaxed and romantic',score:77,type:'outdoor',vibes:['Walkable','Outdoor seats']},
+    {name:'Comedy night — The Comedy Store',loc:'Soho · Live comedy',emoji:'🎭',img:'https://images.unsplash.com/photo-1527224857830-43a7acc85260?w=600&h=320&fit=crop&q=80',price:'£32 for two',why:'Guaranteed laughter together — guaranteed good night',score:74,type:'fun',vibes:['Live music']},
+    {name:'Brindisa tapas + Borough Market',loc:'Borough · Spanish',emoji:'🥘',img:'https://images.unsplash.com/photo-1515443961218-a51367888e4b?w=600&h=320&fit=crop&q=80',price:'£40 for two',why:'Both love bold food — best tapas at the market',score:79,type:'foodie',vibes:['Walkable']},
+  ],
+  mid:[
+    {name:'Dishoom dinner',loc:'Covent Garden · Indian',emoji:'🫕',img:'https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&h=320&fit=crop&q=80',price:'£65 for two',why:'Sophie loves Indian, Jamie loves bold flavours — almost made for you two',score:92,type:'foodie',vibes:['Candlelit']},
+    {name:'Secret Cinema evening',loc:'London · Immersive',emoji:'🎬',img:'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=600&h=320&fit=crop&q=80',price:'£110 for two',why:'Unique & memorable — both of you listed it as a must',score:94,type:'romantic',vibes:['Unique / memorable']},
+    {name:'Ottolenghi dinner',loc:'Islington · Mediterranean',emoji:'🥗',img:'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=600&h=320&fit=crop&q=80',price:'£70 for two',why:"Sophie loves Med and it's completely vegetarian-friendly",score:88,type:'foodie',vibes:['Candlelit']},
+    {name:"Shakespeare's Globe Theatre",loc:'South Bank · Theatre',emoji:'🎭',img:'https://images.unsplash.com/photo-1503095396549-807759245b35?w=600&h=320&fit=crop&q=80',price:'£75 for two',why:'Iconic riverside venue — cultural and utterly memorable',score:87,type:'cultural',vibes:['Unique / memorable','Walkable']},
+    {name:'Bocca di Lupo Italian dinner',loc:'Soho · Italian',emoji:'🍝',img:'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=600&h=320&fit=crop&q=80',price:'£90 for two',why:'Jamie loves Italian — intimate Soho spot with stunning small plates',score:84,type:'foodie',vibes:['Candlelit']},
+    {name:'Hampstead Heath sunset + pub',loc:'Hampstead · Outdoor & cosy',emoji:'🌅',img:'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?w=600&h=320&fit=crop&q=80',price:'£35 for two',why:'Golden hour views over London then a cosy pub — perfect evening',score:82,type:'outdoor',vibes:['Walkable','Outdoor seats']},
+    {name:'Padella pasta dinner',loc:'Borough · Italian',emoji:'🍝',img:'https://images.unsplash.com/photo-1473093295043-cdd812d0e601?w=600&h=320&fit=crop&q=80',price:'£50 for two',why:"London's best pasta — simple, romantic, delicious",score:86,type:'foodie',vibes:['Candlelit']},
+  ],
+  treat:[
+    {name:'Sketch, Mayfair',loc:'Mayfair · Modern European',emoji:'🎨',img:'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=600&h=320&fit=crop&q=80',price:'£180 for two',why:"One-of-a-kind venue — matches your 'memorable' vibe perfectly",score:85,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:'Riverboat dinner cruise',loc:'Thames · Romantic',emoji:'⛵',img:'https://images.unsplash.com/photo-1526129318-26d0ef3b7d2e?w=600&h=320&fit=crop&q=80',price:'£160 for two',why:'Intimate, scenic and completely unique — dinner on the Thames',score:89,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:"Ronnie Scott's jazz night",loc:'Soho · Live music',emoji:'🎷',img:'https://images.unsplash.com/photo-1415201364774-f6f0bb35f28f?w=600&h=320&fit=crop&q=80',price:'£140 for two',why:'Cultural intimacy — world-famous jazz in a tiny legendary room',score:83,type:'cultural',vibes:['Live music','Candlelit']},
+    {name:'Aqua Shard cocktails + dinner',loc:'London Bridge · Rooftop views',emoji:'🌆',img:'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=600&h=320&fit=crop&q=80',price:'£190 for two',why:'Stunning 31st-floor views — romantic, dramatic and show-stopping',score:87,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:'Hakkasan Mayfair dinner',loc:'Mayfair · Chinese',emoji:'🥢',img:'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=600&h=320&fit=crop&q=80',price:'£180 for two',why:'Michelin-starred Chinese — moody, beautiful and romantic',score:86,type:'foodie',vibes:['Candlelit','Unique / memorable']},
+    {name:'Electric Cinema private screening',loc:'Notting Hill · Luxury cinema',emoji:'🎬',img:'https://images.unsplash.com/photo-1478720568477-152d9b164e26?w=600&h=320&fit=crop&q=80',price:'£150 for two',why:'Armchairs, wine and a film just for the two of you',score:85,type:'fun',vibes:['Unique / memorable']},
+  ],
+  luxury:[
+    {name:'The Savoy afternoon tea + dinner',loc:'Strand · Classic London',emoji:'🫖',img:'https://images.unsplash.com/photo-1551882547-ff40c599fb6d?w=600&h=320&fit=crop&q=80',price:'£280 for two',why:'Iconic, intimate, impeccable — the London classic',score:91,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:'Bateaux London dinner cruise',loc:'Thames · Luxury',emoji:'🛥️',img:'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=320&fit=crop&q=80',price:'£320 for two',why:'Romantic, scenic, completely unforgettable evening on the Thames',score:93,type:'romantic',vibes:['Candlelit','Unique / memorable']},
+    {name:'Royal Opera House + Ivy dinner',loc:'Covent Garden · Opera & fine dining',emoji:'🎶',img:'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&h=320&fit=crop&q=80',price:'£380 for two',why:'The most iconic cultural evening in London — utterly unforgettable',score:94,type:'cultural',vibes:['Unique / memorable','Candlelit']},
+    {name:'Helicopter city tour at sunset',loc:'London · Private experience',emoji:'🚁',img:'https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&h=320&fit=crop&q=80',price:'£450 for two',why:'See London from above at golden hour — nothing more memorable',score:96,type:'romantic',vibes:['Unique / memorable']},
+    {name:'Kensington Palace private tour + dinner',loc:'Kensington · Historic',emoji:'👑',img:'https://images.unsplash.com/photo-1541829070764-84a7d30dd3f3?w=600&h=320&fit=crop&q=80',price:'£500 for two',why:'After-hours royal palace — the most exclusive date in London',score:97,type:'romantic',vibes:['Unique / memorable','Candlelit']},
+  ]
+};
+
+let bookings = [
+  {id:1,type:'restaurant',name:'Dishoom, Covent Garden',date:'2026-05-02',meta:'8:00 PM · 2 covers · Indian',amount:'£65',icon:'🫕'},
+  {id:2,type:'experience',name:'Secret Cinema night',date:'2026-06-14',meta:'7:30 PM · 2 tickets · Immersive',amount:'£110',icon:'🎬'},
+  {id:3,type:'hotel',name:'The Hoxton, Shoreditch',date:'2026-07-04',meta:'1 night · Double room',amount:'£175',icon:'🏨'},
+];
+
+let wishlist = [
+  {id:1,name:'Roof terrace dinner at Sushisamba',emoji:'🍣',price:'££££',type:'foodie',why:'Always wanted to see the view from up there',done:false},
+  {id:2,name:'Sunrise hike at Box Hill',emoji:'🌄',price:'Free',type:'outdoor',why:"We keep saying we'll do an early morning adventure",done:false},
+  {id:3,name:'Pottery class in Shoreditch',emoji:'🏺',price:'££',type:'activity',why:'Saw it on a video and it looked so fun and silly',done:true},
+  {id:4,name:'Secret Cinema experience',emoji:'🎬',price:'£££',type:'cultural',why:'The immersive element sounds magical',done:true},
+  {id:5,name:'Couples spa day',emoji:'🧖',price:'£££',type:'romantic',why:'We need a proper reset together',done:false},
+  {id:6,name:"Backgammon night at Mãos",emoji:'🎲',price:'££££',type:'foodie',why:'Tiny restaurant, impossible to get a table — challenge accepted',done:false},
+  {id:7,name:"Picnic in Regent's Park",emoji:'🧺',price:'Free',type:'outdoor',why:'A slow Sunday morning with pastries and no plans',done:false},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let _budget='mid', _vibe='all', _wishFilter='all';
+let _swipeIdx=0, _swipeTotal=0, _ideas=[];
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+function goTo(id, el) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.bnav-item').forEach(n=>n.classList.remove('active'));
+  const nav = el instanceof Element ? el : document.getElementById('nav-'+id);
+  if(nav) nav.classList.add('active');
+  if(id==='discover') setGreeting();
+  if(id==='wishlist') renderWishlist();
+  if(id==='bookings') renderBookings();
+  if(id==='profile') renderProfile();
+  document.getElementById('pages').scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── GREETING ──────────────────────────────────────────────────────────────────
+function setGreeting() {
+  const h=new Date().getHours();
+  let g = h<12?'Good morning, Jamie':h<17?'Good afternoon, Jamie':h<21?'Good evening, Jamie':'Hey Jamie';
+  document.getElementById('greeting').textContent=g;
+  const now=new Date();
+  const next=bookings.filter(b=>b.date>=now.toISOString().slice(0,10)).sort((a,b)=>a.date.localeCompare(b.date))[0];
+  if(next){
+    const diff=Math.round((new Date(next.date+'T12:00')-now)/86400000);
+    document.getElementById('greeting-sub').textContent=
+      diff===0?next.name+' is today — enjoy every moment ♥':
+      diff===1?next.name+' is tomorrow — exciting!':
+      diff<=7?next.name+' is in '+diff+' days ✦':
+      "Let's plan something wonderful";
+  }
+}
+
+// ── BUDGET / VIBE ─────────────────────────────────────────────────────────────
+function setBudget(el,val) {
+  document.querySelectorAll('.bp').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active'); _budget=val;
+}
+function setVibe(el,val) {
+  document.querySelectorAll('.vc').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active'); _vibe=val;
+}
+
+// ── GENERATE CARDS ────────────────────────────────────────────────────────────
+function generateCards() {
+  const area=document.getElementById('swipe-area');
+  area.innerHTML=`<div class="loading-state"><div class="spinner"></div><div class="loading-text">Finding your perfect date...</div></div>`;
+  setTimeout(()=>{
+    let ideas=[...(IDEAS[_budget]||IDEAS.mid)];
+    if(_vibe!=='all') ideas=ideas.filter(i=>i.type===_vibe).concat(ideas.filter(i=>i.type!==_vibe));
+    ideas=ideas.slice(0,4);
+    _ideas=ideas; _swipeIdx=0; _swipeTotal=ideas.length;
+    renderStack(ideas);
+  },800);
+}
+
+// ── RENDER STACK ──────────────────────────────────────────────────────────────
+function renderStack(ideas) {
+  const area=document.getElementById('swipe-area');
+  const topScore=Math.max(...ideas.map(i=>i.score));
+  let h=`<div class="stack-wrap" id="stack">`;
+
+  ideas.forEach((idea,idx)=>{
+    const isTop=idea.score===topScore&&idx===ideas.findIndex(i=>i.score===topScore);
+    const cls=idx===0?'c0':idx===1?'c1':'c2';
+    const badge=isTop?`<div class="sc-badge sc-badge-top">✦ Best match</div>`:'';
+    const tags=idea.vibes.map(v=>`<span class="badge badge-muted">${v}</span>`).join('');
+    h+=`<div class="sc ${cls}" id="sc${idx}">
+      <div class="sc-img-wrap">
+        <img class="sc-img" src="${idea.img}" alt="${idea.name}" loading="${idx===0?'eager':'lazy'}"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="sc-emoji-fb">${idea.emoji}</div>
+        <div class="sc-grad"></div>
+        ${badge}
+      </div>
+      <div class="sc-body">
+        <div class="sc-name-row">
+          <div class="sc-name">${idea.name}</div>
+          <div class="sc-price">${idea.price}</div>
+        </div>
+        <div class="sc-loc">📍 ${idea.loc}</div>
+        <div class="sc-tags">${tags}</div>
+        <div class="sc-why">${idea.why}</div>
+        <div class="sc-match-row">
+          <div class="sc-match-bar"><div class="sc-match-fill" style="width:${idea.score}%"></div></div>
+          <span class="sc-match-pct">${idea.score}%</span>
+          <span>match</span>
+        </div>
+      </div>
+      <div class="sc-actions">
+        <div class="sc-btn sc-skip" onclick="act('skip')" title="Skip">✕</div>
+        <div class="sc-btn sc-book" onclick="act('book')" title="Book it">✦</div>
+        <div class="sc-btn sc-save" onclick="act('save')" title="Save">♥</div>
+      </div>
+    </div>`;
+  });
+
+  h+=`<div class="swipe-done" id="done-state">
+    <div class="done-icon">✦</div>
+    <div class="done-title serif">That's all for now</div>
+    <div class="done-sub">Saved ideas live in your wishlist. Want something different?</div>
+    <button class="btn btn-primary" onclick="generateCards()">Refresh ideas ↺</button>
+  </div></div>`;
+
+  h+=`<div class="swipe-hints">
+    <div class="swipe-hint">← skip</div>
+    <div class="swipe-hint">save ♥ · book ✦ →</div>
+  </div>`;
+  h+=`<div class="swipe-dots" id="dots">${ideas.map((_,i)=>`<div class="dot${i===0?' active':''}" id="dot${i}"></div>`).join('')}</div>`;
+  h+=`<div class="swipe-ctr" id="ctr">1 of ${ideas.length}</div>`;
+  area.innerHTML=h;
+  attachDrag();
+}
+
+// ── DRAG / SWIPE ──────────────────────────────────────────────────────────────
+function attachDrag() {
+  const stack=document.getElementById('stack');
+  if(!stack||stack._dragged) return;
+  stack._dragged=true;
+  let sx,sy,st,card;
+
+  function getActive(){return stack.querySelector('.c0')}
+  function onStart(e){
+    card=getActive();if(!card) return;
+    const p=e.touches?e.touches[0]:e;
+    sx=p.clientX;sy=p.clientY;st=Date.now();
+    card.classList.add('no-transition');
+  }
+  function onMove(e){
+    if(!card||!card.classList.contains('no-transition')) return;
+    if(e.cancelable) e.preventDefault();
+    const p=e.touches?e.touches[0]:e;
+    const dx=p.clientX-sx, dy=p.clientY-sy;
+    card.style.transform=`translate(${dx}px,${dy*.25}px) rotate(${dx*.05}deg)`;
+    const r=Math.min(Math.abs(dx)/100,1);
+    if(dx>15) card.style.boxShadow=`0 24px 64px rgba(0,0,0,.7),0 0 0 ${1+r*2.5}px rgba(255,90,95,${.2+r*.6})`;
+    else if(dx<-15) card.style.boxShadow=`0 24px 64px rgba(0,0,0,.7),0 0 0 ${1+r*2.5}px rgba(255,255,255,${r*.15})`;
+    else card.style.boxShadow='';
+  }
+  function onEnd(e){
+    if(!card||!card.classList.contains('no-transition')) return;
+    card.classList.remove('no-transition');
+    card.style.transform='';card.style.boxShadow='';
+    const p=e.changedTouches?e.changedTouches[0]:e;
+    const dx=p.clientX-sx, dt=Date.now()-st, vx=Math.abs(dx)/dt;
+    if(dx>80||(dx>40&&vx>.5)) act('book');
+    else if(dx<-80||(dx<-40&&vx>.5)) act('skip');
+    card=null;
+  }
+  stack.addEventListener('touchstart',onStart,{passive:true});
+  stack.addEventListener('touchmove',onMove,{passive:false});
+  stack.addEventListener('touchend',onEnd);
+  stack.addEventListener('mousedown',onStart);
+  window.addEventListener('mousemove',onMove);
+  window.addEventListener('mouseup',onEnd);
+}
+
+// ── ACT (skip / book / save) ──────────────────────────────────────────────────
+function act(action) {
+  const stack=document.getElementById('stack');
+  if(!stack) return;
+  const active=stack.querySelector('.c0');
+  if(!active) return;
+  const idea=_ideas[_swipeIdx];
+
+  if(action==='book'&&idea) openBook(idea);
+  if(action==='save'&&idea){ saveWish(idea); toast('♥ Saved to wishlist'); }
+
+  active.classList.remove('c0');
+  active.classList.add(action==='skip'?'cx-l':'cx-r');
+
+  const b1=stack.querySelector('.c1'), b2=stack.querySelector('.c2');
+  if(b1){b1.classList.remove('c1');b1.classList.add('c0');}
+  if(b2){b2.classList.remove('c2');b2.classList.add('c1');}
+
+  _swipeIdx++;
+  // Dots
+  document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('active',i===_swipeIdx));
+  const ctr=document.getElementById('ctr');
+  if(ctr) ctr.textContent=`${Math.min(_swipeIdx+1,_swipeTotal)} of ${_swipeTotal}`;
+
+  if(_swipeTotal-_swipeIdx<=0){
+    setTimeout(()=>{const d=document.getElementById('done-state');if(d)d.classList.add('show');},420);
+  }
+}
+
+// ── WISHLIST ──────────────────────────────────────────────────────────────────
+function saveWish(idea){
+  if(!wishlist.find(w=>w.name===idea.name))
+    wishlist.unshift({id:Date.now(),name:idea.name,emoji:idea.emoji,price:idea.price,type:idea.type,why:idea.why,done:false});
+}
+function setWishFilter(val,el){
+  _wishFilter=val;
+  document.querySelectorAll('.fp').forEach(p=>p.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderWishlist();
+}
+function renderWishlist(){
+  let items=wishlist;
+  if(_wishFilter==='todo') items=items.filter(w=>!w.done);
+  if(_wishFilter==='done') items=items.filter(w=>w.done);
+  const el=document.getElementById('wish-list');
+  if(!items.length){
+    el.innerHTML=`<div style="text-align:center;padding:48px 20px;color:var(--ink3)"><div style="font-size:40px;margin-bottom:12px">💫</div><div style="font-size:14px;font-weight:600;color:var(--ink2);margin-bottom:6px">Nothing here yet</div><div style="font-size:12px">Save ideas from Discover — they'll appear here</div></div>`;
+    return;
+  }
+  el.innerHTML=items.map(w=>`<div class="wish-item${w.done?' done':''}" id="wi${w.id}">
+    <div class="wish-emoji">${w.emoji}</div>
+    <div class="wish-content">
+      <div class="wish-name">${w.name}</div>
+      <div class="wish-meta">${w.price} · ${w.type}</div>
+      ${w.why?`<div class="wish-meta" style="margin-top:3px;font-style:italic">"${w.why}"</div>`:''}
+    </div>
+    <div class="wish-check${w.done?' ticked':''}" onclick="toggleWish(${w.id})">${w.done?'✓':''}</div>
+  </div>`).join('');
+}
+function toggleWish(id){
+  const w=wishlist.find(x=>x.id===id);
+  if(w){w.done=!w.done;renderWishlist();toast(w.done?'✓ Done!':'Back to to-do');}
+}
+
+// ── BOOKINGS ──────────────────────────────────────────────────────────────────
+function renderBookings(){
+  const now=new Date().toISOString().slice(0,10);
+  const up=bookings.filter(b=>b.date>=now).sort((a,b)=>a.date.localeCompare(b.date));
+  const past=bookings.filter(b=>b.date<now);
+  let h='';
+  if(up.length){h+=`<div class="bk-section-lbl">Upcoming</div>`;h+=up.map(b=>bkCard(b)).join('');}
+  if(past.length){h+=`<div class="bk-section-lbl" style="margin-top:${up.length?20:0}px">Past dates</div>`;h+=past.map(b=>bkCard(b,true)).join('');}
+  document.getElementById('bk-list').innerHTML=h;
+  const spend=bookings.reduce((a,b)=>{const n=parseFloat((b.amount||'').replace(/[£,]/g,''));return a+(isNaN(n)?0:n);},0);
+  document.getElementById('s-up').textContent=up.length;
+  document.getElementById('s-tot').textContent=bookings.length;
+  document.getElementById('s-sp').textContent='£'+Math.round(spend);
+}
+function bkCard(b,past){
+  const d=new Date(b.date+'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'long'});
+  return `<div class="bk-item"${past?' style="opacity:.5"':''}>
+    <div class="bk-icon">${b.icon}</div>
+    <div class="bk-content"><div class="bk-name">${b.name}</div><div class="bk-meta">${d} · ${b.meta}</div></div>
+    <div class="bk-amount">${b.amount}</div>
+  </div>`;
+}
+
+// ── PROFILE ───────────────────────────────────────────────────────────────────
+function renderProfile(){
+  const now=new Date().toISOString().slice(0,10);
+  const up=bookings.filter(b=>b.date>=now).sort((a,b)=>a.date.localeCompare(b.date));
+  const el=document.getElementById('profile-next');
+  if(!up.length){el.innerHTML=`<div style="font-size:13px;color:var(--ink3)">No upcoming dates — head to Discover!</div>`;return;}
+  el.innerHTML=up.slice(0,2).map(b=>{
+    const d=new Date(b.date+'T12:00').toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+    return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:var(--rxs);margin-bottom:8px">
+      <span style="font-size:18px">${b.icon}</span>
+      <div style="flex:1"><div style="font-size:13px;font-weight:600">${b.name}</div><div style="font-size:11px;color:var(--ink3)">${d}</div></div>
+      <span class="badge badge-coral">${b.amount}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── BOOKING SHEET ─────────────────────────────────────────────────────────────
+function openBook(idea){
+  const nextDate=new Date(Date.now()+7*86400000).toISOString().slice(0,10);
+  document.getElementById('book-content').innerHTML=`
+    <div class="sheet-title serif">${idea.name}</div>
+    <div class="sheet-sub">📍 ${idea.loc} · ${idea.price}</div>
+    <div class="form-group"><div class="form-label">Date</div><input type="date" class="form-input" id="bdate" value="${nextDate}"></div>
+    <div class="form-group"><div class="form-label">Time</div><input type="time" class="form-input" id="btime" value="19:30"></div>
+    <div class="form-group"><div class="form-label">Notes (optional)</div><input type="text" class="form-input" id="bnote" placeholder="e.g. mention it's our anniversary"></div>
+    <button class="btn btn-primary btn-full btn-lg" style="margin-top:6px" onclick="confirmBook('${idea.name.replace(/'/g,"\\'")}','${idea.price}','${idea.emoji}','${idea.type}')">Confirm booking ✦</button>
+    <button class="btn btn-ghost btn-full" style="margin-top:10px" onclick="closeBook()">Cancel</button>`;
+  document.getElementById('book-overlay').classList.add('open');
+}
+function closeBook(){document.getElementById('book-overlay').classList.remove('open');}
+function confirmBook(name,price,icon,type){
+  const date=document.getElementById('bdate')?.value||'';
+  const time=document.getElementById('btime')?.value||'19:30';
+  const note=document.getElementById('bnote')?.value||'';
+  bookings.push({id:Date.now(),type:type||'experience',name,date,meta:time+' · 2 covers'+(note?' · '+note:''),amount:price,icon:icon||'✦'});
+  closeBook();
+  toast('✦ Booked! Added to My Dates');
+}
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+setGreeting();
+generateCards();
+</script>
+</body>
+</html>

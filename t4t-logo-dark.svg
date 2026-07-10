@@ -1,0 +1,18 @@
+<svg width="1080" height="1080" viewBox="0 0 1080 1080" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1080" height="1080" fill="#080808"/>
+  <defs>
+    <linearGradient id="t4t-grad" x1="340" y1="290" x2="740" y2="790" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#C4687A"/>
+      <stop offset="50%" stop-color="#C9A84C"/>
+      <stop offset="100%" stop-color="#8B6914"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(340, 290) scale(10)">
+    <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-grad)"/>
+    <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
+    <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad)"/>
+    <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-grad)"/>
+    <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-grad)"/>
+  </g>
+  <text x="540" y="680" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="48" font-weight="700" fill="#C9A84C" letter-spacing="2">TABLE FOR TWO</text>
+</svg>

@@ -1,0 +1,1581 @@
+  <!DOCTYPE html>
+  <html lang="en">
+  <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+        <title>Table for Two — Socialising, Made Simple</title>
+        <meta name="description" content="London's personal social planner. Dates, nights out, solo adventures and everything in between. Tell us your vibe — we'll handle the rest.">
+        <link rel="manifest" href="/manifest.json">
+
+        <!-- Open Graph (Facebook, LinkedIn, iMessage, Discord) -->
+        <meta property="og:title" content="Table for Two — Socialising, Made Simple">
+        <meta property="og:description" content="One app. Two people. Zero arguments about where to go. AI suggests dates you'll both love, then books everything.">
+        <meta property="og:type" content="website">
+        <meta property="og:image" content="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1200&h=630&fit=crop&q=85">
+
+        <!-- Twitter / X -->
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" content="Table for Two — Socialising, Made Simple">
+        <meta name="twitter:description" content="AI-powered date planning. We learn what you love and book everything.">
+        <meta name="twitter:image" content="https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1200&h=630&fit=crop&q=85">
+
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♥</text></svg>">
+        <script>if(location.search.includes('app')||location.hash==='#app')document.documentElement.classList.add('skip-lp');</script>
+        <!-- Supabase client (CDN) -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+        <div id="gmap" style="display:none"></div>
+        <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+        <h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Table for Two — AI date planning app with suggestions, booking, reminders and calendar</h2>
+
+        <!-- ── LANDING PAGE ── -->
+        <div id="landing">
+          <div class="lp-clean">
+
+            <!-- Logo -->
+            <div class="lp-clean-logo">
+              <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="t4t-lp-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                    <stop offset="0%" stop-color="#D4B86A"/>
+                    <stop offset="50%" stop-color="#C9A84C"/>
+                    <stop offset="100%" stop-color="#8B6914"/>
+                  </linearGradient>
+                </defs>
+                <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-lp-grad)"/>
+                <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-lp-grad)"/>
+                <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-lp-grad)"/>
+                <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-lp-grad)"/>
+                <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-lp-grad)"/>
+              </svg>
+            </div>
+
+            <!-- Private beta pill -->
+            <div class="lp-coming-soon">Early Access</div>
+
+            <!-- Headline -->
+            <h1 class="lp-clean-headline">Socialising,<br>made simple.</h1>
+
+            <!-- One-liner -->
+            <p class="lp-clean-sub">Tell us your vibe. We'll handle the rest.</p>
+
+            <!-- Step 1: Email + Password -->
+            <div class="lp-clean-form" id="lp-step-email">
+              <div style="position:absolute;left:-9999px;opacity:0;height:0;overflow:hidden" aria-hidden="true">
+                <label>Website <input type="text" id="lp-website" tabindex="-1" autocomplete="off"></label>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <input type="email" id="lp-email" placeholder="Email address" class="lp-clean-input" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('lp-password').focus()">
+                <div style="position:relative">
+                  <input type="password" id="lp-password" placeholder="Password (min 6 characters)" class="lp-clean-input" style="width:100%;padding-right:44px" autocomplete="current-password" onkeydown="if(event.key==='Enter')startBetaSignup()">
+                  <button type="button" onclick="const p=document.getElementById('lp-password');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'Show':'Hide'" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(201,168,76,0.6);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:4px">Show</button>
+                </div>
+                <button id="lp-email-btn" class="lp-clean-btn" onclick="startBetaSignup()">Create account</button>
+              </div>
+              <div id="lp-auth-hint" style="display:none;text-align:center;margin-top:10px;font-size:12px;line-height:1.5"></div>
+              <p class="lp-clean-disclaimer" style="margin-top:10px">By continuing you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</p>
+              <p class="lp-clean-disclaimer" style="margin-top:6px" id="lp-auth-toggle">Already have an account? <a href="#" onclick="event.preventDefault();toggleLpAuthMode('login')" style="color:#C9A84C;font-weight:600">Sign in</a></p>
+              <p class="lp-clean-disclaimer" style="margin-top:4px"><a href="#" onclick="event.preventDefault();showLpForgotPassword()" style="color:rgba(201,168,76,0.5);font-weight:500">Forgot password?</a></p>
+            </div>
+
+            <!-- Email confirmation pending -->
+            <div class="lp-clean-form" id="lp-step-confirm" style="display:none;text-align:center;padding:8px 0">
+              <div style="font-size:32px;margin-bottom:12px">&#9993;</div>
+              <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.6;margin-bottom:6px">We've sent a confirmation link to</div>
+              <div id="lp-confirm-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:12px"></div>
+              <div style="font-size:12px;color:rgba(255,255,255,0.3);line-height:1.5;margin-bottom:20px">Confirm your email, then come back here and sign in with the password you just created.</div>
+              <button class="lp-clean-btn" style="width:100%;margin-bottom:10px" onclick="confirmAndSignIn()">I've confirmed — sign in</button>
+              <button id="lp-resend-btn" class="lp-clean-btn" style="width:100%;margin-bottom:10px;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1)" onclick="resendConfirmation()">Resend confirmation email</button>
+              <div id="lp-resend-hint" style="display:none;font-size:12px;margin-bottom:10px;line-height:1.5"></div>
+              <button class="lp-clean-btn" style="background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);box-shadow:none;border:0.5px solid rgba(255,255,255,0.06);width:100%" onclick="document.getElementById('lp-step-confirm').style.display='none';document.getElementById('lp-step-email').style.display='block'">Back to sign in</button>
+            </div>
+
+            <!-- Forgot password -->
+            <div class="lp-clean-form" id="lp-step-forgot" style="display:none;text-align:center;padding:8px 0">
+              <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Reset your password</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:16px">Enter your email and we'll send a reset link.</div>
+              <input type="email" id="lp-forgot-email" placeholder="Email address" class="lp-clean-input" style="width:100%;margin-bottom:10px" onkeydown="if(event.key==='Enter')submitLpForgotPassword()">
+              <div id="lp-forgot-hint" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px"></div>
+              <button id="lp-forgot-btn" class="lp-clean-btn" onclick="submitLpForgotPassword()" style="width:100%;margin-bottom:12px">Send reset link</button>
+              <button class="lp-clean-btn" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1);width:100%" onclick="document.getElementById('lp-step-forgot').style.display='none';document.getElementById('lp-step-email').style.display='block'">Back to sign in</button>
+            </div>
+
+            <!-- Reset link sent -->
+            <div class="lp-clean-form" id="lp-step-reset-sent" style="display:none;text-align:center;padding:8px 0">
+              <div style="font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
+              <div id="lp-reset-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:20px">We've sent a password reset link to your email.</div>
+              <button class="lp-clean-btn" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);box-shadow:none;border:0.5px solid rgba(255,255,255,0.1)" onclick="document.getElementById('lp-step-reset-sent').style.display='none';document.getElementById('lp-step-email').style.display='block'">Back to sign in</button>
+            </div>
+
+            <!-- Partner CTA -->
+            <div style="margin-top:36px;display:flex;align-items:center;gap:10px;cursor:pointer;padding:12px 20px;border:1px solid rgba(201,168,76,0.25);border-radius:12px;background:rgba(201,168,76,0.05);transition:all 0.2s" onclick="openPartnerForm()" onmouseenter="this.style.borderColor='rgba(201,168,76,0.5)';this.style.background='rgba(201,168,76,0.1)'" onmouseleave="this.style.borderColor='rgba(201,168,76,0.25)';this.style.background='rgba(201,168,76,0.05)'">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg>
+              <span style="font-size:14px;color:rgba(255,255,255,0.7);font-weight:500">Own a venue? <span style="color:#C9A84C;font-weight:600">Partner with us</span></span>
+            </div>
+
+            <!-- Footer -->
+            <div class="lp-clean-footer">
+              <p><a href="privacy.html" target="_blank" style="color:rgba(255,255,255,0.3)">Privacy Policy</a> · <a href="terms.html" target="_blank" style="color:rgba(255,255,255,0.3)">Terms</a> · <a href="support.html" target="_blank" style="color:rgba(255,255,255,0.3)">Support</a> · © 2026 Table for Two LTD</p>
+            </div>
+
+          </div>
+
+          <!-- Partner form overlay -->
+          <div id="partner-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)closePartnerForm()">
+            <div style="background:#0E0D0B;border:1px solid rgba(201,168,76,0.2);border-radius:20px;padding:32px 24px;width:100%;max-width:400px;animation:slideUpSheet 0.28s cubic-bezier(.22,.68,0,1.2)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">
+                <div>
+                  <div style="font-size:18px;font-weight:700;color:#fff;font-family:'Cormorant Garamond',serif">Partner with Table for Two</div>
+                  <div style="font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px">Get your venue in front of our users</div>
+                </div>
+                <button onclick="closePartnerForm()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:18px;cursor:pointer;padding:4px">✕</button>
+              </div>
+              <div id="partner-form-fields">
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Business name</label>
+                  <input type="text" id="partner-business" placeholder="e.g. The Ivy, Soho House" class="lp-clean-input" style="width:100%">
+                </div>
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Contact name</label>
+                  <input type="text" id="partner-name" placeholder="Your full name" class="lp-clean-input" style="width:100%">
+                </div>
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Email</label>
+                  <input type="email" id="partner-email" placeholder="you@business.com" class="lp-clean-input" style="width:100%">
+                </div>
+                <div style="margin-bottom:14px">
+                  <label style="display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Venue type</label>
+                  <select id="partner-type" class="lp-clean-input" style="width:100%;appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 5 5-5' stroke='%23666' stroke-width='1.2' fill='none'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center;padding-right:32px">
+                    <option value="">Select type</option>
+                    <option>Restaurant</option>
+                    <option>Bar / Lounge</option>
+                    <option>Hotel</option>
+                    <option>Experience / Activity</option>
+                    <option>Spa / Wellness</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div style="margin-bottom:20px">
+                  <label style="display:block;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:6px">Message (optional)</label>
+                  <textarea id="partner-message" placeholder="Tell us about your venue..." class="lp-clean-input" rows="3" style="width:100%;resize:none;line-height:1.5"></textarea>
+                </div>
+                <button class="lp-clean-btn" style="width:100%;padding:14px;font-size:15px" onclick="submitPartnerForm()">Submit enquiry</button>
+              </div>
+              <div id="partner-success" style="display:none;text-align:center;padding:16px 0">
+                <div style="font-size:28px;margin-bottom:12px;color:#C9A84C">✓</div>
+                <div style="font-size:17px;font-weight:600;color:#fff;margin-bottom:6px">Enquiry sent</div>
+                <div style="font-size:13px;color:rgba(255,255,255,0.5)">We'll be in touch within 48 hours.</div>
+                <button class="lp-clean-btn" style="margin-top:20px;padding:12px 28px" onclick="closePartnerForm()">Close</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <!-- ── END LANDING PAGE ── -->
+
+        <div class="app" style="display:none">
+        <aside class="sidebar">
+          <div class="logo">
+            <div class="logo-name"><span class="logo-heart">♥</span>Table for Two</div>
+            <div class="logo-sub">Your next plan, sorted</div>
+          </div>
+          <nav class="nav">
+            <div class="nav-label">Home</div>
+            <div class="nav-item active" onclick="go('discover',this)"><span class="nav-icon">✦</span>Discover</div>
+            <div class="nav-item" onclick="go('profiles',this)"><span class="nav-icon">◉</span>Our Profiles</div>
+            <div class="nav-label">Book</div>
+            <div class="nav-item" onclick="go('restaurants',this)"><span class="nav-icon">◈</span>Restaurants</div>
+            <div class="nav-item" onclick="go('experiences',this)"><span class="nav-icon">◎</span>Experiences</div>
+            <div class="nav-item" onclick="go('hotels',this)"><span class="nav-icon">⌂</span>Accommodation</div>
+            <div class="nav-item" onclick="go('cabs',this)"><span class="nav-icon">◉</span>Transport</div>
+            <div class="nav-label">Plan</div>
+            <div class="nav-item" onclick="go('planner',this)"><span class="nav-icon">◫</span>Date Planner</div>
+            <div class="nav-item" onclick="go('bookings',this)"><span class="nav-icon">◎</span>My Dates</div>
+            <div class="nav-label">Relationship</div>
+            <div class="nav-item" onclick="go('journal',this)"><span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg></span>Date Journal</div>
+            <div class="nav-item" onclick="go('wishlist',this)"><span class="nav-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></span>Wishlist</div>
+          </nav>
+        </aside>
+
+        <main class="main">
+          <!-- Mobile-only header -->
+          <div class="mobile-header" style="justify-content:space-between;align-items:center">
+            <!-- Left: brand text -->
+            <div>
+              <div class="mobile-logo">Table for Two</div>
+              <div class="mobile-page-title" id="mobile-page-title">Discover</div>
+            </div>
+            <!-- Center: T4T monogram logo -->
+            <svg width="28" height="28" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0">
+              <defs>
+                <linearGradient id="t4t-grad-hdr" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#D4B86A"/>
+                  <stop offset="50%" stop-color="#C9A84C"/>
+                  <stop offset="100%" stop-color="#8B6914"/>
+                </linearGradient>
+              </defs>
+              <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-grad-hdr)"/>
+              <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad-hdr)"/>
+              <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-grad-hdr)"/>
+              <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-grad-hdr)"/>
+              <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-grad-hdr)"/>
+            </svg>
+            <!-- Right: profile pill -->
+            <div class="couple-pill" style="padding:5px 10px;gap:8px" onclick="toggleProfiles()">
+              <div class="avatar avatar-a" style="width:28px;height:28px;font-size:10px"></div>
+              <div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0">
+                <div class="couple-name" style="font-size:11px;font-weight:600;line-height:1.2"></div>
+                <div class="profile-handle-display" style="font-size:9px;font-family:monospace;color:rgba(201,168,76,0.6);line-height:1.2;letter-spacing:0.2px"></div>
+              </div>
+            </div>
+          </div>
+          <div class="topbar">
+            <div class="topbar-left">
+              <h2 id="page-title">Hey</h2>
+              <p id="page-sub">Planning something special tonight?</p>
+            </div>
+            <div class="couple-pill" style="gap:10px" onclick="go('profiles',document.querySelector('[onclick*=profiles]'))">
+              <div class="avatar avatar-a" style="width:32px;height:32px;font-size:11px"></div>
+              <div style="display:flex;flex-direction:column;align-items:flex-start;min-width:0">
+                <div class="couple-name" style="font-size:13px;font-weight:600;line-height:1.2"></div>
+                <div class="profile-handle-display" style="font-size:10px;font-family:monospace;color:rgba(201,168,76,0.6);line-height:1.2;letter-spacing:0.2px"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="content">
+
+            <!-- DISCOVER / AI SUGGEST -->
+            <div class="page page-anim active" id="page-discover">
+
+              <!-- Value prop -->
+              <div id="discover-value-prop" style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:14px;line-height:1.5">Plans built from real London venues, matched to what you both enjoy.</div>
+
+              <!-- ── HORIZONTAL CATEGORY BAR (Airbnb-style) ── -->
+              <div class="discover-cats" id="discover-cats">
+                <div class="dcat active" onclick="selectDiscoverCat(this,'all')" data-cat="all">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                  <span>For you</span>
+                </div>
+                <div class="dcat" onclick="selectDiscoverCat(this,'romantic')" data-cat="romantic">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="9" x2="7" y2="22"/><path d="M21 2v8a3 3 0 0 1-3 3h0"/><line x1="21" y1="13" x2="21" y2="22"/></svg>
+                  <span>Restaurant</span>
+                </div>
+                <div class="dcat" onclick="selectDiscoverCat(this,'all')" data-cat="activity">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  <span>Activity</span>
+                </div>
+                <div class="dcat" onclick="selectDiscoverCat(this,'outdoor')" data-cat="outdoor">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 8h1a4 4 0 1 1 0 8h-1"/><path d="M3 8h14v9a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4Z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>
+                  <span>Outdoors</span>
+                </div>
+                <div class="dcat" onclick="selectDiscoverCat(this,'fun')" data-cat="fun">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                  <span>Nightlife</span>
+                </div>
+                <div class="dcat" onclick="selectDiscoverCat(this,'wellness')" data-cat="wellness">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.5-3 9-7.5 9-12a9 9 0 1 0-18 0c0 4.5 3.5 9 9 12Z"/></svg>
+                  <span>Wellness</span>
+                </div>
+              </div>
+
+              <!-- ── COMPACT FILTER BAR ── -->
+              <div id="discover-filter-bar" style="margin-bottom:14px">
+                <div style="padding:14px 16px;background:var(--card);border-radius:16px;border:1px solid var(--bdr)">
+                  <!-- Planning context pills -->
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                    <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase">Planning for</div>
+                    <span style="font-size:10.5px;color:rgba(201,168,76,0.55);cursor:pointer" onclick="startOnboarding()">Change preferences</span>
+                  </div>
+                  <div id="rel-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                    <div class="occasion-chip active" data-rel="partner" onclick="setRelFilter(this,'partner')">Partner</div>
+                    <div class="occasion-chip" data-rel="friends" onclick="setRelFilter(this,'friends')">Friends</div>
+                    <div class="occasion-chip" data-rel="solo" onclick="setRelFilter(this,'solo')">Solo</div>
+                  </div>
+
+                  <!-- Mood quick-select -->
+                  <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Tonight's mood</div>
+                  <div id="mood-chips" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+                    <div class="occasion-chip active" data-energy="moderate" onclick="setMoodFilter(this,'moderate')">Open to anything</div>
+                    <div class="occasion-chip" data-energy="low" onclick="setMoodFilter(this,'low')">Relaxed & easy</div>
+                    <div class="occasion-chip" data-energy="high" onclick="setMoodFilter(this,'high')">Active & adventurous</div>
+                  </div>
+
+                  <!-- Budget pills -->
+                  <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Budget per stop</div>
+                  <div id="budget-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+                    <div class="occasion-chip active" data-budget="under50" onclick="setBudgetPill(this,'under50')">Under £50</div>
+                    <div class="occasion-chip" data-budget="50to150" onclick="setBudgetPill(this,'50to150')">£50–£150</div>
+                    <div class="occasion-chip" data-budget="150plus" onclick="setBudgetPill(this,'150plus')">£150+</div>
+                  </div>
+
+                  <!-- Stop count -->
+                  <div style="font-size:11px;font-weight:600;color:var(--subtle);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:8px">Stops per plan</div>
+                  <div id="stop-pills" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+                    <div class="occasion-chip" data-stops="1" onclick="setStopPill(this,1)">1 stop</div>
+                    <div class="occasion-chip" data-stops="2" onclick="setStopPill(this,2)">2 stops</div>
+                    <div class="occasion-chip" data-stops="3" onclick="setStopPill(this,3)">3 stops</div>
+                    <div class="occasion-chip active" data-stops="open" onclick="setStopPill(this,'open')">Open to more</div>
+                  </div>
+
+                  <button class="btn btn-rose" style="width:100%;padding:11px;font-size:13px;font-weight:600;border-radius:10px;justify-content:center" onclick="generateSuggestions()">Go</button>
+                  <select class="form-input" id="loc-select" style="font-size:11px;padding:6px 10px;border-radius:8px;margin-top:10px;display:none">
+                    <option>London, UK</option>
+                  </select>
+                  <div style="display:flex;align-items:center;justify-content:center;margin-top:10px">
+                    <span id="refine-btn" style="font-size:12px;color:rgba(201,168,76,0.6);cursor:pointer;display:inline-flex;align-items:center;gap:5px" onclick="openRefineSheet()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg> Tailor tonight</span>
+                    <span id="refine-active-badge" style="display:none;margin-left:6px;font-size:10px;font-weight:600;padding:2px 7px;background:rgba(201,168,76,0.12);color:var(--primary);border:0.5px solid rgba(201,168,76,0.25);border-radius:8px">Filtered</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── SUGGESTIONS ── -->
+              <div id="suggestions-area"></div>
+
+              <!-- ── MEMBERS SECTION ── -->
+              <div id="members-discover-section" style="margin-top:24px"></div>
+
+              <!-- Support link -->
+              <div style="text-align:center;padding:20px 0 8px">
+                <span style="font-size:11px;color:rgba(255,255,255,0.38);cursor:pointer" onclick="_trackEvent('support_clicked',{});openFeedback()">Something wrong? Report an issue</span>
+              </div>
+            </div>
+
+            <!-- PROFILES -->
+            <div class="page page-anim" id="page-profiles">
+
+              <!-- 1. Page header -->
+              <div style="margin-bottom:16px">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+                  <div style="font-size:17px;font-weight:700;color:#fff;font-family:var(--font-serif)">Your Defaults</div>
+                  <button class="btn btn-sm btn-rose" id="pref-save-btn" onclick="savePref()">Edit preferences</button>
+                </div>
+                <div style="font-size:11px;color:rgba(255,255,255,0.3);line-height:1.5">These are your long-term preferences. Use <strong style="color:rgba(201,168,76,0.5)">Refine</strong> on Discover to tailor a specific outing.</div>
+              </div>
+
+              <!-- 2. Planning mode card -->
+              <div style="padding:12px 16px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                <div>
+                  <div style="font-size:12px;color:var(--ink-soft)" id="pairing-status"><span style="color:var(--primary);font-weight:600">Paired mode</span> · planning together</div>
+                  <div id="taste-blend-subtitle" style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:2px">Both your tastes are blended into every recommendation</div>
+                </div>
+                <button class="btn btn-sm" style="font-size:10px;padding:4px 12px;white-space:nowrap" onclick="openPairingPicker()">Switch planning mode</button>
+              </div>
+
+              <!-- 3. Recommendation essentials -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">Your defaults</div>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Persistent preferences used as starting points for every plan</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="profile-pair">
+                    <div class="profile-half">
+                      <div class="profile-avatar" style="background:#FBEAF0;color:#72243E"></div>
+                      <div style="font-size:14px;font-weight:500;margin-bottom:3px;color:var(--ink)"></div>
+                      <div style="display:flex;align-items:center;gap:5px;margin-bottom:10px">
+                        <span id="handle-user-display" style="font-size:10px;font-weight:600;color:var(--primary);font-family:monospace;letter-spacing:0.3px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 7px;cursor:pointer" title="Tap to edit" onclick="editHandle('user')"></span>
+                      </div>
+                      <div class="form-group"><label class="form-label">Food preferences</label><select class="form-input"><option>Everything</option><option>Vegetarian</option><option>Vegan</option><option>Pescatarian</option></select></div>
+                      <div class="form-group"><label class="form-label">Cuisine loves</label>
+                        <div class="tag-row">
+                          <span class="tag on" onclick="toggleTag(this)">Japanese</span>
+                          <span class="tag on" onclick="toggleTag(this)">Italian</span>
+                          <span class="tag" onclick="toggleTag(this)">Indian</span>
+                          <span class="tag" onclick="toggleTag(this)">French</span>
+                          <span class="tag on" onclick="toggleTag(this)">Modern British</span>
+                        </div>
+                      </div>
+                      <div class="form-group"><label class="form-label">Date style</label>
+                        <div class="tag-row">
+                          <span class="tag on" onclick="toggleTag(this)">Intimate</span>
+                          <span class="tag" onclick="toggleTag(this)">Adventure</span>
+                          <span class="tag on" onclick="toggleTag(this)">Cultural</span>
+                          <span class="tag" onclick="toggleTag(this)">Sporty</span>
+                        </div>
+                      </div>
+                      <div class="form-group" style="margin-top:4px">
+                        <label class="form-label">Love language</label>
+                        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:6px">Helps us pick dates that feel meaningful to you</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:5px">
+                          <span class="tag ll-chip on" data-person="jamie" data-val="quality_time" onclick="setLoveLang('jamie','quality_time')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Quality Time</span>
+                          <span class="tag ll-chip" data-person="jamie" data-val="words_of_affirmation" onclick="setLoveLang('jamie','words_of_affirmation')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Words of Affirmation</span>
+                          <span class="tag ll-chip" data-person="jamie" data-val="acts_of_service" onclick="setLoveLang('jamie','acts_of_service')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Acts of Service</span>
+                          <span class="tag ll-chip" data-person="jamie" data-val="receiving_gifts" onclick="setLoveLang('jamie','receiving_gifts')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> Receiving Gifts</span>
+                          <span class="tag ll-chip" data-person="jamie" data-val="physical_touch" onclick="setLoveLang('jamie','physical_touch')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 13"/></svg> Physical Touch</span>
+                        </div>
+                      </div>
+                      <div class="form-group" style="margin-top:8px;padding-top:10px;border-top:0.5px solid var(--bdr)">
+                        <label class="form-label">Date of birth <span style="font-size:10px;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-weight:400">— optional</span></label>
+                        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px">Unlocks star sign, life path number & Chinese zodiac</div>
+                        <input type="date" class="form-input" id="jamie-dob" onchange="updateCosmic('jamie',this.value)" style="max-width:190px">
+                        <div id="jamie-cosmic" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
+                      </div>
+                    </div>
+                    <div id="paired-badge" style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;gap:2px"><span style="font-size:20px;color:var(--rose)">♥</span><span style="font-size:8px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:0.5px">paired</span></div>
+                    <div class="profile-half">
+                      <div class="profile-avatar" style="background:#EDE6F2;color:#3C3489"></div>
+                      <div style="font-size:14px;font-weight:500;margin-bottom:3px;color:var(--ink)">Partner</div>
+                      <div style="display:flex;align-items:center;gap:5px;margin-bottom:10px">
+                        <span id="handle-partner-display" style="font-size:10px;font-weight:600;color:var(--primary);font-family:monospace;letter-spacing:0.3px;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 7px;cursor:pointer" title="Tap to copy or edit" onclick="editHandle('partner')"></span>
+                      </div>
+                      <div class="form-group"><label class="form-label">Food preferences</label><select class="form-input"><option>Everything</option><option selected>Vegetarian</option><option>Vegan</option><option>Pescatarian</option></select></div>
+                      <div class="form-group"><label class="form-label">Cuisine loves</label>
+                        <div class="tag-row">
+                          <span class="tag" onclick="toggleTag(this)">Japanese</span>
+                          <span class="tag on" onclick="toggleTag(this)">Mediterranean</span>
+                          <span class="tag on" onclick="toggleTag(this)">Indian</span>
+                          <span class="tag" onclick="toggleTag(this)">French</span>
+                          <span class="tag on" onclick="toggleTag(this)">Thai</span>
+                        </div>
+                      </div>
+                      <div class="form-group"><label class="form-label">Date style</label>
+                        <div class="tag-row">
+                          <span class="tag on" onclick="toggleTag(this)">Romantic</span>
+                          <span class="tag" onclick="toggleTag(this)">Live music</span>
+                          <span class="tag on" onclick="toggleTag(this)">Outdoor</span>
+                          <span class="tag" onclick="toggleTag(this)">Cosy</span>
+                        </div>
+                      </div>
+                      <div class="form-group" style="margin-top:4px">
+                        <label class="form-label">Love language</label>
+                        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:6px">Helps us pick dates that feel meaningful to them</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:5px">
+                          <span class="tag ll-chip" data-person="sophie" data-val="quality_time" onclick="setLoveLang('sophie','quality_time')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Quality Time</span>
+                          <span class="tag ll-chip" data-person="sophie" data-val="words_of_affirmation" onclick="setLoveLang('sophie','words_of_affirmation')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Words of Affirmation</span>
+                          <span class="tag ll-chip" data-person="sophie" data-val="acts_of_service" onclick="setLoveLang('sophie','acts_of_service')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> Acts of Service</span>
+                          <span class="tag ll-chip" data-person="sophie" data-val="receiving_gifts" onclick="setLoveLang('sophie','receiving_gifts')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg> Receiving Gifts</span>
+                          <span class="tag ll-chip on" data-person="sophie" data-val="physical_touch" onclick="setLoveLang('sophie','physical_touch')" style="display:inline-flex;align-items:center;gap:5px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2"/><path d="M14 10V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v2"/><path d="M10 10.5V6a2 2 0 0 0-2-2a2 2 0 0 0-2 2v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 13"/></svg> Physical Touch</span>
+                        </div>
+                      </div>
+                      <div class="form-group" style="margin-top:8px;padding-top:10px;border-top:0.5px solid var(--bdr)">
+                        <label class="form-label">Date of birth <span style="font-size:10px;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-weight:400">— optional</span></label>
+                        <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px">Unlocks star sign, life path number & Chinese zodiac</div>
+                        <input type="date" class="form-input" id="sophie-dob" onchange="updateCosmic('sophie',this.value)" style="max-width:190px">
+                        <div id="sophie-cosmic" style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div id="paired-divider" class="divider"></div>
+                  <div id="shared-dislikes" class="g2">
+                    <div>
+                      <div class="form-label" style="margin-bottom:8px">Shared dislikes</div>
+                      <div class="tag-row">
+                        <span class="tag on" onclick="toggleTag(this)">Loud / noisy venues</span>
+                        <span class="tag on" onclick="toggleTag(this)">Very spicy food</span>
+                        <span class="tag" onclick="toggleTag(this)">Touristy traps</span>
+                      </div>
+                    </div>
+                    <div>
+                      <div class="form-label" style="margin-bottom:8px">Home city</div>
+                      <select class="form-input" style="width:auto"><option>London, UK</option><option>Manchester</option><option>Edinburgh</option></select>
+                    </div>
+                  </div>
+                  <div class="divider"></div>
+                  <div class="form-group" style="max-width:340px">
+                    <label class="form-label">Monthly date budget <span style="font-size:10px;color:var(--ink-muted);text-transform:none;letter-spacing:0;font-weight:400">— optional</span></label>
+                    <div style="font-size:11px;color:var(--ink-muted);margin-bottom:7px">We'll flag when a plan would push you over budget</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <span style="font-size:15px;color:var(--ink-soft);font-family:var(--font-serif,serif)">£</span>
+                      <input type="number" class="form-input" id="monthly-budget-input" placeholder="200" min="0" step="10" style="max-width:110px" oninput="setMonthlyBudget(this.value)">
+                      <span style="font-size:12px;color:var(--ink-muted)">/month</span>
+                    </div>
+                    <div id="budget-set-note" style="display:none;margin-top:6px;font-size:11px;color:var(--color-text-success)">✓ Budget set — we'll track this in My Dates</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 4. Optional personality layer -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="card-head" style="cursor:pointer" onclick="document.getElementById('personality-body').style.display=document.getElementById('personality-body').style.display==='none'?'block':'none';this.querySelector('.acc-arrow').textContent=document.getElementById('personality-body').style.display==='none'?'+':'-'">
+                  <div>
+                    <div class="card-title">Your personality <span style="font-size:9px;font-weight:500;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:0.5px;margin-left:6px">Optional</span></div>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Sharpens recommendations but not required</div>
+                  </div>
+                  <span class="acc-arrow" style="font-size:18px;color:rgba(255,255,255,0.3);font-weight:300">+</span>
+                </div>
+                <div id="personality-body" style="display:none">
+                <div class="card-body">
+                  <!-- Couple preferences quiz -->
+                  <div>
+                    <div style="font-size:15px;font-weight:500;color:var(--ink);margin-bottom:4px">Quick personality check</div>
+                    <div style="font-size:12px;color:var(--ink-muted);margin-bottom:16px">2 questions that shape long-term recommendations</div>
+                    <div class="quiz-q">
+                      <div class="quiz-q-label">1. How adventurous are you with new experiences?</div>
+                      <div class="quiz-options">
+                        <div class="quiz-opt" data-q="adventure" data-v="low" onclick="setQuiz('adventure','low',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg> We like our favourites</div>
+                        <div class="quiz-opt active" data-q="adventure" data-v="mid" onclick="setQuiz('adventure','mid',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/></svg> Open to new things</div>
+                        <div class="quiz-opt" data-q="adventure" data-v="high" onclick="setQuiz('adventure','high',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg> Always try something new</div>
+                      </div>
+                    </div>
+                    <div class="quiz-q">
+                      <div class="quiz-q-label">2. What matters most to you on a date?</div>
+                      <div class="quiz-options">
+                        <div class="quiz-opt" data-q="priority" data-v="food" onclick="setQuiz('priority','food',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M3 2v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="9" x2="7" y2="22"/><path d="M21 2v8a3 3 0 0 1-3 3h0"/><line x1="21" y1="13" x2="21" y2="22"/></svg> Amazing food</div>
+                        <div class="quiz-opt active" data-q="priority" data-v="experience" onclick="setQuiz('priority','experience',this)">✦ Memorable experience</div>
+                        <div class="quiz-opt" data-q="priority" data-v="conversation" onclick="setQuiz('priority','conversation',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Uninterrupted conversation</div>
+                        <div class="quiz-opt" data-q="priority" data-v="spontaneity" onclick="setQuiz('priority','spontaneity',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="8" cy="8" r="1" fill="currentColor"/><circle cx="16" cy="16" r="1" fill="currentColor"/></svg> Spontaneity & surprise</div>
+                      </div>
+                    </div>
+                    <div id="quiz-result" style="display:none;padding:12px 14px;background:linear-gradient(135deg,var(--rose-light),var(--plum-light));border:0.5px solid var(--rose-mid);border-radius:var(--r-md);font-size:12px;color:var(--rose-dark)"></div>
+                  </div>
+                </div>
+                </div>
+              </div>
+
+              <!-- 5. Generated profile insights -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">What we've learned</div>
+                    <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Based on your activity and preferences</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="g4">
+                    <div class="stat"><div class="stat-label">Taste overlap</div><div class="stat-val">—</div><div class="stat-note">No data yet</div></div>
+                    <div class="stat"><div class="stat-label">Dates planned</div><div class="stat-val">0</div><div class="stat-note">Start planning</div></div>
+                    <div class="stat"><div class="stat-label">Favourite vibe</div><div class="stat-val" style="font-size:16px">—</div><div class="stat-note">Not enough data</div></div>
+                    <div class="stat"><div class="stat-label">Spent together</div><div class="stat-val">£0</div><div class="stat-note">This year</div></div>
+                  </div>
+                  <div id="cosmic-compat" style="display:none;margin-top:14px;padding:12px 14px;background:linear-gradient(135deg,#FDF8F9,#F0EAF7);border:0.5px solid var(--rose-mid);border-radius:var(--r-md)"></div>
+                </div>
+              </div>
+              <!-- 6. Profile connection -->
+              <div class="card" style="margin-bottom:14px">
+                <div class="card-head"><div class="card-title">Connect a profile</div></div>
+                <div class="card-body">
+                  <div style="font-size:12px;color:var(--ink-muted);margin-bottom:6px;line-height:1.55">Link someone's <span style="color:var(--primary);font-family:monospace;font-weight:600">@handle</span> to blend your preferences together.</div>
+                  <div style="font-size:10px;color:rgba(255,255,255,0.2);margin-bottom:14px;line-height:1.5">Only taste preferences sync — no personal data is shared.</div>
+                  <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+                    <input type="text" id="connect-handle-input" class="form-input" placeholder="@handle" style="font-family:monospace;font-size:13px;flex:1;max-width:180px" oninput="this.value=this.value.replace(/[^a-zA-Z0-9@_]/g,'')">
+                    <button class="btn btn-sm" style="background:linear-gradient(135deg,var(--accent),var(--primary));color:#000;font-weight:700;white-space:nowrap" onclick="connectByHandle()">Connect ✦</button>
+                  </div>
+                  <div id="connected-profiles-list"></div>
+                  <div style="padding-top:10px;border-top:0.5px solid var(--bdr)">
+                    <div style="font-size:11px;color:var(--ink-muted);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:0.5px">Your handles — share these to connect</div>
+                    <div style="display:flex;flex-direction:column;gap:6px">
+                      <div style="display:flex;align-items:center;justify-content:space-between">
+                        <div style="display:flex;align-items:center;gap:8px">
+                          <div class="avatar-a" style="width:28px;height:28px;border-radius:50%;background:#FBEAF0;color:#72243E;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center"></div>
+                          <span class="couple-name" style="font-size:12px;color:var(--ink)"></span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px">
+                          <span id="handle-user-card" style="font-size:11px;font-weight:600;color:var(--primary);font-family:monospace;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 8px"></span>
+                          <button onclick="copyHandle('user')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:12px;padding:2px 4px" title="Copy">⎘</button>
+                          <button onclick="editHandle('user')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:10px;padding:2px 4px" title="Edit">✎</button>
+                        </div>
+                      </div>
+                      <div id="partner-handle-row" style="display:none;align-items:center;justify-content:space-between">
+                        <div style="display:flex;align-items:center;gap:8px">
+                          <div style="width:28px;height:28px;border-radius:50%;background:#EDE6F2;color:#3C3489;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center" class="partner-avatar"></div>
+                          <span style="font-size:12px;color:var(--ink)" class="partner-name-display">Partner</span>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px">
+                          <span id="handle-partner-card" style="font-size:11px;font-weight:600;color:var(--primary);font-family:monospace;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.25);border-radius:20px;padding:2px 8px"></span>
+                          <button onclick="copyHandle('partner')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:12px;padding:2px 4px" title="Copy">⎘</button>
+                          <button onclick="editHandle('partner')" style="background:none;border:none;cursor:pointer;color:var(--ink-muted);font-size:10px;padding:2px 4px" title="Edit">✎</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 7. Account / secondary -->
+              <div style="margin-top:20px;padding-top:14px;border-top:0.5px solid rgba(255,255,255,0.04)">
+                <div style="font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:10px">Account</div>
+                <div id="auth-status-display" style="font-size:11px;color:rgba(255,255,255,0.4);margin-bottom:10px;line-height:1.5"></div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap">
+                  <button class="btn btn-sm" onclick="signOut()" style="color:rgba(255,255,255,0.3);font-size:10px">Sign out</button>
+                  <button class="btn btn-sm" onclick="openPrivacySettings()" style="color:rgba(255,255,255,0.3);font-size:10px">Privacy settings</button>
+                  <button class="btn btn-sm" onclick="requestAccountDeletion()" style="color:rgba(239,68,68,0.4);font-size:10px">Delete my account</button>
+                </div>
+                <div style="display:flex;gap:10px;margin-top:10px;font-size:10px">
+                  <a href="privacy.html" target="_blank" style="color:rgba(255,255,255,0.2)">Privacy</a>
+                  <a href="terms.html" target="_blank" style="color:rgba(255,255,255,0.2)">Terms</a>
+                  <a href="cookies.html" target="_blank" style="color:rgba(255,255,255,0.2)">Cookies</a>
+                  <a href="mailto:privacy@tablefortwo.uk" style="color:rgba(255,255,255,0.2)">privacy@tablefortwo.uk</a>
+                </div>
+              </div>
+            </div>
+
+            <!-- RESTAURANTS -->
+            <div class="page page-anim" id="page-restaurants">
+              <div id="eat-pills" style="display:flex;gap:8px;overflow-x:auto;padding:0 0 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <div id="eat-grid" style="display:flex;flex-direction:column;gap:14px"></div>
+            </div>
+
+            <!-- EXPERIENCES -->
+            <div class="page page-anim" id="page-experiences">
+              <div id="act-pills" style="display:flex;gap:8px;overflow-x:auto;padding:0 0 14px;scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <div id="act-grid" style="display:flex;flex-direction:column;gap:14px"></div>
+            </div>
+
+            <!-- HOTELS -->
+            <div class="page page-anim" id="page-hotels">
+              <div class="card">
+                <div class="card-head"><div class="card-title">Book a romantic stay</div></div>
+                <!-- Tabs -->
+                <div style="display:flex;gap:0;border-bottom:1px solid #F3E8EB;margin:0 1rem">
+                  <button id="tab-hotel" onclick="switchStayTab('hotel')" style="flex:1;padding:10px 0;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:#E11D48;border-bottom:2px solid #E11D48;transition:all .2s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M18 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2Z"/><path d="M9 14h6"/><path d="M9 18h6"/><path d="M9 10h.01"/></svg> Hotel</button>
+                  <button id="tab-airbnb" onclick="switchStayTab('airbnb')" style="flex:1;padding:10px 0;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;color:#9CA3AF;border-bottom:2px solid transparent;transition:all .2s"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:3px"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg> Airbnb</button>
+                </div>
+                <!-- Hotel form -->
+                <div id="stay-hotel" class="card-body">
+                  <div class="g2">
+                    <div class="form-group"><label class="form-label">Destination</label><input type="text" class="form-input" placeholder="City or hotel" id="hotel-dest"></div>
+                    <div class="form-group"><label class="form-label">Room</label><select class="form-input"><option>Double room</option><option>Superior double</option><option>Suite</option><option>Penthouse</option></select></div>
+                  </div>
+                  <div class="g2">
+                    <div class="form-group"><label class="form-label">Check-in</label><input type="date" class="form-input" id="hotel-in"></div>
+                    <div class="form-group"><label class="form-label">Check-out</label><input type="date" class="form-input" id="hotel-out"></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Special touches</label><input type="text" class="form-input" placeholder="Rose petals, champagne, anniversary note..."></div>
+                  <div style="display:flex;gap:10px;margin-top:4px">
+                    <button class="btn btn-rose" onclick="bookHotel()">Reserve room</button>
+                    <button class="btn btn-sm">+ Date planner</button>
+                  </div>
+                </div>
+                <!-- Airbnb form -->
+                <div id="stay-airbnb" class="card-body" style="display:none">
+                  <div class="g2">
+                    <div class="form-group"><label class="form-label">Location</label><input type="text" class="form-input" placeholder="City, neighbourhood or address" id="bnb-dest"></div>
+                    <div class="form-group"><label class="form-label">Property type</label><select class="form-input" id="bnb-type"><option>Entire place</option><option>Private room</option><option>Unique stays</option><option>Cabin</option><option>Treehouse</option><option>Houseboat</option></select></div>
+                  </div>
+                  <div class="g2">
+                    <div class="form-group"><label class="form-label">Check-in</label><input type="date" class="form-input" id="bnb-in"></div>
+                    <div class="form-group"><label class="form-label">Check-out</label><input type="date" class="form-input" id="bnb-out"></div>
+                  </div>
+                  <div class="g2">
+                    <div class="form-group"><label class="form-label">Guests</label><select class="form-input" id="bnb-guests"><option>2 guests</option><option>3 guests</option><option>4 guests</option></select></div>
+                    <div class="form-group"><label class="form-label">Min bedrooms</label><select class="form-input" id="bnb-beds"><option>Studio / 1 bed</option><option>2 bedrooms</option><option>3+ bedrooms</option></select></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Wishlist note</label><input type="text" class="form-input" placeholder="Hot tub, sea view, countryside retreat..." id="bnb-note"></div>
+                  <div style="display:flex;gap:10px;margin-top:4px">
+                    <button class="btn btn-rose" onclick="bookAirbnb()">Search Airbnb ↗</button>
+                    <button class="btn btn-sm">+ Date planner</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- TRANSPORT -->
+            <div class="page page-anim" id="page-cabs">
+              <div class="card" style="margin-bottom:1.25rem">
+                <div class="card-head">
+                  <div>
+                    <div class="card-title">Plan your journey</div>
+                    <div class="card-sub">We'll compare tube, bus, walking & cab — and tell you what makes sense</div>
+                  </div>
+                </div>
+                <div class="card-body">
+                  <div class="g2" style="margin-bottom:12px">
+                    <div class="form-group" style="margin:0">
+                      <label class="form-label">From</label>
+                      <input type="text" class="form-input" placeholder="Your address or area (e.g. Shoreditch)" id="cab-from" oninput="clearTransportResults()">
+                    </div>
+                    <div class="form-group" style="margin:0">
+                      <label class="form-label">To</label>
+                      <input type="text" class="form-input" placeholder="Restaurant, venue or area" id="cab-to" oninput="clearTransportResults()">
+                    </div>
+                  </div>
+                  <div class="g2" style="margin-bottom:14px">
+                    <div class="form-group" style="margin:0">
+                      <label class="form-label">Date</label>
+                      <input type="date" class="form-input" id="cab-date">
+                    </div>
+                    <div class="form-group" style="margin:0">
+                      <label class="form-label">Leaving at</label>
+                      <input type="time" class="form-input" id="cab-time">
+                    </div>
+                  </div>
+                  <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;font-size:14px;border-radius:10px" onclick="findTransportOptions()">Compare transport options ✦</button>
+                </div>
+              </div>
+              <div id="transport-results"></div>
+            </div>
+
+            <!-- PLANNER + CALENDAR -->
+            <div class="page page-anim" id="page-planner">
+              <div class="g2" style="align-items:start">
+                <div>
+                  <div class="card" style="margin-bottom:1.25rem">
+                    <div class="card-head">
+                      <div class="card-title" id="cal-label">April 2026</div>
+                      <div style="display:flex;gap:6px">
+                        <button class="btn btn-sm" onclick="changeMonth(-1)">‹</button>
+                        <button class="btn btn-sm" onclick="changeMonth(1)">›</button>
+                      </div>
+                    </div>
+                    <div class="card-body" style="padding-top:0">
+                      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px">
+                        <div class="cal-daylabel">M</div><div class="cal-daylabel">T</div><div class="cal-daylabel">W</div><div class="cal-daylabel">T</div><div class="cal-daylabel">F</div><div class="cal-daylabel">S</div><div class="cal-daylabel">S</div>
+                      </div>
+                      <div class="cal-grid" id="cal-grid"></div>
+                    </div>
+                  </div>
+                  <div class="card" id="add-rem-card">
+                    <div class="card-head"><div class="card-title">Add reminder</div></div>
+                    <div class="card-body">
+                      <div class="form-group"><label class="form-label">Title</label><input type="text" class="form-input" id="rem-title" placeholder="Dinner at Dishoom"></div>
+                      <div class="g2">
+                        <div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="rem-date"></div>
+                        <div class="form-group"><label class="form-label">Time</label><input type="time" class="form-input" id="rem-time"></div>
+                      </div>
+                      <div class="form-group"><label class="form-label">Type</label>
+                        <select class="form-input" id="rem-cat">
+                          <option>Dinner reservation</option><option>Experience / activity</option><option>Hotel check-in</option><option>Hotel check-out</option><option>Cab pickup</option><option>Personal</option>
+                        </select>
+                      </div>
+                      <div style="display:flex;gap:10px;margin-top:4px">
+                        <button class="btn btn-rose" onclick="addReminder()">Add reminder</button>
+                        <button class="btn btn-sm" onclick="exportICS()">Export .ics ↓</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="card" style="margin-bottom:1.25rem">
+                    <div class="card-head">
+                      <div>
+                        <div class="card-title" id="day-title">Select a date</div>
+                        <div class="card-sub">Events for this day</div>
+                      </div>
+                      <button class="btn btn-sm btn-rose" onclick="document.getElementById('rem-date').value=selectedDay;document.getElementById('add-rem-card').scrollIntoView({behavior:'smooth'})">+ Add</button>
+                    </div>
+                    <div class="card-body" id="day-events"><div style="font-size:13px;color:var(--ink-muted)">Click a date to see events</div></div>
+                  </div>
+                  <div class="card">
+                    <div class="card-head"><div class="card-title">All reminders</div><button class="btn btn-sm" onclick="exportICS()">Export .ics</button></div>
+                    <div class="card-body" id="rem-list"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- WHAT'S HOT -->
+            <div class="page page-anim" id="page-whats-hot">
+              <div class="wh-section-head">
+                <div class="wh-section-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-4px;margin-right:6px"><path d="M12 2C8.5 6.5 7 10 7 13a5 5 0 0 0 10 0c0-3-1.5-6.5-5-11z"/><path d="M12 18c-1.1 0-2-.9-2-2 0-1.5 1-3 2-4.5 1 1.5 2 3 2 4.5 0 1.1-.9 2-2 2z"/></svg>What's On</div>
+                <div class="wh-section-sub">Curated picks happening in London this week</div>
+              </div>
+              <div class="wh-filters" id="wh-chips">
+                <div class="wh-chip on" onclick="whFilter('all',this)">All</div>
+                <div class="wh-chip" onclick="whFilter('concert',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg> Concerts</div>
+                <div class="wh-chip" onclick="whFilter('dining',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/><line x1="7" y1="9" x2="7" y2="22"/><path d="M21 2v8a3 3 0 0 1-3 3h0"/><line x1="21" y1="13" x2="21" y2="22"/></svg> Dining</div>
+                <div class="wh-chip" onclick="whFilter('experience',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Experiences</div>
+                <div class="wh-chip" onclick="whFilter('activity',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg> Activities</div>
+                <div class="wh-chip" onclick="whFilter('rooftop',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l7-4 7 4v14"/><path d="M9 21v-4h6v4"/></svg> Rooftops</div>
+                <div class="wh-chip" onclick="whFilter('theatre',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10s3-3 10-3 10 3 10 3"/><path d="M2 14s3 3 10 3 10-3 10-3"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="8" r="2"/></svg> Theatre</div>
+                <div class="wh-chip" onclick="whFilter('wellness',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.5 6.5 7 10 7 13a5 5 0 0 0 10 0c0-3-1.5-6.5-5-11z"/></svg> Wellness</div>
+                <div class="wh-chip" onclick="whFilter('latenight',this)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Late Night</div>
+              </div>
+              <div id="wh-feed"></div>
+            </div>
+
+            <!-- MY DATES -->
+            <div class="page page-anim" id="page-bookings">
+              <div class="g4" style="margin-bottom:0.75rem">
+                <div class="stat"><div class="stat-label">Dates booked</div><div class="stat-val" id="s-dates">3</div><div class="stat-note">2 upcoming</div></div>
+                <div class="stat"><div class="stat-label">Reminders</div><div class="stat-val" id="s-rems">4</div><div class="stat-note">Next: Friday</div></div>
+                <div class="stat" id="s-budget-tile"><div class="stat-label">Total spent</div><div class="stat-val">£<span id="s-spent">0</span></div><div class="stat-note" id="s-budget-note">Together</div><div id="s-budget-bar-wrap" style="display:none;margin-top:8px"><div style="height:5px;background:var(--bdr2);border-radius:3px;overflow:hidden"><div id="s-budget-bar" style="height:5px;border-radius:3px;transition:width 0.4s;background:var(--color-background-success,#5DCAA5)"></div></div><div id="s-budget-label" style="font-size:10px;color:var(--ink-muted);margin-top:4px"></div></div></div>
+                <div class="stat"><div class="stat-label">Your ratings</div><div class="stat-val" id="s-avg-rating" style="font-size:16px;line-height:1.6">—</div><div class="stat-note" id="s-avg-note">Rate past dates</div></div>
+              </div>
+              <!-- Milestones + who paid row -->
+              <div class="g4" style="margin-bottom:1.25rem">
+                <div class="stat"><div class="stat-label">Days together</div><div class="stat-val" id="s-days-together">—</div><div class="stat-note" id="s-days-note">Add first date in Profiles</div></div>
+                <div class="stat"><div class="stat-label">Next date in</div><div class="stat-val" id="s-next-days">—</div><div class="stat-note">days</div></div>
+                <div class="stat" style="cursor:pointer" onclick="cyclePaidLast()" title="Tap to update who paid last">
+                  <div class="stat-label">Paid last</div>
+                  <div class="stat-val" id="s-paid-val" style="font-size:18px;line-height:1.5">—</div>
+                  <div class="stat-note" id="s-paid-note">Tap to set</div>
+                </div>
+                <div class="stat"><div class="stat-label">Date streak</div><div class="stat-val" id="s-streak">—</div><div class="stat-note">consecutive months</div></div>
+              </div>
+              <!-- Post-date prompts -->
+              <div id="post-date-prompts" style="margin-bottom:1.25rem"></div>
+              <!-- Saved wishlist on Hub — shown first -->
+              <div class="card" style="margin-bottom:1.25rem">
+                <div class="card-head">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                    <div>
+                      <div class="card-title">Your Wishlist <span id="hub-wishlist-count" style="font-size:12px;font-weight:600;color:rgba(201,168,76,0.6)"></span></div>
+                      <div class="card-sub">Saved restaurants & activities to revisit later</div>
+                    </div>
+                  </div>
+                  <button class="btn btn-sm" onclick="go('wishlist',document.querySelector('[onclick*=wishlist]'))">View all →</button>
+                </div>
+                <div class="card-body" id="hub-wishlist"></div>
+              </div>
+              <div class="card">
+                <div class="card-head"><div class="card-title">Your dates</div><div style="display:flex;gap:6px" id="filter-btns">
+                  <button class="btn btn-sm btn-rose" onclick="setFilter('all',this)">All</button>
+                  <button class="btn btn-sm" onclick="setFilter('restaurant',this)">Dining</button>
+                  <button class="btn btn-sm" onclick="setFilter('experience',this)">Experiences</button>
+                  <button class="btn btn-sm" onclick="setFilter('hotel',this)">Accommodation</button>
+                  <button class="btn btn-sm" onclick="setFilter('cab',this)">Transport</button>
+                </div></div>
+                <div class="card-body" id="bookings-list"></div>
+              </div>
+            </div>
+
+            <!-- DATE JOURNAL -->
+            <div class="page page-anim" id="page-journal">
+              <div class="section-head" style="margin-bottom:1.25rem">
+                <div>
+                  <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 10h6"/><path d="M9 14h4"/></svg> Date Journal</div>
+                  <div style="font-size:12px;color:var(--ink-muted);margin-top:3px">Your private scrapbook — photos, notes & ratings from every date</div>
+                </div>
+                <button class="btn btn-sm btn-rose" onclick="openNewJournalEntry()">+ Add memory</button>
+              </div>
+              <!-- Milestones row -->
+              <div class="g4" style="margin-bottom:1.25rem" id="journal-milestones">
+                <div class="stat"><div class="stat-label">Days together</div><div class="stat-val" id="jm-days">—</div><div class="stat-note">First date set in Profiles</div></div>
+                <div class="stat"><div class="stat-label">Dates logged</div><div class="stat-val" id="jm-logged">0</div><div class="stat-note">In your journal</div></div>
+                <div class="stat"><div class="stat-label">Avg date rating</div><div class="stat-val" id="jm-rating" style="font-size:18px;line-height:1.6">—</div><div class="stat-note">Your ratings</div></div>
+                <div class="stat"><div class="stat-label">Favourite vibe</div><div class="stat-val" id="jm-fav" style="font-size:16px;line-height:1.5">—</div><div class="stat-note">Most logged type</div></div>
+              </div>
+              <div id="journal-entries">
+                <div style="text-align:center;padding:48px 20px;color:var(--ink-muted)">
+                  <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M9 10h6"/><path d="M9 14h4"/></svg></div>
+                  <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">No memories yet</div>
+                  <div style="font-size:12px;margin-bottom:20px">After each date, add a note and rating — they'll appear here</div>
+                  <button class="btn btn-rose btn-sm" onclick="openNewJournalEntry()">Add your first memory ✦</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- WISHLIST -->
+            <div class="page page-anim" id="page-wishlist">
+              <div class="section-head" style="margin-bottom:1.25rem">
+                <div>
+                  <div class="section-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg> Date Wishlist</div>
+                  <div style="font-size:12px;color:var(--ink-muted);margin-top:3px">Ideas you want to try someday — tick them off as you go</div>
+                </div>
+                <button class="btn btn-sm btn-rose" onclick="openAddWish()">+ Save idea</button>
+              </div>
+              <!-- Filters -->
+              <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:1.25rem">
+                <button class="btn btn-sm btn-rose" id="wf-all" onclick="setWishFilter('all',this)">All</button>
+                <button class="btn btn-sm" id="wf-todo" onclick="setWishFilter('todo',this)">To do</button>
+                <button class="btn btn-sm" id="wf-done" onclick="setWishFilter('done',this)">Done ✓</button>
+              </div>
+              <div id="wishlist-items">
+                <div style="text-align:center;padding:48px 20px;color:var(--ink-muted)">
+                  <div style="margin-bottom:12px"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+                  <div style="font-size:14px;font-weight:500;color:var(--ink-soft);margin-bottom:6px">Your wishlist is empty</div>
+                  <div style="font-size:12px;margin-bottom:20px">Save ideas from Discover, or add your own — tick them off when you've been</div>
+                  <button class="btn btn-rose btn-sm" onclick="go('discover',document.querySelector('[onclick*=discover]'))">Browse ideas ✦</button>
+                </div>
+              </div>
+              <!-- Recurring schedule card -->
+              <div class="card" style="margin-top:1.5rem">
+                <div class="card-head"><div><div class="card-title"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Regular plan night</div><div class="card-sub">Set a recurring schedule — we'll remind you before each one</div></div></div>
+                <div class="card-body">
+                  <div class="form-group" style="max-width:260px;margin-bottom:10px">
+                    <label class="form-label">How often?</label>
+                    <select class="form-input" id="recurring-freq" onchange="saveRecurring(this.value)">
+                      <option value="">Off — I'll plan manually</option>
+                      <option value="weekly">Every week</option>
+                      <option value="biweekly">Every 2 weeks</option>
+                      <option value="monthly">Once a month</option>
+                    </select>
+                  </div>
+                  <div id="recurring-status" style="display:none;padding:10px 12px;background:var(--rose-light);border:0.5px solid var(--rose-mid);border-radius:var(--r-md);font-size:12px;color:var(--rose-dark);max-width:360px"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </main>
+        </div>
+
+        <!-- Mobile bottom navigation bar -->
+        <nav class="mobile-nav-bar" aria-label="Main navigation">
+          <div class="mnb-inner">
+            <div class="mnb-item active" id="mnb-discover" onclick="mobileGo('discover',this)">
+              <div class="mnb-icon">
+                <!-- Flame — Tinder-style hollow -->
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2C8.5 6.5 7 10 7 13a5 5 0 0 0 10 0c0-2.5-1.5-5-3-6.5-.5 2-1.5 3.5-2 4.5C12 9 12 5.5 12 2z"/>
+                </svg>
+              </div>
+              <div>Discover</div>
+            </div>
+            <div class="mnb-item" id="mnb-restaurants" onclick="mobileGo('restaurants',this)">
+              <div class="mnb-icon">
+                <!-- Fork + knife — Eat -->
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 2v5a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2V2"/>
+                  <line x1="7" y1="9" x2="7" y2="22"/>
+                  <line x1="21" y1="2" x2="21" y2="22"/>
+                  <path d="M21 7a3 3 0 0 0-3-3V2"/>
+                </svg>
+              </div>
+              <div>Eat</div>
+            </div>
+            <div class="mnb-item" id="mnb-experiences" onclick="mobileGo('experiences',this)">
+              <div class="mnb-icon">
+                <!-- Star — Do -->
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <div>Activities</div>
+            </div>
+            <div class="mnb-item" id="mnb-planner" onclick="mobileGo('whats-hot',this)">
+              <div class="mnb-icon">
+                <!-- Zap / lightning — What's Hot -->
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+              </div>
+              <div>What's On</div>
+            </div>
+            <div class="mnb-item" id="mnb-more" onclick="openMoreSheet()" style="position:relative">
+              <div class="mnb-icon">
+                <!-- Compass — Hub -->
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+                </svg>
+              </div>
+              <div id="hub-wish-badge" style="display:none;position:absolute;top:2px;right:calc(50% - 20px);min-width:16px;height:16px;border-radius:8px;background:#FF3B30;color:#fff;font-size:9px;font-weight:800;align-items:center;justify-content:center;padding:0 4px;box-shadow:0 2px 6px rgba(255,59,48,0.5);animation:confirmPop 0.35s cubic-bezier(0.34,1.56,0.64,1)"></div>
+              <div>More</div>
+            </div>
+          </div>
+        </nav>
+
+        <!-- ── More menu bottom sheet ── -->
+        <div id="more-sheet-overlay" style="display:none;position:fixed;inset:0;z-index:150;background:rgba(0,0,0,0.6)" onclick="if(event.target===this)closeMoreSheet()">
+          <div style="position:absolute;bottom:0;left:0;right:0;max-width:480px;margin:0 auto;background:rgba(12,11,9,0.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:20px 20px 0 0;padding:20px 18px calc(env(safe-area-inset-bottom,20px) + 20px);animation:slideUpSheet 0.28s cubic-bezier(.22,.68,0,1.2)">
+            <div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.12);margin:0 auto 16px"></div>
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <div onclick="closeMoreSheet();mobileGo('bookings',null)" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">My Dates</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Confirmed, upcoming and past</div></div>
+              </div>
+              <div onclick="closeMoreSheet();go('wishlist',null)" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Wishlist</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Saved ideas to come back to</div></div>
+              </div>
+              <div onclick="closeMoreSheet();go('journal',null)" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Journal</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Notes and ratings from your outings</div></div>
+              </div>
+              <div onclick="closeMoreSheet();go('planner',null)" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Planner</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Calendar, reminders and schedule</div></div>
+              </div>
+              <div onclick="closeMoreSheet();go('profiles',null)" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Preferences</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Your defaults and profile</div></div>
+              </div>
+              <div onclick="closeMoreSheet();go('cabs',null)" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 17h2c.6 0 1-.4 1-1v-3c0-.9-.7-1.7-1.5-1.9C18.7 10.6 16 10 16 10s-1.3-1.4-2.2-2.3c-.5-.4-1.1-.7-1.8-.7H5c-.6 0-1.1.4-1.4.9l-1.4 2.9A3.7 3.7 0 0 0 2 12v4c0 .6.4 1 1 1h2"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Transport</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Compare routes and book a ride</div></div>
+              </div>
+              <div onclick="closeMoreSheet();showMembersDoor('menu')" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(201,168,76,0.03);border:0.5px solid rgba(201,168,76,0.12)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A23E" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><rect x="5" y="5" width="5" height="7" rx="1" opacity="0.4"/><rect x="14" y="5" width="5" height="7" rx="1" opacity="0.4"/><circle cx="12" cy="14" r="1.5"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(201,162,62,0.85)">Members</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">Exclusive tables &middot; concierge access</div></div>
+              </div>
+              <div onclick="closeMoreSheet();showTierScreen()" style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:14px;cursor:pointer;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.06)">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                <div><div style="font-size:14px;font-weight:600;color:rgba(255,255,255,0.85)">Your Plan</div><div style="font-size:11px;color:rgba(255,255,255,0.35)">View your tier and what's included</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="toast" id="toast"></div>
+
+        <!-- ── Special occasion picker overlay ── -->
+        <div id="special-occasion-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeSpecialOccasionPicker()">
+          <div class="mood-sheet" style="padding-bottom:36px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+              <div style="font-size:16px;font-weight:700;color:var(--ink)">What's the occasion?</div>
+              <button class="btn btn-sm" onclick="closeSpecialOccasionPicker()">✕</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="bf-transport-opt" onclick="pickSpecialOccasion('valentines','✦','Valentine\'s')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Valentine's</div><div style="font-size:11px;color:var(--ink-muted)">The most romantic night of the year</div></div></div>
+              <div class="bf-transport-opt" onclick="pickSpecialOccasion('anniversary','✦','Anniversary')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 2v2"/><path d="M12 20v2"/></svg><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Anniversary</div><div style="font-size:11px;color:var(--ink-muted)">Celebrate how far you've come</div></div></div>
+              <div class="bf-transport-opt" onclick="pickSpecialOccasion('birthday','✦','Birthday')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M8 2l2 3"/><path d="M16 2l-2 3"/><path d="M12 5c-3 0-7 2-7 6v1h14v-1c0-4-4-6-7-6z"/><path d="M5 12v2c0 4 3 7 7 7s7-3 7-7v-2"/></svg><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Birthday</div><div style="font-size:11px;color:var(--ink-muted)">Make their day unforgettable</div></div></div>
+              <div class="bf-transport-opt" onclick="pickSpecialOccasion('proposal','✦','Proposal')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M6 3h12l4 6-10 13L2 9z"/><path d="M11 3l1 7h6"/><path d="M2 9h20"/></svg><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Proposal</div><div style="font-size:11px;color:var(--ink-muted)">The most important evening of all</div></div></div>
+              <div class="bf-transport-opt" onclick="pickSpecialOccasion('celebration','✦','Celebration')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M8 22h8"/><path d="M12 11v11"/><path d="m19 3-7 8-7-8h14Z"/><line x1="12" y1="3" x2="12" y2="2"/></svg><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Celebration</div><div style="font-size:11px;color:var(--ink-muted)">Promotion, milestone, or just winning at life</div></div></div>
+              <div class="bf-transport-opt" onclick="pickSpecialOccasion('milestone','✦','Milestone')"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><div style="flex:1"><div style="font-size:14px;font-weight:600;color:var(--ink)">Milestone</div><div style="font-size:11px;color:var(--ink-muted)">Mark a moment that matters</div></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Payment simulation overlay ── -->
+        <div id="payment-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closePayment()">
+          <div class="mood-sheet" style="padding-bottom:36px" id="payment-sheet-content">
+            <!-- Idle state: choose method -->
+            <div id="pay-choose">
+              <div style="text-align:center;margin-bottom:16px">
+                <div style="font-size:17px;font-weight:700;color:var(--ink)">Complete payment</div>
+                <div style="font-size:13px;color:var(--ink-muted);margin-top:4px" id="pay-amount-label">£0.00</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <div class="bf-transport-opt" onclick="simulatePayment('apple')" style="cursor:pointer">
+                  <div style="width:40px;height:40px;border-radius:10px;background:#000;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                    <svg width="20" height="24" viewBox="0 0 17 20" fill="#fff"><path d="M13.1 10.4c0-2 1.6-3 1.7-3.1-0.9-1.4-2.4-1.5-2.9-1.6-1.2-0.1-2.4 0.7-3 0.7s-1.6-0.7-2.6-0.7c-1.3 0-2.6 0.8-3.3 2-1.4 2.4-0.4 6 1 8 0.7 1 1.5 2.1 2.5 2.1 1 0 1.4-0.7 2.6-0.7s1.6 0.7 2.6 0.6c1.1 0 1.8-1 2.5-2 0.8-1.1 1.1-2.2 1.1-2.3-0.1 0-2.2-0.8-2.2-3zM11 4.3c0.6-0.7 0.9-1.7 0.8-2.7-0.8 0-1.8 0.5-2.3 1.2-0.5 0.6-1 1.7-0.8 2.6 0.9 0.1 1.7-0.4 2.3-1.1z"/></svg>
+                  </div>
+                  <div style="flex:1">
+                    <div style="font-size:14px;font-weight:700;color:var(--ink)">Apple Pay</div>
+                    <div style="font-size:11px;color:var(--ink-muted)">Pay with Face ID</div>
+                  </div>
+                  <span style="font-size:11px;color:var(--primary);font-weight:600">Recommended</span>
+                </div>
+                <div class="bf-transport-opt" onclick="simulatePayment('google')" style="cursor:pointer">
+                  <div style="width:40px;height:40px;border-radius:10px;background:#fff;border:1px solid rgba(255,255,255,0.15);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px">G</div>
+                  <div style="flex:1">
+                    <div style="font-size:14px;font-weight:700;color:var(--ink)">Google Pay</div>
+                    <div style="font-size:11px;color:var(--ink-muted)">Pay with your Google account</div>
+                  </div>
+                </div>
+                <div class="bf-transport-opt" onclick="simulatePayment('card')" style="cursor:pointer">
+                  <div style="width:40px;height:40px;border-radius:10px;background:rgba(201,168,76,0.12);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--primary)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></div>
+                  <div style="flex:1">
+                    <div style="font-size:14px;font-weight:700;color:var(--ink)">Debit / Credit card</div>
+                    <div style="font-size:11px;color:var(--ink-muted)">Visa, Mastercard, Amex</div>
+                  </div>
+                </div>
+              </div>
+              <button class="btn" style="width:100%;justify-content:center;padding:11px;font-size:12px;margin-top:12px;color:var(--ink-muted)" onclick="closePayment()">Cancel</button>
+            </div>
+            <!-- Processing state -->
+            <div id="pay-processing" style="display:none;text-align:center;padding:32px 0">
+              <div id="pay-proc-icon" style="font-size:48px;margin-bottom:16px;animation:confirmPop 0.4s cubic-bezier(0.34,1.56,0.64,1)"></div>
+              <div style="font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px" id="pay-proc-title">Authorising...</div>
+              <div style="font-size:12px;color:var(--ink-muted)" id="pay-proc-sub">Hold on a moment</div>
+              <div class="bf-pulse-dots" style="margin-top:16px;justify-content:center"><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div><div class="bf-pulse-dot"></div></div>
+            </div>
+            <!-- Success state -->
+            <div id="pay-success" style="display:none;text-align:center;padding:24px 0">
+              <div class="bf-confirm-success-ring" style="margin-bottom:14px">✓</div>
+              <div style="font-size:18px;font-weight:700;color:var(--ink);margin-bottom:4px">Payment confirmed</div>
+              <div style="font-size:10px;color:rgba(201,168,76,0.5);font-weight:600;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">Simulated — no real charge</div>
+              <div style="font-size:13px;color:var(--ink-muted);margin-bottom:14px" id="pay-success-sub"></div>
+              <div style="font-size:13px;font-weight:600;color:var(--primary);margin-bottom:20px" id="pay-success-amount"></div>
+              <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;border-radius:12px;font-size:14px" onclick="closePaymentAndContinue()">Continue ✦</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Mood check-in overlay ── -->
+        <div id="mood-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeMoodOverlay()">
+          <div class="mood-sheet">
+            <div style="text-align:center;margin-bottom:18px">
+              <div style="font-size:17px;font-weight:600;color:var(--ink);font-family:var(--font-serif,serif)">How are you both feeling tonight?</div>
+              <div style="font-size:12px;color:var(--ink-muted);margin-top:5px">We'll adjust suggestions to match your energy</div>
+            </div>
+            <div style="display:flex;gap:10px;margin-bottom:18px">
+              <div class="mood-btn" id="mood-tired" onclick="selectMood('tired')">
+                <div class="mood-btn-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="18" rx="2"/><line x1="10" y1="2" x2="14" y2="2"/><line x1="8" y1="17" x2="16" y2="17"/><rect x="8" y="17" width="8" height="3" rx="0" fill="rgba(201,168,76,0.25)" stroke="none"/></svg></div>
+                <div class="mood-btn-label">Low energy</div>
+                <div class="mood-btn-desc">Cosy, quiet<br>no effort needed</div>
+              </div>
+              <div class="mood-btn selected" id="mood-moderate" onclick="selectMood('moderate')">
+                <div class="mood-btn-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a7 7 0 0 1 7 7"/><path d="M12 2a7 7 0 0 0-7 7"/><line x1="4" y1="17" x2="20" y2="17"/><line x1="4" y1="21" x2="20" y2="21"/></svg></div>
+                <div class="mood-btn-label">Just right</div>
+                <div class="mood-btn-desc">Happy with<br>anything</div>
+              </div>
+              <div class="mood-btn" id="mood-energetic" onclick="selectMood('energetic')">
+                <div class="mood-btn-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.5 6.5 7 10 7 13a5 5 0 0 0 10 0c0-3-1.5-6.5-5-11z"/><path d="M12 18c-1.1 0-2-.9-2-2 0-1.5 1-3 2-4.5 1 1.5 2 3 2 4.5 0 1.1-.9 2-2 2z"/></svg></div>
+                <div class="mood-btn-label">Full of energy</div>
+                <div class="mood-btn-desc">Active, fun<br>immersive</div>
+              </div>
+            </div>
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:13px;font-size:14px;border-radius:10px" onclick="confirmMoodAndGenerate()">Find our date ✦</button>
+            <button class="btn btn-sm" style="width:100%;justify-content:center;margin-top:8px;color:var(--ink-muted)" onclick="closeMoodOverlay()">Skip</button>
+          </div>
+        </div>
+
+        <!-- ── Refine date bottom sheet ── -->
+        <div id="refine-overlay" style="display:none;position:fixed;inset:0;z-index:999;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)" onclick="if(event.target===this)closeRefineSheet()">
+          <div id="refine-sheet" style="position:absolute;bottom:0;left:0;right:0;max-height:85vh;overflow-y:auto;background:var(--bg);border-top:1px solid rgba(201,168,76,0.15);border-radius:20px 20px 0 0;padding:20px 18px 32px;transform:translateY(100%);transition:transform 0.3s cubic-bezier(.22,.68,0,1.1)">
+            <!-- Handle -->
+            <div style="width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,0.12);margin:0 auto 16px"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+              <div style="font-family:var(--font-serif,serif);font-size:20px;font-weight:300;color:rgba(255,255,255,0.9)">Tailor tonight's plan</div>
+              <button style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:18px;cursor:pointer;padding:4px 8px" onclick="closeRefineSheet()">&#10005;</button>
+            </div>
+
+            <!-- Occasion -->
+            <div class="rf-group">
+              <div class="rf-label">Occasion</div>
+              <div class="rf-chips" id="rf-occasion">
+                <div class="rf-chip" data-g="occasion" data-v="first_date" onclick="rfToggle(this)">First date</div>
+                <div class="rf-chip" data-g="occasion" data-v="casual" onclick="rfToggle(this)">Casual date</div>
+                <div class="rf-chip" data-g="occasion" data-v="anniversary" onclick="rfToggle(this)">Anniversary</div>
+                <div class="rf-chip" data-g="occasion" data-v="friends" onclick="rfToggle(this)">Friends</div>
+                <div class="rf-chip" data-g="occasion" data-v="special" onclick="rfToggle(this)">Special occasion</div>
+              </div>
+            </div>
+
+            <!-- Time -->
+            <div class="rf-group">
+              <div class="rf-label">When</div>
+              <div class="rf-chips" id="rf-time">
+                <div class="rf-chip" data-g="time" data-v="daytime" onclick="rfToggle(this)">Daytime</div>
+                <div class="rf-chip" data-g="time" data-v="evening" onclick="rfToggle(this)">Evening</div>
+                <div class="rf-chip" data-g="time" data-v="late_night" onclick="rfToggle(this)">Late night</div>
+                <div class="rf-chip" data-g="time" data-v="weekend" onclick="rfToggle(this)">Weekend</div>
+              </div>
+            </div>
+
+            <!-- Setting / Environment -->
+            <div class="rf-group">
+              <div class="rf-label">Setting</div>
+              <div class="rf-chips" id="rf-setting">
+                <div class="rf-chip" data-g="setting" data-v="indoor" onclick="rfToggle(this)">Indoor</div>
+                <div class="rf-chip" data-g="setting" data-v="outdoor" onclick="rfToggle(this)">Outdoor</div>
+                <div class="rf-chip" data-g="setting" data-v="both" onclick="rfToggle(this)">Mixed</div>
+                <div class="rf-chip" data-g="setting" data-v="rain_safe" onclick="rfToggle(this)">Rain-safe</div>
+              </div>
+            </div>
+
+            <!-- Pace -->
+            <div class="rf-group">
+              <div class="rf-label">Pace</div>
+              <div class="rf-chips" id="rf-pace">
+                <div class="rf-chip" data-g="pace" data-v="quick" onclick="rfToggle(this)">Quick</div>
+                <div class="rf-chip" data-g="pace" data-v="relaxed" onclick="rfToggle(this)">Relaxed</div>
+                <div class="rf-chip" data-g="pace" data-v="extended" onclick="rfToggle(this)">Extended</div>
+              </div>
+            </div>
+
+            <!-- Area -->
+            <div class="rf-group">
+              <div class="rf-label">Area</div>
+              <div class="rf-chips" id="rf-area">
+                <div class="rf-chip" data-g="area" data-v="central" onclick="rfToggle(this)">Central</div>
+                <div class="rf-chip" data-g="area" data-v="east" onclick="rfToggle(this)">East</div>
+                <div class="rf-chip" data-g="area" data-v="south" onclick="rfToggle(this)">South</div>
+                <div class="rf-chip" data-g="area" data-v="north" onclick="rfToggle(this)">North</div>
+                <div class="rf-chip" data-g="area" data-v="west" onclick="rfToggle(this)">West</div>
+              </div>
+            </div>
+
+            <!-- Date style -->
+            <div class="rf-group">
+              <div class="rf-label">Date style</div>
+              <div class="rf-chips rf-multi" id="rf-style">
+                <div class="rf-chip" data-g="style" data-v="romantic" onclick="rfToggleMulti(this)">Romantic</div>
+                <div class="rf-chip" data-g="style" data-v="playful" onclick="rfToggleMulti(this)">Playful</div>
+                <div class="rf-chip" data-g="style" data-v="calm" onclick="rfToggleMulti(this)">Calm</div>
+                <div class="rf-chip" data-g="style" data-v="cultured" onclick="rfToggleMulti(this)">Cultured</div>
+                <div class="rf-chip" data-g="style" data-v="active" onclick="rfToggleMulti(this)">Active</div>
+              </div>
+            </div>
+
+            <!-- Food preference -->
+            <div class="rf-group">
+              <div class="rf-label">Food preference</div>
+              <div class="rf-chips" id="rf-food">
+                <div class="rf-chip" data-g="food" data-v="dinner" onclick="rfToggle(this)">Dinner</div>
+                <div class="rf-chip" data-g="food" data-v="drinks" onclick="rfToggle(this)">Drinks only</div>
+                <div class="rf-chip" data-g="food" data-v="activity_first" onclick="rfToggle(this)">Activity first</div>
+                <div class="rf-chip" data-g="food" data-v="no_food" onclick="rfToggle(this)">No food</div>
+                <div class="rf-chip" data-g="food" data-v="veg_friendly" onclick="rfToggle(this)">Vegetarian-friendly</div>
+              </div>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex;gap:10px;margin-top:22px">
+              <button style="flex:1;padding:13px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;color:rgba(255,255,255,0.4);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit" onclick="rfClear()">Clear all</button>
+              <button style="flex:2;padding:13px;background:linear-gradient(135deg,#8B6914,#C9A84C);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit" onclick="rfApply()">Apply filters</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Surprise mode preview overlay ── -->
+        <div id="sov-overlay" style="display:none" class="sov-overlay" onclick="if(event.target===this)closeSurpriseOverlay()">
+          <div class="sov-card">
+            <div class="sov-hero">
+              <div style="margin-bottom:12px"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"/><path d="M2 7h20v5H2z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg></div>
+              <div style="font-size:18px;font-weight:600;font-family:var(--font-serif,serif);margin-bottom:6px">Someone has planned something special</div>
+              <div style="font-size:13px;opacity:0.8">Details revealed on the day…</div>
+            </div>
+            <div style="padding:20px 22px">
+              <div id="sov-details"></div>
+              <div style="margin-top:18px;padding-top:14px;border-top:0.5px solid var(--bdr)">
+                <div style="font-size:11px;color:var(--ink-muted);margin-bottom:10px">Share this mystery card with your partner</div>
+                <div style="display:flex;gap:8px">
+                  <button class="btn btn-rose btn-sm" onclick="shareSurpriseCard()">Share with partner ✦</button>
+                  <button class="btn btn-sm" onclick="closeSurpriseOverlay()">Close</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Pre-date checklist overlay ── -->
+        <div id="checklist-overlay" style="display:none" class="checklist-overlay" onclick="if(event.target===this)closeChecklistOverlay()">
+          <div class="checklist-sheet">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div>
+                <div style="font-size:16px;font-weight:600;color:var(--ink)" id="cl-title">Pre-date checklist</div>
+                <div style="font-size:12px;color:var(--ink-muted);margin-top:2px" id="cl-sub">Everything ready?</div>
+              </div>
+              <button class="btn btn-sm" onclick="closeChecklistOverlay()">✕</button>
+            </div>
+            <div id="cl-items"></div>
+            <div style="margin-top:14px;padding:10px 12px;background:var(--bg2);border-radius:var(--r-md);display:flex;align-items:center;justify-content:space-between">
+              <span style="font-size:12px;color:var(--ink-soft)" id="cl-progress">0 of 0 done</span>
+              <button class="btn btn-sm btn-rose" onclick="closeChecklistOverlay()">All set ✦</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Booking flow overlay ── -->
+        <div id="bf-overlay" style="display:none" class="bf-overlay" onclick="if(event.target===this)closeBf()">
+          <div class="bf-sheet">
+            <div id="bf-content"></div>
+          </div>
+        </div>
+
+        <!-- ── New journal entry overlay ── -->
+        <div id="journal-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeJournalOverlay()">
+          <div class="mood-sheet" style="padding-bottom:44px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div style="font-size:16px;font-weight:600;color:var(--ink)">Add a memory ✦</div>
+              <button class="btn btn-sm" onclick="closeJournalOverlay()">✕</button>
+            </div>
+            <div class="form-group"><label class="form-label">Date name / place</label><input type="text" class="form-input" id="je-name" placeholder="Dishoom dinner"></div>
+            <div class="g2" style="gap:10px">
+              <div class="form-group" style="margin:0"><label class="form-label">Date</label><input type="date" class="form-input" id="je-date"></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Vibe</label>
+                <select class="form-input" id="je-vibe">
+                  <option value="romantic">Romantic</option>
+                  <option value="fun">Fun & playful</option>
+                  <option value="foodie">All about the food</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="cultural">Cultural</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:10px"><label class="form-label">Your note</label><textarea class="form-input" id="je-note" rows="2" placeholder="The pasta was incredible…" style="resize:none;line-height:1.5"></textarea></div>
+            <div class="form-group" style="margin-top:4px"><label class="form-label">Rating</label>
+              <div style="display:flex;gap:6px;margin-top:4px">
+                <div id="je-stars" style="display:flex;gap:4px">
+                  <span class="star" data-v="1" onclick="setJeStar(1)">★</span>
+                  <span class="star" data-v="2" onclick="setJeStar(2)">★</span>
+                  <span class="star" data-v="3" onclick="setJeStar(3)">★</span>
+                  <span class="star" data-v="4" onclick="setJeStar(4)">★</span>
+                  <span class="star" data-v="5" onclick="setJeStar(5)">★</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;border-radius:10px;margin-top:6px" onclick="saveJournalEntry()">Save memory ✦</button>
+          </div>
+        </div>
+
+        <!-- ── Add wish overlay ── -->
+        <div id="wish-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeWishOverlay()">
+          <div class="mood-sheet" style="padding-bottom:44px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div style="font-size:16px;font-weight:600;color:var(--ink)">Save to wishlist <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+              <button class="btn btn-sm" onclick="closeWishOverlay()">✕</button>
+            </div>
+            <div class="form-group"><label class="form-label">Idea name</label><input type="text" class="form-input" id="wi-name" placeholder="Rooftop cocktails at Seabird"></div>
+            <div class="g2" style="gap:10px">
+              <div class="form-group" style="margin:0"><label class="form-label">Approx. price</label><input type="text" class="form-input" id="wi-price" placeholder="£60 for two"></div>
+              <div class="form-group" style="margin:0"><label class="form-label">Type</label>
+                <select class="form-input" id="wi-type">
+                  <option value="romantic">Romantic</option>
+                  <option value="fun">Fun & playful</option>
+                  <option value="foodie">Dining</option>
+                  <option value="outdoor">Outdoor</option>
+                  <option value="cultural">Cultural</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:10px"><label class="form-label">Why you want to try it</label><input type="text" class="form-input" id="wi-why" placeholder="We've wanted to go for ages…"></div>
+            <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;border-radius:10px;margin-top:6px" onclick="saveWishItem()">Add to wishlist ✦</button>
+          </div>
+        </div>
+
+        <!-- ── Pairing mode picker overlay ── -->
+        <div id="pairing-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closePairingPicker()">
+          <div class="mood-sheet" style="padding-bottom:36px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div style="font-size:16px;font-weight:700;color:var(--ink)">How are you planning?</div>
+              <button class="btn btn-sm" onclick="closePairingPicker()">✕</button>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div class="bf-transport-opt" onclick="setPairingMode('solo')">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:var(--ink)">Solo</div>
+                  <div style="font-size:11px;color:var(--ink-muted)">Plan something just for yourself</div>
+                </div>
+                <span id="pairing-check-solo" style="display:none;font-size:14px;color:var(--primary)">✓</span>
+              </div>
+              <div class="bf-transport-opt" onclick="setPairingMode('couple')">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:var(--ink)">With my partner</div>
+                  <div style="font-size:11px;color:var(--ink-muted)">Plan something special for two</div>
+                </div>
+                <span id="pairing-check-couple" style="font-size:14px;color:var(--primary)">✓</span>
+              </div>
+              <div class="bf-transport-opt" onclick="setPairingMode('friends')">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <div style="flex:1">
+                  <div style="font-size:14px;font-weight:600;color:var(--ink)">With friends</div>
+                  <div style="font-size:11px;color:var(--ink-muted)">Group outing — activities, dining, nights out</div>
+                </div>
+                <span id="pairing-check-friends" style="display:none;font-size:14px;color:var(--primary)">✓</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Sophie vote overlay ── -->
+        <div id="sophie-overlay" style="display:none;position:fixed;inset:0;z-index:300;background:#fff;overflow-y:auto;-webkit-overflow-scrolling:touch;flex-direction:column">
+          <div style="background:linear-gradient(135deg,#8B3A4A 0%,#C4687A 100%);padding:calc(env(safe-area-inset-top,0px) + 20px) 24px 28px;text-align:center;color:#fff;flex-shrink:0">
+            <div style="font-size:20px;font-family:var(--font-serif,serif);margin-bottom:6px">♥ Table for Two</div>
+            <div style="font-size:17px;font-weight:600;margin-bottom:6px" id="sv-headline">Your partner wants to know…</div>
+            <div style="font-size:13px;opacity:0.85">Tap yes or no on each idea — they'll see your picks</div>
+          </div>
+          <div style="padding:20px 16px 8px;max-width:500px;margin:0 auto;width:100%" id="sv-cards"></div>
+          <div style="padding:8px 16px calc(env(safe-area-inset-bottom,0px) + 28px);max-width:500px;margin:0 auto;width:100%">
+            <button id="sv-submit-btn" onclick="submitSophieVote()" style="width:100%;padding:15px;background:linear-gradient(135deg,#8B3A4A,#C4687A);color:#fff;font-size:15px;font-weight:600;border:none;border-radius:12px;cursor:pointer;font-family:inherit;letter-spacing:0.2px">Send my picks ✦</button>
+          </div>
+          <div id="sv-result" style="display:none;padding:0 16px calc(env(safe-area-inset-bottom,0px) + 28px);max-width:500px;margin:0 auto;width:100%"></div>
+        </div>
+
+        <!-- ── BOOKING HANDOFF OVERLAY ── -->
+        <div id="booking-handoff-overlay" style="display:none" class="mood-overlay" onclick="if(event.target===this)closeBookingHandoff()">
+          <div class="mood-sheet" style="padding-bottom:36px;max-width:420px">
+            <div id="booking-handoff-content"></div>
+          </div>
+        </div>
+
+        <!-- ── AUTH GATE (Password + Invite Code) ── -->
+        <div id="beta-gate-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:#060606;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
+          <div style="width:100%;max-width:380px;text-align:center">
+            <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:24px">
+              <defs><linearGradient id="t4t-gate-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D4B86A"/><stop offset="50%" stop-color="#C9A84C"/><stop offset="100%" stop-color="#8B6914"/></linearGradient></defs>
+              <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-gate-grad)"/>
+              <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-gate-grad)"/>
+              <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-gate-grad)"/>
+              <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-gate-grad)"/>
+              <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-gate-grad)"/>
+            </svg>
+            <div style="font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:rgba(201,168,76,0.6);margin-bottom:24px">Private Beta</div>
+            <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:300;color:rgba(255,255,255,0.9);margin-bottom:8px">Sign in to continue</h2>
+            <p style="font-size:14px;color:rgba(255,255,255,0.35);margin-bottom:28px;line-height:1.5">Enter your email and password to continue.</p>
+
+            <!-- Sign in form -->
+            <div id="auth-form">
+              <div style="margin-bottom:12px">
+                <input type="email" id="auth-email" placeholder="your@email.com" autocomplete="email" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:15px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')document.getElementById('auth-password').focus()">
+              </div>
+              <div style="margin-bottom:12px;position:relative">
+                <input type="password" id="auth-password" placeholder="Password" autocomplete="current-password" style="width:100%;padding:14px 18px;padding-right:54px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:15px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')submitAuthGate()">
+                <button type="button" onclick="const p=document.getElementById('auth-password');p.type=p.type==='password'?'text':'password';this.textContent=p.type==='password'?'Show':'Hide'" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(201,168,76,0.6);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:4px">Show</button>
+              </div>
+              <div id="auth-error" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px;line-height:1.4"></div>
+              <button id="auth-submit-btn" onclick="submitAuthGate()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2);transition:all 0.18s">Sign in</button>
+              <div style="text-align:center;margin-top:12px"><a href="#" onclick="event.preventDefault();showForgotPassword()" style="font-size:12px;color:rgba(201,168,76,0.5);font-weight:500;text-decoration:none">Forgot password?</a></div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.38);margin-top:10px;line-height:1.5;text-align:center">By signing in you agree to our <a href="terms.html" target="_blank" style="color:rgba(201,168,76,0.6)">Terms</a> and <a href="privacy.html" target="_blank" style="color:rgba(201,168,76,0.6)">Privacy Policy</a>.</div>
+              <div style="margin-top:16px;padding-top:16px;border-top:0.5px solid rgba(255,255,255,0.06)">
+                <div style="font-size:11px;color:rgba(255,255,255,0.2);margin-bottom:10px">Or enter an invite code</div>
+                <div style="display:flex;gap:8px">
+                  <input type="text" id="beta-code-input" placeholder="e.g. T4T2026" style="flex:1;padding:12px 14px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#fff;font-size:13px;font-family:monospace;letter-spacing:1.5px;text-transform:uppercase;text-align:center;outline:none" onkeydown="if(event.key==='Enter')submitBetaCode()">
+                  <button onclick="submitBetaCode()" style="padding:12px 18px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;white-space:nowrap">Enter</button>
+                </div>
+                <div id="beta-code-error" style="display:none;font-size:11px;color:#F87171;margin-top:8px">Invalid code</div>
+              </div>
+            </div>
+
+            <!-- Forgot password -->
+            <div id="auth-forgot" style="display:none">
+              <div style="font-size:18px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Reset your password</div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:16px">Enter your email and we'll send a reset link.</div>
+              <div style="margin-bottom:12px"><input type="email" id="auth-forgot-email" placeholder="your@email.com" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);color:#fff;font-size:15px;font-family:inherit;outline:none" onkeydown="if(event.key==='Enter')submitForgotPassword()"></div>
+              <div id="auth-forgot-error" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px"></div>
+              <button id="auth-forgot-btn" onclick="submitForgotPassword()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;margin-bottom:12px">Send reset link</button>
+              <button onclick="document.getElementById('auth-forgot').style.display='none';document.getElementById('auth-form').style.display='block'" style="width:100%;padding:12px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;cursor:pointer">Back to sign in</button>
+            </div>
+
+            <!-- Reset link sent -->
+            <div id="auth-reset-sent" style="display:none;text-align:center">
+              <div style="font-size:40px;margin-bottom:16px">&#10003;</div>
+              <div style="font-size:18px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:8px">Check your email</div>
+              <div id="auth-reset-sent-email" style="font-size:14px;color:rgba(201,168,76,0.7);font-weight:600;margin-bottom:8px"></div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5;margin-bottom:24px">We've sent a password reset link to your email.</div>
+              <button onclick="document.getElementById('auth-reset-sent').style.display='none';document.getElementById('auth-form').style.display='block'" style="padding:12px 24px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-size:13px;font-family:inherit;cursor:pointer">Back to sign in</button>
+            </div>
+
+            <p style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:24px;line-height:1.5">This is a demo — no real bookings or payments. Your data is stored securely on Supabase.</p>
+          </div>
+        </div>
+
+        <!-- ── NAME ENTRY (first-run) ── -->
+        <div id="name-entry-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(6,6,6,0.95);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);align-items:center;justify-content:center;padding:24px">
+          <div style="width:100%;max-width:380px">
+            <div style="text-align:center;margin-bottom:32px">
+              <div style="font-size:28px;margin-bottom:12px">♥</div>
+              <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:300;color:rgba(255,255,255,0.9);margin-bottom:8px">Welcome to Table for Two</h2>
+              <p style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5">Quick setup — we'll personalise the demo for you.</p>
+            </div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Your first name</label>
+              <input type="text" id="setup-your-name" placeholder="e.g. Alex" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#fff;font-size:16px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')document.getElementById('setup-partner-name').focus()" oninput="var h=document.getElementById('setup-handle');if(h&&!h._userEdited){h.value=this.value.toLowerCase().replace(/[^a-z0-9]/g,'')+''+Math.floor(Math.random()*900+100);}" onfocus="var h=document.getElementById('setup-handle');if(h)h._userEdited=false">
+            </div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Partner's name <span style="color:rgba(255,255,255,0.15);text-transform:none;letter-spacing:0">(optional)</span></label>
+              <input type="text" id="setup-partner-name" placeholder="e.g. Jordan" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#fff;font-size:16px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')document.getElementById('setup-handle').focus()">
+            </div>
+            <div style="margin-bottom:24px">
+              <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Your handle</label>
+              <div style="display:flex;align-items:center;gap:0;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);overflow:hidden">
+                <span style="padding:14px 0 14px 16px;color:rgba(255,255,255,0.3);font-family:monospace;font-size:16px;flex-shrink:0">@</span>
+                <input type="text" id="setup-handle" placeholder="alex_london" style="flex:1;padding:14px 16px 14px 4px;border:none;background:transparent;color:#fff;font-size:16px;font-family:monospace;outline:none" oninput="this.value=this.value.replace(/[^a-zA-Z0-9_]/g,'').toLowerCase();this._userEdited=true" onkeydown="if(event.key==='Enter')submitNameEntry()">
+              </div>
+              <div style="font-size:10px;color:rgba(255,255,255,0.2);margin-top:6px">This is how others find and connect with you</div>
+            </div>
+            <button onclick="submitNameEntry()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2)">Start exploring</button>
+            <button onclick="skipNameEntry()" style="width:100%;padding:12px;border-radius:14px;border:none;background:transparent;color:rgba(255,255,255,0.4);font-size:12px;font-family:inherit;cursor:pointer;margin-top:8px">Skip — use demo names</button>
+            <div style="text-align:center;margin-top:20px;padding:10px 14px;background:rgba(201,168,76,0.04);border:0.5px solid rgba(201,168,76,0.15);border-radius:10px">
+              <p style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.5">You're joining the <span style="color:rgba(201,168,76,0.6);font-weight:600">private beta</span> — some features are still being refined.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── ONBOARDING FLOW (multi-step) ── -->
+        <div id="onboarding-overlay" style="display:none;position:fixed;inset:0;z-index:410;background:#0A0A0A;overflow-y:auto;-webkit-overflow-scrolling:touch">
+          <div style="max-width:420px;margin:0 auto;padding:0 20px calc(env(safe-area-inset-bottom,20px) + 20px);min-height:100vh;display:flex;flex-direction:column">
+            <!-- Progress bar -->
+            <div style="padding:max(env(safe-area-inset-top,16px),16px) 0 12px;flex-shrink:0">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <span style="font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:rgba(201,168,76,0.5)" id="ob-step-label">Step 1 of 5</span>
+                <button id="ob-back-btn" onclick="obBack()" style="display:none;background:none;border:none;color:rgba(255,255,255,0.3);font-size:12px;cursor:pointer;font-family:inherit;padding:4px 8px">Back</button>
+              </div>
+              <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden">
+                <div id="ob-progress-bar" style="height:3px;background:linear-gradient(90deg,#C9A84C,#C4687A);border-radius:2px;transition:width 0.4s cubic-bezier(0.22,0.61,0.36,1);width:20%"></div>
+              </div>
+            </div>
+
+            <!-- Step content area -->
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px 0" id="ob-step-content"></div>
+
+            <!-- Bottom actions -->
+            <div style="flex-shrink:0;padding:16px 0">
+              <button id="ob-next-btn" onclick="obNext()" style="width:100%;padding:16px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2);transition:all 0.18s">Continue</button>
+              <div id="ob-error" style="display:none;text-align:center;font-size:12px;color:#F87171;margin-top:10px;line-height:1.4"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── PROFILE COMPLETION (post-signup, new users only) ── -->
+        <div id="profile-completion-overlay" style="display:none;position:fixed;inset:0;z-index:420;background:#060606;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
+          <div style="width:100%;max-width:380px">
+            <div style="text-align:center;margin-bottom:32px">
+              <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:24px">
+                <defs><linearGradient id="t4t-pc-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D4B86A"/><stop offset="50%" stop-color="#C9A84C"/><stop offset="100%" stop-color="#8B6914"/></linearGradient></defs>
+                <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-pc-grad)"/>
+                <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-pc-grad)"/>
+                <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-pc-grad)"/>
+                <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-pc-grad)"/>
+                <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-pc-grad)"/>
+              </svg>
+              <h2 style="font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:300;color:rgba(255,255,255,0.92);margin-bottom:8px">Welcome to Table for Two</h2>
+              <p style="font-size:13px;color:rgba(255,255,255,0.35);line-height:1.5">Choose a name and handle. This is how you'll appear in Table for Two.</p>
+            </div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Your name</label>
+              <input type="text" id="pc-name" placeholder="e.g. Alex" style="width:100%;padding:14px 18px;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);color:#fff;font-size:16px;font-family:inherit;outline:none;transition:border-color 0.2s" onkeydown="if(event.key==='Enter')document.getElementById('pc-handle').focus()">
+            </div>
+            <div style="margin-bottom:24px">
+              <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Your handle</label>
+              <div style="display:flex;align-items:center;gap:0;border-radius:14px;border:0.5px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);overflow:hidden">
+                <span style="padding:14px 0 14px 16px;color:rgba(255,255,255,0.3);font-family:monospace;font-size:16px;flex-shrink:0">@</span>
+                <input type="text" id="pc-handle" placeholder="yourhandle" style="flex:1;padding:14px 16px 14px 4px;border:none;background:transparent;color:#fff;font-size:16px;font-family:monospace;outline:none" oninput="_onHandleInput(this)" onkeydown="if(event.key==='Enter')submitProfileCompletion()">
+              </div>
+            </div>
+            <div id="pc-error" style="display:none;font-size:12px;color:#F87171;margin-bottom:10px;line-height:1.4"></div>
+            <button id="pc-submit-btn" onclick="submitProfileCompletion()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 16px rgba(201,168,76,0.2);transition:all 0.18s">Create profile</button>
+          </div>
+        </div>
+
+        <!-- ── PASSWORD RESET OVERLAY ── -->
+        <div id="password-reset-overlay" style="display:none;position:fixed;inset:0;z-index:460;background:#0A0A0A;align-items:center;justify-content:center;flex-direction:column">
+          <div style="width:100%;max-width:360px;padding:0 24px;text-align:center">
+            <div style="font-size:22px;font-weight:600;color:#F5F0E8;margin-bottom:6px">Set a new password</div>
+            <div style="font-size:13px;color:rgba(255,255,255,0.45);margin-bottom:28px">Enter your new password below to regain access.</div>
+            <div style="position:relative;margin-bottom:16px">
+              <input id="pr-password" type="password" placeholder="New password" autocomplete="new-password" style="width:100%;padding:14px 48px 14px 16px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#F5F0E8;font-size:15px;outline:none;box-sizing:border-box" />
+              <span onclick="const i=document.getElementById('pr-password');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'Show':'Hide'" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);font-size:12px;color:rgba(201,168,76,0.7);cursor:pointer;user-select:none">Show</span>
+            </div>
+            <button id="pr-submit" onclick="submitPasswordReset()" style="width:100%;padding:14px;border-radius:12px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#0A0A0A;font-size:15px;font-weight:600;cursor:pointer">Update password</button>
+            <div id="pr-error" style="display:none;margin-top:12px;font-size:12px;color:#f87171;text-align:center"></div>
+            <div id="pr-success" style="display:none;margin-top:12px;font-size:12px;color:rgba(201,168,76,0.85);text-align:center"></div>
+          </div>
+        </div>
+
+        <!-- ── AUTH LOADING SCREEN ── -->
+        <!-- CSS fallback: fades out after 7s if JS never runs (Supabase hang, parse error, etc.) -->
+        <style>/* Loading screen removed only by JS after auth resolves — no CSS timer */</style>
+        <div id="auth-loading-screen" style="position:fixed;inset:0;z-index:450;background:#0A0A0A;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;transition:opacity 0.3s">
+          <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs><linearGradient id="t4t-load-grad" x1="0" y1="0" x2="40" y2="40" gradientUnits="userSpaceOnUse"><stop offset="0%" stop-color="#D4B86A"/><stop offset="50%" stop-color="#C9A84C"/><stop offset="100%" stop-color="#8B6914"/></linearGradient></defs>
+            <rect x="4" y="8" width="32" height="3.5" rx="1.75" fill="url(#t4t-load-grad)"/>
+            <rect x="10" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-load-grad)"/>
+            <rect x="26.8" y="11" width="3.2" height="22" rx="1.6" fill="url(#t4t-load-grad)"/>
+            <rect x="14" y="22" width="12" height="2.8" rx="1.4" fill="url(#t4t-load-grad)"/>
+            <rect x="22" y="14" width="2.8" height="14" rx="1.4" fill="url(#t4t-load-grad)"/>
+          </svg>
+          <div style="font-size:13px;color:rgba(255,255,255,0.3)">Loading...</div>
+        </div>
+
+        <!-- ── BETA BANNER (dismissible) ── -->
+        <div id="demo-banner" style="display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);z-index:500;max-width:480px;width:100%;padding:5px 16px;background:rgba(201,168,76,0.08);border-bottom:0.5px solid rgba(201,168,76,0.12);text-align:center;font-size:10px;font-weight:500;letter-spacing:0.3px;color:rgba(201,168,76,0.55);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)">
+          Private beta — booking availability may vary by venue
+          <span style="margin-left:6px;cursor:pointer;color:rgba(201,168,76,0.45);text-decoration:underline" onclick="openFeedback()">Feedback</span>
+          <span style="margin-left:6px;cursor:pointer;color:rgba(255,255,255,0.4)" onclick="this.parentElement.style.display='none'" title="Dismiss">✕</span>
+        </div>
+
+        <!-- ── FEEDBACK OVERLAY ── -->
+        <div id="feedback-overlay" style="display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,0.7);align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeFeedback()">
+          <div style="background:#121110;border:0.5px solid rgba(255,255,255,0.08);border-radius:20px 20px 0 0;padding:24px 20px 36px;width:100%;max-width:480px;animation:slideUpSheet 0.28s cubic-bezier(.22,.68,0,1.2)">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+              <div style="font-size:16px;font-weight:700;color:#fff">Send feedback</div>
+              <button onclick="closeFeedback()" style="background:none;border:none;color:rgba(255,255,255,0.4);font-size:16px;cursor:pointer;padding:4px">✕</button>
+            </div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:16px;line-height:1.5">Found a bug? Have an idea? Tell us anything — it goes straight to the team.</div>
+            <div style="margin-bottom:12px">
+              <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Type</label>
+              <div style="display:flex;gap:8px" id="feedback-type-row">
+                <button class="btn btn-sm" onclick="setFeedbackType('bug',this)" style="font-size:11px">Bug</button>
+                <button class="btn btn-sm btn-rose" onclick="setFeedbackType('idea',this)" style="font-size:11px">Idea</button>
+                <button class="btn btn-sm" onclick="setFeedbackType('issue',this)" style="font-size:11px">Issue</button>
+                <button class="btn btn-sm" onclick="setFeedbackType('general',this)" style="font-size:11px">General</button>
+              </div>
+            </div>
+            <div style="margin-bottom:16px">
+              <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.3);margin-bottom:6px">Your feedback</label>
+              <textarea id="feedback-text" rows="3" placeholder="What's on your mind?" style="width:100%;padding:12px 14px;border-radius:12px;border:0.5px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.04);color:#fff;font-size:14px;font-family:inherit;outline:none;resize:none;line-height:1.5"></textarea>
+            </div>
+            <button onclick="submitFeedback()" style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#C9A84C,#8B6914);color:#fff;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer">Send feedback</button>
+          </div>
+        </div>
+
+        <!-- Sentry SDK — loaded but NOT initialised until user consents to analytics -->
+        <script src="https://browser.sentry-cdn.com/8.48.0/bundle.min.js" crossorigin="anonymous" defer></script>
+        <script src="app.js"></script>
+        <!-- Vercel Insights — loaded dynamically by consent system in app.js, not here -->
+        <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{});});}</script>
+  </body>
+  </html>

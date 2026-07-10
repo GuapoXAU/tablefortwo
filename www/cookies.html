@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cookie Notice — Table for Two</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#0E0D0B;color:rgba(255,255,255,0.75);line-height:1.7;padding:24px 20px 60px}
+  .container{max-width:640px;margin:0 auto}
+  a{color:#C9A84C;text-decoration:none}
+  a:hover{text-decoration:underline}
+  h1{font-family:'Cormorant Garamond',Georgia,serif;font-size:28px;font-weight:300;color:rgba(255,255,255,0.92);margin-bottom:8px;letter-spacing:-0.5px}
+  .updated{font-size:12px;color:rgba(255,255,255,0.35);margin-bottom:32px}
+  h2{font-size:15px;font-weight:700;color:rgba(255,255,255,0.85);margin:28px 0 10px;letter-spacing:0.3px}
+  p,li{font-size:14px;margin-bottom:10px}
+  ul{padding-left:20px;margin-bottom:14px}
+  li{margin-bottom:6px}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:0.5px solid rgba(255,255,255,0.08)}
+  th{color:rgba(255,255,255,0.5);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px}
+  .back{display:inline-block;margin-bottom:20px;font-size:13px;color:rgba(255,255,255,0.4)}
+  .back:hover{color:#C9A84C}
+</style>
+</head>
+<body>
+<div class="container">
+<a href="index.html?app" class="back">&larr; Back to app</a>
+<h1>Cookie Notice</h1>
+<p class="updated">Last updated: 26 May 2026</p>
+
+<h2>What we use</h2>
+<p>Table for Two is a web app. We primarily use <strong>browser local storage</strong> rather than traditional cookies. Here's what's stored and why.</p>
+
+<h2>Essential storage (always active)</h2>
+<p>These are required for the app to work. They cannot be disabled.</p>
+<table>
+<tr><th>Key</th><th>Purpose</th><th>Duration</th></tr>
+<tr><td>Supabase auth tokens</td><td>Keep you signed in</td><td>Session / 1 week</td></tr>
+<tr><td>t4t_user_profile</td><td>Your name, preferences, and settings (offline cache)</td><td>Persistent</td></tr>
+<tr><td>t4t_bk, t4t_rm</td><td>Your bookings and reminders (offline cache)</td><td>Persistent</td></tr>
+<tr><td>t4t_venue_cache</td><td>Cached venue data to reduce loading times</td><td>15 minutes</td></tr>
+<tr><td>t4t_cookie_consent</td><td>Your cookie/analytics preference</td><td>Persistent</td></tr>
+</table>
+
+<h2>Optional analytics (consent required)</h2>
+<p>These are only loaded if you click "Accept" on the consent banner.</p>
+<table>
+<tr><th>Service</th><th>Purpose</th><th>What it collects</th></tr>
+<tr><td>Vercel Web Analytics</td><td>Understand which pages are visited and how the app performs</td><td>Page views, device type, country (no personal identifiers)</td></tr>
+<tr><td>Sentry</td><td>Detect and fix crashes and errors</td><td>Error messages, browser info, anonymous session ID</td></tr>
+<tr><td>Product usage events</td><td>Understand which features are used</td><td>Feature interactions, anonymous user ID</td></tr>
+</table>
+
+<h2>How to manage your preferences</h2>
+<ul>
+<li><strong>On first visit:</strong> A consent banner lets you Accept or Reject optional analytics.</li>
+<li><strong>Change your mind:</strong> Open the app menu and tap "Privacy settings" to update your choice at any time.</li>
+<li><strong>Clear everything:</strong> Clear your browser's site data to remove all local storage.</li>
+</ul>
+
+<h2>Third-party cookies</h2>
+<p>We do not use advertising cookies or third-party tracking pixels. When you click through to external booking sites, those sites may set their own cookies — please refer to their own cookie policies.</p>
+
+</div>
+</body>
+</html>
