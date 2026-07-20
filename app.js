@@ -7929,29 +7929,54 @@
           ov.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(8,7,6,0.98);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow-y:auto;-webkit-overflow-scrolling:touch';
           var _tierData=[
             {id:'free',name:'Free',features:['Unlimited planning sessions','Up to '+TIER_LIMITS.free.refreshesPerPlan+' refreshes per plan','Save up to '+TIER_LIMITS.free.maxSaves+' wishlist items','Basic filters']},
-            {id:'plus',name:'Plus',features:['Everything in Free','Unlimited refreshes','Unlimited saves','Advanced personalisation','Dietary precision & mood tuning','Couple & group taste-blending','Early access to new venues'],highlight:true},
-            {id:'members',name:'Members',features:['Everything in Plus','Exclusive members-only venues','Personal concierge','Priority support']}
+            {id:'plus',name:'Plus',price:'£7.99/month',features:['Everything in Free','Unlimited refreshes','Unlimited saves','Advanced personalisation','Dietary precision & mood tuning','Couple & group taste-blending','Early access to new venues'],highlight:true},
+            {id:'members',name:'Members',price:'£34.99/month',features:['Everything in Plus','Exclusive members-only venues','Personal concierge','Priority support']}
           ];
           var html='<div style="max-width:440px;margin:0 auto;padding:24px 18px calc(env(safe-area-inset-bottom,20px) + 24px)">';
           html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">';
           html+='<div style="font-family:var(--font-serif,serif);font-size:22px;font-weight:300;color:#fff">Your plan</div>';
-          html+='<button onclick="document.getElementById(\'tier-screen-overlay\').remove()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:22px;cursor:pointer;padding:4px 8px">&#10005;</button></div>';
+          html+='<button onclick="document.getElementById(\'tier-screen-overlay\').remove()" style="background:none;border:none;color:rgba(255,255,255,0.3);font-size:22px;cursor:pointer;padding:4px 8px">&#10005;</button></div>';
           _tierData.forEach(function(t){
             var isCurrent=_userTier===t.id;
             var border=t.highlight?'border:1px solid rgba(201,168,76,0.35)':(isCurrent?'border:1px solid rgba(201,168,76,0.25)':'border:0.5px solid rgba(255,255,255,0.08)');
             var bg=t.highlight?'background:rgba(201,168,76,0.04)':(isCurrent?'background:rgba(201,168,76,0.02)':'background:rgba(255,255,255,0.02)');
             html+='<div style="'+bg+';'+border+';border-radius:16px;padding:22px 20px;margin-bottom:14px;position:relative">';
             if(isCurrent)html+='<div style="position:absolute;top:-10px;right:16px;padding:3px 12px;background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;font-size:10px;font-weight:700;color:#C9A84C;letter-spacing:0.5px;text-transform:uppercase">Current</div>';
-            html+='<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:12px">'+t.name+'</div>';
+            html+='<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px">'+t.name+'</div>';
+            if(t.price)html+='<div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:12px">'+t.price+'</div>';
+            else html+='<div style="margin-bottom:8px"></div>';
             html+='<div style="display:flex;flex-direction:column;gap:8px">';
             t.features.forEach(function(f){
               html+='<div style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,0.75)"><span style="color:#C9A84C;font-size:14px">&#10003;</span>'+f+'</div>';
             });
-            html+='</div></div>';
+            html+='</div>';
+            if(t.price&&_userTier!==t.id){
+              var _btnStyle=t.id==='members'?'background:linear-gradient(135deg,#8B6914,#C9A84C);border:none':'background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3)';
+              html+='<button onclick="purchaseTier(\''+t.id+'\')" style="width:100%;margin-top:16px;padding:13px;'+_btnStyle+';border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Upgrade to '+t.name+'</button>';
+            }
+            html+='</div>';
           });
           html+='</div>';
           ov.innerHTML=html;
           document.body.appendChild(ov);
+        }
+
+        async function purchaseTier(tierId){
+          try{
+            var offerings=await Purchases.getOfferings();
+            var pkg=offerings.current?.availablePackages.find(function(p){
+              return tierId==='plus'?p.identifier==='$rc_monthly':p.identifier==='members_monthly';
+            });
+            if(!pkg){console.error('Package not found for',tierId);return;}
+            var result=await Purchases.purchasePackage({aPackage:pkg});
+            var ci=result.customerInfo;
+            if(ci.entitlements.active['members'])_userTier='members';
+            else if(ci.entitlements.active['plus'])_userTier='plus';
+            document.getElementById('tier-screen-overlay')?.remove();
+            toast('✦ Welcome to '+(tierId==='members'?'Members':'Plus')+'!');
+          }catch(e){
+            if(!e.userCancelled)console.error('Purchase failed',e);
+          }
         }
 
         // ── Members discover section ──
