@@ -3,6 +3,7 @@
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@capacitor/ios": "^8.4.1",
+    "@revenuecat/purchases-capacitor": "^13.2.3",
     "@vercel/analytics": "^2.0.1"
   }
 }
