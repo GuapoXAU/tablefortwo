@@ -429,10 +429,18 @@
         _sbInit();
 
         // Init RevenueCat
-        (function(){
+        (async function(){
           var Purchases=window.Capacitor?.Plugins?.Purchases;
-          if(Purchases){Purchases.configure({apiKey:'appl_LhciIXAZdzzqXAXoQAcJkKfsdUo'});console.log('[T4T] RevenueCat configured');}
-          else{console.log('[T4T] RevenueCat not available (web or plugin missing)');}
+          if(!Purchases){console.log('[T4T] RevenueCat not available (web or plugin missing)');return;}
+          Purchases.configure({apiKey:'appl_LhciIXAZdzzqXAXoQAcJkKfsdUo'});
+          console.log('[T4T] RevenueCat configured');
+          try{
+            var customerInfo=await Purchases.getCustomerInfo();
+            var active=customerInfo.customerInfo.entitlements.active;
+            if(active['members'])_userTier='members';
+            else if(active['plus'])_userTier='plus';
+            console.log('[T4T] Tier from RevenueCat:',_userTier);
+          }catch(e){console.warn('[T4T] Could not fetch entitlements',e);}
         })();
 
         // ── Handle expired/invalid auth link fragments ──
