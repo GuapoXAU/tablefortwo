@@ -428,6 +428,13 @@
         }
         _sbInit();
 
+        // Init RevenueCat
+        (function(){
+          var Purchases=window.Capacitor?.Plugins?.Purchases;
+          if(Purchases){Purchases.configure({apiKey:'appl_LhciIXAZdzzqXAXoQAcJkKfsdUo'});console.log('[T4T] RevenueCat configured');}
+          else{console.log('[T4T] RevenueCat not available (web or plugin missing)');}
+        })();
+
         // ── Handle expired/invalid auth link fragments ──
         // Runs AFTER _sbInit so Supabase can parse valid access_token hashes first.
         // Only strips the hash when it contains an error and no valid token.
@@ -7962,6 +7969,8 @@
         }
 
         async function purchaseTier(tierId){
+          var Purchases=window.Capacitor?.Plugins?.Purchases;
+          if(!Purchases){console.error('RevenueCat not available');return;}
           try{
             var offerings=await Purchases.getOfferings();
             var pkg=offerings.current?.availablePackages.find(function(p){
