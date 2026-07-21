@@ -8039,6 +8039,20 @@
           _trackEvent('members_door_shown',{trigger:triggerReason,current_tier:_userTier});
           var ov=document.getElementById('members-door-overlay');
           if(ov)ov.remove();
+          if(_userTier==='members'){
+            ov=document.createElement('div');
+            ov.id='members-door-overlay';
+            ov.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(8,7,6,0.98);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;text-align:center';
+            ov.innerHTML='<button onclick="document.getElementById(\'members-door-overlay\').remove()" style="position:absolute;top:max(env(safe-area-inset-top,16px),16px);right:16px;background:none;border:none;color:rgba(255,255,255,0.25);font-size:24px;cursor:pointer;z-index:2;padding:8px">&#10005;</button>'
+              +'<div style="padding:0 24px">'
+              +'<div style="width:56px;height:56px;border-radius:50%;background:rgba(201,168,76,0.1);border:0.5px solid rgba(201,168,76,0.2);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:22px;color:#C9A84C">&#10022;</div>'
+              +'<div style="font-family:var(--font-serif,serif);font-size:22px;font-weight:300;color:rgba(255,255,255,0.88);margin-bottom:10px">You\'re a Member</div>'
+              +'<div style="font-size:13px;color:rgba(255,255,255,0.4);line-height:1.6;margin-bottom:28px">Exclusive venues and concierge access are yours.</div>'
+              +'<button onclick="document.getElementById(\'members-door-overlay\').remove()" style="width:100%;max-width:280px;padding:14px;background:linear-gradient(135deg,#8B6914,#C9A84C);border:none;border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Close</button>'
+              +'</div>';
+            document.body.appendChild(ov);
+            return;
+          }
           var _rm=window.matchMedia('(prefers-reduced-motion:reduce)').matches;
           var _anim=_mdoorMotion&&!_rm;
           ov=document.createElement('div');
