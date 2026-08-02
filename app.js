@@ -432,15 +432,17 @@
         (async function(){
           var Purchases=window.Capacitor?.Plugins?.Purchases;
           if(!Purchases){console.log('[T4T] RevenueCat not available (web or plugin missing)');return;}
-          Purchases.configure({apiKey:'appl_LhciIXAZdzzqXAXoQAcJkKfsdUo'});
+          await Purchases.configure({apiKey:'appl_LhciIXAZdzzqXAXoQAcJkKfsdUo'});
           console.log('[T4T] RevenueCat configured');
           try{
-            var customerInfo=await Purchases.getCustomerInfo();
-            var active=customerInfo.customerInfo.entitlements.active;
+            var result=await Purchases.getCustomerInfo();
+            console.log('[T4T DEBUG] getCustomerInfo raw result:',JSON.stringify(result));
+            var active=result.customerInfo.entitlements.active;
+            console.log('[T4T DEBUG] RevenueCat active entitlements:',JSON.stringify(active));
             if(active['members'])_userTier='members';
             else if(active['plus'])_userTier='plus';
-            console.log('[T4T] Tier from RevenueCat:',_userTier);
-          }catch(e){console.warn('[T4T] Could not fetch entitlements',e);}
+            console.log('[T4T DEBUG] _userTier set to:',_userTier);
+          }catch(e){console.warn('[T4T] Could not fetch entitlements — error:',e,e?.message,e?.code);}
         })();
 
         // ── Handle expired/invalid auth link fragments ──
@@ -4466,6 +4468,7 @@
                 html+=`<div class="plan-actions">
                   <button class="plan-btn plan-btn-save" onclick="event.stopPropagation();savePlanToWishlist('${plan.id}')">♥ Save this plan</button>
                   <button class="plan-btn plan-btn-activate" onclick="event.stopPropagation();activatePlan('${plan.id}')">✦ Book each stop</button>
+                  <button class="plan-btn plan-btn-share" data-share-plan="${plan.id}" onclick="event.stopPropagation();sharePlanCard('${plan.id}')">↗ Share</button>
                 </div>`;
 
                 html+=`</div>`; // end plan-card
@@ -5834,6 +5837,119 @@
             navigator.clipboard.writeText(text).then(()=>toast('✦ Copied — send it to your partner!')).catch(()=>toast(text));
           } else {
             toast('✦ '+name+' — share this with your partner!');
+          }
+        }
+
+        // ── Share plan card ──
+        function _drawPlanCard(canvas,plan,width,height){
+          var ctx=canvas.getContext('2d');
+          canvas.width=width;
+          canvas.height=height;
+          var item=plan.items[0];
+          return new Promise(function(resolve){
+            var img=new Image();
+            img.crossOrigin='anonymous';
+            img.onload=function(){draw(img);};
+            img.onerror=function(){draw(null);};
+            img.src=item.img;
+            function draw(photo){
+              ctx.fillStyle='#080706';
+              ctx.fillRect(0,0,width,height);
+              if(photo){
+                var scale=Math.max(width/photo.width,height/photo.height);
+                var sw=width/scale,sh=height/scale;
+                var sx=(photo.width-sw)/2,sy=(photo.height-sh)/2;
+                ctx.drawImage(photo,sx,sy,sw,sh,0,0,width,height);
+              }
+              var grad=ctx.createLinearGradient(0,height*0.5,0,height);
+              grad.addColorStop(0,'rgba(8,7,6,0)');
+              grad.addColorStop(0.5,'rgba(8,7,6,0.6)');
+              grad.addColorStop(1,'rgba(8,7,6,0.92)');
+              ctx.fillStyle=grad;
+              ctx.fillRect(0,0,width,height);
+              var topGrad=ctx.createLinearGradient(0,0,0,height*0.12);
+              topGrad.addColorStop(0,'rgba(8,7,6,0.45)');
+              topGrad.addColorStop(1,'rgba(8,7,6,0)');
+              ctx.fillStyle=topGrad;
+              ctx.fillRect(0,0,width,height*0.12);
+              var pad=width*0.055;
+              ctx.fillStyle='#C9A23E';
+              ctx.font='600 '+Math.round(width*0.024)+'px -apple-system,BlinkMacSystemFont,sans-serif';
+              ctx.textAlign='left';
+              ctx.fillText('TABLE FOR TWO',pad,pad+width*0.024);
+              var bottomY=height-pad;
+              ctx.fillStyle='rgba(255,255,255,0.5)';
+              ctx.font='400 '+Math.round(width*0.03)+'px Georgia,serif';
+              ctx.fillText(item.loc||'',pad,bottomY);
+              bottomY-=Math.round(width*0.06);
+              ctx.fillStyle='#ffffff';
+              ctx.font='300 '+Math.round(width*0.055)+'px Georgia,serif';
+              var venueName=item.name;
+              var maxTextW=width-pad*2;
+              if(ctx.measureText(venueName).width>maxTextW){
+                while(venueName.length>3&&ctx.measureText(venueName+'...').width>maxTextW)venueName=venueName.slice(0,-1);
+                venueName+='...';
+              }
+              ctx.fillText(venueName,pad,bottomY);
+              resolve();
+            }
+          });
+        }
+
+        function generatePlanCardImage(plan){
+          var canvas=document.createElement('canvas');
+          return _drawPlanCard(canvas,plan,1080,1920).then(function(){
+            return new Promise(function(resolve){
+              canvas.toBlob(function(blob){resolve(blob);},'image/png');
+            });
+          });
+        }
+
+        function generateSendToPartnerCard(plan){
+          var canvas=document.createElement('canvas');
+          return _drawPlanCard(canvas,plan,1080,1350).then(function(){
+            return new Promise(function(resolve){
+              canvas.toBlob(function(blob){resolve(blob);},'image/png');
+            });
+          });
+        }
+
+        async function sharePlanCard(planId,format){
+          var plan=_currentPlans.find(function(p){return p.id===planId;});
+          if(!plan){console.error('Plan not found:',planId);return;}
+          var btn=document.querySelector('[data-share-plan="'+planId+'"]');
+          if(btn){btn.textContent='Generating...';btn.disabled=true;}
+          try{
+            var blob=format==='partner'
+              ?await generateSendToPartnerCard(plan)
+              :await generatePlanCardImage(plan);
+            var file=new File([blob],'table-for-two-plan.png',{type:'image/png'});
+            // Try Capacitor Share plugin first (works in native iOS webview)
+            var CapShare=window.Capacitor?.Plugins?.Share;
+            var CapFs=window.Capacitor?.Plugins?.Filesystem;
+            if(CapShare&&CapFs){
+              var reader=new FileReader();
+              var base64=await new Promise(function(res){reader.onload=function(){res(reader.result.split(',')[1]);};reader.readAsDataURL(blob);});
+              var written=await CapFs.writeFile({path:'table-for-two-plan.png',data:base64,directory:'CACHE'});
+              await CapShare.share({title:'My Table for Two plan',files:[written.uri]});
+            }
+            // Fallback: Web Share API with files
+            else if(navigator.share&&navigator.canShare&&navigator.canShare({files:[file]})){
+              await navigator.share({files:[file],title:'My Table for Two plan',text:'Check out this plan I made'});
+            }
+            // Final fallback: download
+            else{
+              var url=URL.createObjectURL(blob);
+              var a=document.createElement('a');
+              a.href=url;a.download='table-for-two-plan.png';
+              document.body.appendChild(a);a.click();document.body.removeChild(a);
+              setTimeout(function(){URL.revokeObjectURL(url);},5000);
+              toast('Image saved — share it from your gallery');
+            }
+          }catch(e){
+            if(e.name!=='AbortError')console.error('Share failed',e);
+          }finally{
+            if(btn){btn.textContent='Share';btn.disabled=false;}
           }
         }
 
@@ -8036,6 +8152,7 @@
         // ── Members door ──
         var _mdoorMotion=true;
         function showMembersDoor(triggerReason){
+          console.log('[T4T DEBUG] showMembersDoor called, _userTier is:',_userTier);
           _trackEvent('members_door_shown',{trigger:triggerReason,current_tier:_userTier});
           var ov=document.getElementById('members-door-overlay');
           if(ov)ov.remove();
