@@ -1,0 +1,15 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["WG4X8NA8DT.uk.tablefortwo.app"],
+        "components": [
+          {
+            "/": "/*",
+            "comment": "Match all paths — auth callbacks use hash fragments on the root URL"
+          }
+        ]
+      }
+    ]
+  }
+}

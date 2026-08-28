@@ -445,6 +445,60 @@
           }catch(e){console.warn('[T4T] Could not fetch entitlements — error:',e,e?.message,e?.code);}
         })();
 
+        // ── Universal Link handler (iOS) ──
+        // When the app is opened via a Universal Link (email confirmation, password reset),
+        // parse the auth tokens from the URL and pass them to Supabase.
+        (function _setupUniversalLinks(){
+          var CapApp=window.Capacitor?.Plugins?.App;
+          if(!CapApp)return;
+          CapApp.addListener('appUrlOpen',function(data){
+            console.log('[T4T] Universal Link opened:',data.url);
+            if(!_sb||!data.url)return;
+            try{
+              var url=new URL(data.url);
+              var hash=url.hash;
+              // Supabase email confirmation sends tokens in the hash fragment
+              if(hash&&hash.includes('access_token=')){
+                var params=new URLSearchParams(hash.substring(1));
+                var accessToken=params.get('access_token');
+                var refreshToken=params.get('refresh_token');
+                if(accessToken&&refreshToken){
+                  console.log('[T4T] Setting session from Universal Link');
+                  _sb.auth.setSession({access_token:accessToken,refresh_token:refreshToken}).then(function(result){
+                    if(result.error){
+                      console.error('[T4T] Universal Link session failed:',result.error);
+                      toast('Confirmation link expired — please request a new one');
+                    }
+                  }).catch(function(e){
+                    console.error('[T4T] Universal Link auth error:',e);
+                    toast('Something went wrong — please try signing in');
+                  });
+                  return;
+                }
+              }
+              // Password reset links
+              if(hash&&hash.includes('type=recovery')){
+                var rParams=new URLSearchParams(hash.substring(1));
+                var rAccess=rParams.get('access_token');
+                var rRefresh=rParams.get('refresh_token');
+                if(rAccess&&rRefresh){
+                  _sb.auth.setSession({access_token:rAccess,refresh_token:rRefresh}).then(function(){
+                    _showPasswordReset();
+                  });
+                  return;
+                }
+              }
+              // Error in the link
+              if(hash&&hash.includes('error=')){
+                var eParams=new URLSearchParams(hash.substring(1));
+                var errDesc=eParams.get('error_description')||'Link expired or invalid';
+                toast(errDesc.replace(/\+/g,' '));
+              }
+            }catch(e){console.error('[T4T] Universal Link parse error:',e);}
+          });
+          console.log('[T4T] Universal Link listener registered');
+        })();
+
         // ── Handle expired/invalid auth link fragments ──
         // Runs AFTER _sbInit so Supabase can parse valid access_token hashes first.
         // Only strips the hash when it contains an error and no valid token.
@@ -3172,6 +3226,19 @@
             </div>`;
           toast('✓ Booking confirmed — '+bName);
           _pendingBooking=null;
+          // Show disclaimer once
+          if(!localStorage.getItem('t4t_booking_disclaimer_seen')){
+            setTimeout(function(){
+              var dc=document.getElementById('booking-handoff-content');
+              if(!dc)return;
+              var dEl=document.createElement('div');
+              dEl.id='booking-disclaimer-note';
+              dEl.style.cssText='margin-top:12px;padding:10px 14px;background:rgba(255,255,255,0.03);border:0.5px solid rgba(255,255,255,0.08);border-radius:10px;position:relative';
+              dEl.innerHTML='<button onclick="this.parentElement.remove();localStorage.setItem(\'t4t_booking_disclaimer_seen\',\'1\')" style="position:absolute;top:6px;right:8px;background:none;border:none;color:rgba(255,255,255,0.25);font-size:14px;cursor:pointer;padding:2px 4px">&#10005;</button>'
+                +'<div style="font-size:11px;color:rgba(255,255,255,0.4);line-height:1.5;padding-right:20px">We don\'t currently track bookings automatically — if you\'d like to help us keep accurate data, come back and confirm once you\'ve been!</div>';
+              dc.appendChild(dEl);
+            },300);
+          }
         }
 
         function postBookingAnswer(name,planId,answer){
@@ -5331,12 +5398,19 @@
               const stars=[1,2,3,4,5].map(n=>`<span class="star${n<=b.rating?' lit':''}">★</span>`).join('');
               ratingHtml=`<div style="margin-top:5px;display:flex;align-items:center;gap:5px"><span class="star-row">${stars}</span><span style="font-size:11px;color:var(--ink-muted)">${b.rating}/5</span></div>`;
             }
+            var confirmHtml='';
+            if(isPast&&!b.visited_confirmed){
+              confirmHtml=`<div style="margin-top:6px"><button class="btn btn-sm" style="font-size:10px;padding:5px 12px;background:rgba(74,222,128,0.08);border:0.5px solid rgba(74,222,128,0.15);color:#4ADE80" onclick="confirmVisit(${b.id})">I went</button></div>`;
+            }else if(b.visited_confirmed){
+              confirmHtml=`<div style="margin-top:5px;font-size:10px;color:rgba(74,222,128,0.6)">&#10003; Confirmed${b.visited_at?' · '+fmtDate(b.visited_at.slice(0,10)):''}</div>`;
+            }
             return `<div class="booking-row">
               <div class="booking-icon" style="color:var(--primary)">${b.icon||_BOOKING_ICONS[b.type]||_SVG.experience||'✦'}</div>
               <div style="flex:1">
                 <div class="booking-name">${b.name}</div>
                 <div class="booking-meta">${b.meta} · ${fmtDate(b.date)}</div>
                 <span class="badge ${isPast?'badge-muted':'badge-green'}" style="margin-top:5px">${isPast?'completed':b.booking_status==='confirmed_by_user'?'confirmed by you':'confirmed'}</span>${b.provider?`<span style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:3px;display:block">via ${b.provider}</span>`:''}
+                ${confirmHtml}
                 ${ratingHtml}
               </div>
               <div class="booking-right">
@@ -5366,6 +5440,15 @@
           toast(`${[...Array(stars)].map(()=>'★').join('')} ${labels[stars]}`);
         }
 
+        function confirmVisit(id){
+          var b=bookings.find(function(x){return x.id===id;});
+          if(!b)return;
+          b.visited_confirmed=true;
+          b.visited_at=new Date().toISOString();
+          _trackEvent('visit_confirmed',{name:b.name,booking_id:id,plan_id:b.plan_id||null});
+          renderBookings();updateStats();_saveState();
+          toast('✓ Confirmed — thanks for letting us know!');
+        }
         function cancelBooking(id){bookings=bookings.filter(b=>b.id!==id);renderBookings();updateStats();toast('Booking removed');}
         function setFilter(f,el){
           activeFilter=f;
