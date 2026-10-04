@@ -914,7 +914,7 @@
           banner.style.cssText='position:fixed;bottom:0;left:0;right:0;z-index:10000;background:#1A1917;border-top:0.5px solid rgba(201,168,76,0.2);padding:16px 20px;display:flex;flex-direction:column;gap:12px;align-items:center;animation:slideUpBanner 0.3s ease';
           banner.innerHTML=`
             <div style="max-width:600px;width:100%;text-align:center">
-              <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:12px">We use essential storage to make the app work. We also use optional analytics to understand how features are used and fix bugs. <a href="cookies.html" style="color:#C9A84C;text-decoration:underline" target="_blank">Learn more</a></div>
+              <div style="font-size:13px;color:rgba(255,255,255,0.7);line-height:1.6;margin-bottom:12px">We use essential storage to make the app work. We also use optional analytics to understand how features are used and fix bugs. <a href="#" onclick="event.preventDefault();openInAppBrowser('https://tablefortwo.uk/cookies.html')" style="color:#C9A84C;text-decoration:underline">Learn more</a></div>
               <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
                 <button onclick="_acceptConsent()" style="padding:10px 24px;background:#C9A84C;color:#0E0D0B;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">Accept analytics</button>
                 <button onclick="_rejectConsent()" style="padding:10px 24px;background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.5);border:0.5px solid rgba(255,255,255,0.1);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit">Reject</button>
@@ -972,9 +972,9 @@
               </div>
               <button class="btn btn-rose" style="width:100%;justify-content:center;padding:12px;border-radius:10px;font-size:13px;font-weight:600" onclick="_savePrivacySettings()">Save preferences</button>
               <div style="display:flex;gap:12px;justify-content:center;margin-top:14px;font-size:11px">
-                <a href="privacy.html" target="_blank" style="color:rgba(255,255,255,0.35)">Privacy policy</a>
-                <a href="cookies.html" target="_blank" style="color:rgba(255,255,255,0.35)">Cookie notice</a>
-                <a href="terms.html" target="_blank" style="color:rgba(255,255,255,0.35)">Terms</a>
+                <a href="#" onclick="event.preventDefault();openInAppBrowser('https://tablefortwo.uk/privacy.html')" style="color:rgba(255,255,255,0.35)">Privacy policy</a>
+                <a href="#" onclick="event.preventDefault();openInAppBrowser('https://tablefortwo.uk/cookies.html')" style="color:rgba(255,255,255,0.35)">Cookie notice</a>
+                <a href="#" onclick="event.preventDefault();openInAppBrowser('https://tablefortwo.uk/terms.html')" style="color:rgba(255,255,255,0.35)">Terms</a>
               </div>
             </div>`;
           ov.style.display='flex';document.body.style.overflow='hidden';
