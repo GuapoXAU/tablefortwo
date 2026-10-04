@@ -8194,14 +8194,20 @@
           html+='You can manage or cancel your subscriptions in your device Settings &gt; Apple ID &gt; Subscriptions.';
           html+='</div>';
           html+='<div style="display:flex;gap:12px;margin-top:10px">';
-          html+='<a href="terms.html" target="_blank" style="font-size:11px;color:rgba(201,168,76,0.6);text-decoration:none">Terms of Use (EULA)</a>';
-          html+='<a href="privacy.html" target="_blank" style="font-size:11px;color:rgba(201,168,76,0.6);text-decoration:none">Privacy Policy</a>';
+          html+='<a href="#" onclick="event.preventDefault();openInAppBrowser(\'https://tablefortwo.uk/terms.html\')" style="font-size:11px;color:rgba(201,168,76,0.6);text-decoration:none">Terms of Use (EULA)</a>';
+          html+='<a href="#" onclick="event.preventDefault();openInAppBrowser(\'https://tablefortwo.uk/privacy.html\')" style="font-size:11px;color:rgba(201,168,76,0.6);text-decoration:none">Privacy Policy</a>';
           html+='</div></div>';
           // Restore Purchases
           html+='<button onclick="restorePurchases()" style="width:100%;margin-top:14px;padding:12px;background:none;border:none;color:rgba(255,255,255,0.35);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline">Restore Purchases</button>';
           html+='</div>';
           ov.innerHTML=html;
           document.body.appendChild(ov);
+        }
+
+        function openInAppBrowser(url){
+          var Browser=window.Capacitor?.Plugins?.Browser;
+          if(Browser){Browser.open({url:url});return;}
+          window.open(url,'_blank');
         }
 
         async function restorePurchases(){
