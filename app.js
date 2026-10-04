@@ -433,16 +433,12 @@
           var Purchases=window.Capacitor?.Plugins?.Purchases;
           if(!Purchases){console.log('[T4T] RevenueCat not available (web or plugin missing)');return;}
           await Purchases.configure({apiKey:'appl_LhciIXAZdzzqXAXoQAcJkKfsdUo'});
-          console.log('[T4T] RevenueCat configured');
           try{
             var result=await Purchases.getCustomerInfo();
-            console.log('[T4T DEBUG] getCustomerInfo raw result:',JSON.stringify(result));
             var active=result.customerInfo.entitlements.active;
-            console.log('[T4T DEBUG] RevenueCat active entitlements:',JSON.stringify(active));
             if(active['members'])_userTier='members';
             else if(active['plus'])_userTier='plus';
-            console.log('[T4T DEBUG] _userTier set to:',_userTier);
-          }catch(e){console.warn('[T4T] Could not fetch entitlements — error:',e,e?.message,e?.code);}
+          }catch(e){console.warn('[T4T] Could not fetch entitlements',e?.message);}
         })();
 
         // ── Universal Link handler (iOS) ──
@@ -8143,9 +8139,27 @@
           ov.style.cssText='position:fixed;inset:0;z-index:1000;background:rgba(8,7,6,0.98);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);overflow-y:auto;-webkit-overflow-scrolling:touch';
           var _tierData=[
             {id:'free',name:'Free',features:['Unlimited planning sessions','Up to '+TIER_LIMITS.free.refreshesPerPlan+' refreshes per plan','Save up to '+TIER_LIMITS.free.maxSaves+' wishlist items','Basic filters']},
-            {id:'plus',name:'Plus',price:'£7.99/month',features:['Everything in Free','Unlimited refreshes','Unlimited saves','Advanced personalisation','Dietary precision & mood tuning','Couple & group taste-blending','Early access to new venues'],highlight:true},
-            {id:'members',name:'Members',price:'£34.99/month',features:['Everything in Plus','Exclusive members-only venues','Personal concierge','Priority support']}
+            {id:'plus',name:'Plus',price:'£7.99/month',rcPkg:'$rc_monthly',features:['Everything in Free','Unlimited refreshes','Unlimited saves','Advanced personalisation','Dietary precision & mood tuning','Couple & group taste-blending','Early access to new venues'],highlight:true},
+            {id:'members',name:'Members',price:'£34.99/month',rcPkg:'members_monthly',features:['Everything in Plus','Exclusive members-only venues','Personal concierge','Priority support']}
           ];
+          // Fetch live prices from RevenueCat
+          var _rcPrices={};
+          (async function(){
+            try{
+              var P=window.Capacitor?.Plugins?.Purchases;
+              if(!P)return;
+              var off=await P.getOfferings();
+              (off.current?.availablePackages||[]).forEach(function(p){
+                _rcPrices[p.identifier]=p.product?.priceString||null;
+              });
+              _tierData.forEach(function(t){
+                if(t.rcPkg&&_rcPrices[t.rcPkg]){
+                  var el=document.getElementById('tier-price-'+t.id);
+                  if(el)el.textContent=_rcPrices[t.rcPkg]+'/month';
+                }
+              });
+            }catch(e){}
+          })();
           var html='<div style="max-width:440px;margin:0 auto;padding:24px 18px calc(env(safe-area-inset-bottom,20px) + 24px)">';
           html+='<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px">';
           html+='<div style="font-family:var(--font-serif,serif);font-size:22px;font-weight:300;color:#fff">Your plan</div>';
@@ -8157,7 +8171,7 @@
             html+='<div style="'+bg+';'+border+';border-radius:16px;padding:22px 20px;margin-bottom:14px;position:relative">';
             if(isCurrent)html+='<div style="position:absolute;top:-10px;right:16px;padding:3px 12px;background:rgba(201,168,76,0.15);border:0.5px solid rgba(201,168,76,0.3);border-radius:20px;font-size:10px;font-weight:700;color:#C9A84C;letter-spacing:0.5px;text-transform:uppercase">Current</div>';
             html+='<div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px">'+t.name+'</div>';
-            if(t.price)html+='<div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:12px">'+t.price+'</div>';
+            if(t.price)html+='<div id="tier-price-'+t.id+'" style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:12px">'+t.price+'</div>';
             else html+='<div style="margin-bottom:8px"></div>';
             html+='<div style="display:flex;flex-direction:column;gap:8px">';
             t.features.forEach(function(f){
@@ -8166,32 +8180,70 @@
             html+='</div>';
             if(t.price&&_userTier!==t.id){
               var _btnStyle=t.id==='members'?'background:linear-gradient(135deg,#8B6914,#C9A84C);border:none':'background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3)';
-              html+='<button onclick="purchaseTier(\''+t.id+'\')" style="width:100%;margin-top:16px;padding:13px;'+_btnStyle+';border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Upgrade to '+t.name+'</button>';
+              html+='<button id="tier-btn-'+t.id+'" onclick="purchaseTier(\''+t.id+'\')" style="width:100%;margin-top:16px;padding:13px;'+_btnStyle+';border-radius:12px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit">Upgrade to '+t.name+'</button>';
             }
             html+='</div>';
           });
+          // Subscription terms (Apple guideline 3.1.2)
+          html+='<div style="margin-top:8px;padding:16px;background:rgba(255,255,255,0.02);border:0.5px solid rgba(255,255,255,0.06);border-radius:12px">';
+          html+='<div style="font-size:11px;color:rgba(255,255,255,0.35);line-height:1.7">';
+          html+='Plus and Members are monthly auto-renewing subscriptions. ';
+          html+='Payment is charged to your Apple ID account at confirmation of purchase. ';
+          html+='Subscriptions automatically renew unless cancelled at least 24 hours before the end of the current period. ';
+          html+='Your account will be charged for renewal within 24 hours prior to the end of the current period. ';
+          html+='You can manage or cancel your subscriptions in your device Settings &gt; Apple ID &gt; Subscriptions.';
+          html+='</div>';
+          html+='<div style="display:flex;gap:12px;margin-top:10px">';
+          html+='<a href="terms.html" target="_blank" style="font-size:11px;color:rgba(201,168,76,0.6);text-decoration:none">Terms of Use (EULA)</a>';
+          html+='<a href="privacy.html" target="_blank" style="font-size:11px;color:rgba(201,168,76,0.6);text-decoration:none">Privacy Policy</a>';
+          html+='</div></div>';
+          // Restore Purchases
+          html+='<button onclick="restorePurchases()" style="width:100%;margin-top:14px;padding:12px;background:none;border:none;color:rgba(255,255,255,0.35);font-size:13px;cursor:pointer;font-family:inherit;text-decoration:underline">Restore Purchases</button>';
           html+='</div>';
           ov.innerHTML=html;
           document.body.appendChild(ov);
         }
 
+        async function restorePurchases(){
+          var Purchases=window.Capacitor?.Plugins?.Purchases;
+          if(!Purchases){toast('Restore is only available in the app');return;}
+          try{
+            var result=await Purchases.restorePurchases();
+            var active=result.customerInfo.entitlements.active;
+            if(active['members']){_userTier='members';toast('Restored — Members active');}
+            else if(active['plus']){_userTier='plus';toast('Restored — Plus active');}
+            else{toast('No active subscription found');}
+          }catch(e){
+            toast('Could not restore purchases — try again later');
+          }
+        }
+
         async function purchaseTier(tierId){
           var Purchases=window.Capacitor?.Plugins?.Purchases;
-          if(!Purchases){console.error('RevenueCat not available');return;}
+          if(!Purchases){toast('Purchases are only available in the app');return;}
+          var btn=document.getElementById('tier-btn-'+tierId);
+          var origLabel=btn?btn.textContent:'';
+          if(btn){btn.textContent='Processing...';btn.style.opacity='0.6';btn.disabled=true;}
           try{
             var offerings=await Purchases.getOfferings();
             var pkg=offerings.current?.availablePackages.find(function(p){
               return tierId==='plus'?p.identifier==='$rc_monthly':p.identifier==='members_monthly';
             });
-            if(!pkg){console.error('Package not found for',tierId);return;}
+            if(!pkg){
+              toast('This plan is not available right now');
+              if(btn){btn.textContent=origLabel;btn.style.opacity='1';btn.disabled=false;}
+              return;
+            }
             var result=await Purchases.purchasePackage({aPackage:pkg});
             var ci=result.customerInfo;
             if(ci.entitlements.active['members'])_userTier='members';
             else if(ci.entitlements.active['plus'])_userTier='plus';
             document.getElementById('tier-screen-overlay')?.remove();
-            toast('✦ Welcome to '+(tierId==='members'?'Members':'Plus')+'!');
+            toast('Welcome to '+(tierId==='members'?'Members':'Plus')+'!');
           }catch(e){
-            if(!e.userCancelled)console.error('Purchase failed',e);
+            if(btn){btn.textContent=origLabel;btn.style.opacity='1';btn.disabled=false;}
+            if(e.userCancelled)return;
+            toast('Purchase could not be completed — please try again');
           }
         }
 
@@ -8235,7 +8287,6 @@
         // ── Members door ──
         var _mdoorMotion=true;
         function showMembersDoor(triggerReason){
-          console.log('[T4T DEBUG] showMembersDoor called, _userTier is:',_userTier);
           _trackEvent('members_door_shown',{trigger:triggerReason,current_tier:_userTier});
           var ov=document.getElementById('members-door-overlay');
           if(ov)ov.remove();

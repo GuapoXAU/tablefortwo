@@ -47,5 +47,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Table for Two uses your location to show local weather conditions and help you plan your date around the forecast. Your location is not stored or shared.</string>
 </dict>
 </plist>
